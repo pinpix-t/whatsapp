@@ -1,0 +1,1897 @@
+Mugs
+Most popular - Photo Mug - Standard - Small
+
+Type: Mug / Drinkware
+
+Shape: Cylindrical, straight-sided.
+
+Dimensions: Height: 9.5 cm. Diameter: 8 cm.
+
+Material: Gloss-coated ceramic.
+
+Finish: Highly reflective, mirror-like gloss.
+
+Key Visual Features: Classic D-handle. Flat base.
+
+State: Standing upright.
+
+Image Integration Rules: Placeholder image must be a seamless full-wrap around the cylindrical body, stopping at the handle junctions. The image must contour to the curvature without distortion. The glossy ceramic texture and reflectivity must remain fully visible, showing curved light bounce and specular highlights. No flattening or overprinting.
+
+
+
+Photo Mug - Standard - Medium
+
+Type: Mug / Drinkware
+
+Shape: Cylindrical, straight-sided.
+
+Dimensions: Height: 11 cm. Diameter: 8.5 cm.
+
+Material: Gloss-coated ceramic.
+
+Finish: Highly reflective, mirror-like gloss.
+
+Key Visual Features: Taller than small mug. Sturdy handle. Flat base.
+
+State: Standing upright.
+
+Image Integration Rules: Placeholder image must be a full-wrap, preserving the increased height and proportional diameter. The reflective gloss must not be obscured, ensuring the ceramic's tall profile and luminous finish are enhanced by the image, not hidden.
+
+
+
+Photo Mug - Standard - Large
+
+Type: Mug / Drinkware
+
+Shape: Cylindrical, straight-sided.
+
+Dimensions: Height: 13 cm. Diameter: 9.5 cm.
+
+Material: Gloss-coated ceramic.
+
+Finish: Highly reflective, mirror-like gloss.
+
+Key Visual Features: Oversized. Robust loop handle. Flat base.
+
+State: Standing upright.
+
+Image Integration Rules: Placeholder image must be a full-wrap with a narrow unprinted ceramic band (~3-5 mm) at the top and bottom rims. The wrap must contour smoothly without warping. Reflections, curvature, and gloss must remain visible through the image to maintain realism.
+
+
+
+Photo Mug - Magic
+
+Type: Mug / Drinkware
+
+Shape: Cylindrical, straight-sided.
+
+Dimensions: Height: 9.5 cm. Diameter: 8 cm.
+
+Material: Gloss-coated ceramic with thermal layer.
+
+Finish: Glossy black when cold, reveals colour image when hot.
+
+Key Visual Features: Appears with a central colour band and black top/bottom.
+
+State: Standing upright, shown in its "hot" state.
+
+Image Integration Rules: Placeholder image must be applied as a centered full-wrap, clearly revealed only through the central band. The top and bottom must retain the glossy black coating. The image must follow the mug’s curvature and respect the reflective ceramic gloss in the revealed areas, appearing naturally embedded within the fade.
+
+
+
+Photo Mug - Latte 
+
+Type: Mug / Drinkware
+
+Shape: Tall, narrow, and elongated. Tapered, curving silhouette. Significantly taller than it is wide. Wider at top, narrower at base.
+
+Dimensions: Height: 13 cm. Top Diameter: 9 cm. Base Diameter: 7 cm.
+
+Capacity: 500 ml.
+
+Material: Gloss-coated ceramic.
+
+Finish: Highly reflective gloss.
+
+Key Visual Features: Prominently tall and slender profile. Wide loop handle.
+
+State: Standing upright.
+
+Image Integration Rules: Placeholder image must be a tapered full-wrap, conforming naturally to the narrowing shape without distortion. Top and bottom rims must retain a narrow unprinted margin (~3-5 mm). Strong vertical specular highlights must run down the sides to emphasize the height and curvature. The image must not appear flat or stickered on. The overall impression must be of a tall, elegant mug, not a short, wide one.
+
+
+
+
+
+Photo Books
+
+
+
+Spiral Photo Book – 30x21cm (Closed)
+
+Type: Book / Photo Album
+
+Shape: Rectangular, portrait, landscape, or square orientation.
+
+Dimensions: 30 cm (width) x 21 cm (height) x ~1.2 cm (spine depth, variable with page count).
+
+Material: Gloss-coated card cover with 200gsm glossy inner pages.
+
+Finish: Smooth, glossy cover and pages.
+
+Key Visual Features:
+
+Bound with a visible silver wire spiral along the left edge.
+
+Flexible cover and lightweight feel.
+
+Slim profile, easy to flip through.
+
+State: Closed, resting on its base.
+
+Image Integration Rules:
+
+Placeholder cover image must be printed edge-to-edge across the front cover without distortion.
+
+Spiral binding must remain clearly visible, with no overlap from the image.
+
+Other Available Sizes and Orientations:
+
+Square: 20x20 cm
+
+Landscape: 30x21 cm (most popular)
+
+A4 Portrait: 21x30 cm
+
+Page Count: Up to 120 pages.
+
+
+
+Spiral Photo Book – Opened Flat
+
+
+Spiral Photo Book –  30x21cm (Opened)
+
+Type: Book / Photo Album
+
+Shape: Flat rectangle, portrait, landscape, or square orientation.
+
+Dimensions: ~60 cm (width) x 21 cm (height) (A4 Landscape when opened).
+
+Material: 200gsm glossy photo paper with spiral binding.
+
+Finish: High-gloss printed pages.
+
+Key Visual Features:
+
+Wire spiral visible along the spine when opened.
+
+Pages lie flat individually but rotate around the coil (not seamless layflat).
+
+Glossy printing with natural reflections.
+
+State: Opened to display a photo spread.
+
+Image Integration Rules:
+
+Placeholder imagery must be printed edge-to-edge across both pages.
+
+Center gap (spiral holes) must remain visible.
+
+Gloss reflections must follow paper curvature.
+
+Other Available Sizes and Orientations:
+
+Square: 20x20 cm
+
+Landscape: 30x21 cm (most popular)
+
+A4 Portrait: 21x30 cm
+
+Page Count: Up to 120 pages.
+
+
+
+Softcover Photo Book – 30x21cm (Closed)
+
+Type: Book / Photo Album
+
+Shape: Rectangular prism, portrait or square orientation.
+
+Dimensions: 30 cm (width) x 21 cm (height) x ~1 cm (spine depth for 20 pages, variable with page count).
+
+Material: Flexible card cover with standard photo paper inside.
+
+Finish: Smooth matte or glossy cover. Glossy or satin-finish inner pages.
+
+Key Visual Features:
+
+Lightweight and slim profile compared to hardcover books.
+
+Rounded spine with visible binding fold.
+
+Flexible cover that bends slightly when handled.
+
+State: Closed, resting on its base.
+
+Image Integration Rules:
+
+Placeholder cover image must be printed edge-to-edge across the front cover without borders.
+
+No distortion or misalignment along the spine fold.
+
+Other Available Sizes and Orientations:
+
+A5 Portrait: 21x15 cm
+
+Square: 20x20 cm
+
+Landscape: 30x21 cm (most popular)
+
+A4 Portrait: 21x30 cm
+
+Page Count: Up to 120 pages.
+
+Softcover Photo Book – Opened Flat
+
+
+
+Softcover Photo Book– 30x21cm (Opened)
+
+Type: Book / Photo Album
+
+Shape: Flat rectangle, portrait or square orientation.
+
+Dimensions: ~60 cm (width) x 21 cm (height) (opened double spread in landscape).
+
+Material: Standard 200gsm glossy or satin photo paper.
+
+Finish: Smooth printed pages, flexible binding.
+
+Key Visual Features:
+
+PUR binding with a visible crease at the center.
+
+Flexible pages that curve naturally at the spine.
+
+High-quality printing with vibrant colours.
+
+State: Opened, displaying a double-page spread.
+
+Image Integration Rules:
+
+Placeholder imagery must extend seamlessly across both pages.
+
+Center crease must remain visible (not layflat).
+
+Gloss reflections must follow page curvature.
+
+Other Available Sizes and Orientations:
+
+A5 Portrait: 21x15 cm
+
+Square: 20x20 cm
+
+Landscape: 30x21 cm (most popular)
+
+A4 Portrait: 21x30 cm
+
+Page Count: Up to 120 pages.
+
+
+
+
+Most popular - Photo Book - Hardcover Landscape - 30x20cm (Closed)
+
+Type: Book/ Photo Album
+
+Shape: Rectangular prism. Landscape orientation.
+
+Dimensions: 30 cm (width) x 20 cm (height) x ~2 cm (spine depth).
+
+Material: Gloss-laminated paperboard.
+
+Finish: Sharp, glossy finish.
+
+Key Visual Features: Square, sharp corners. Defined spine thickness.
+
+State: Closed, resting on its base.
+
+Image Integration Rules: Placeholder imagery must be printed edge-to-edge on the front cover without borders or misalignment, following the flat, glossy surface without distortion. Light must reflect off the cover to emphasize gloss texture.
+
+Other Available Sizes and Orientations:
+
+A5 Portrait: 21x15 cm
+
+Square: 20x20 cm, 27x27 cm
+
+Landscape: 30x21 cm (popular)
+
+Landscape: 40x30 cm
+
+
+Most popular - Photo Book - Hardcover Landscape  (Opened)
+
+Type: Book/ Photo Album
+
+Shape: Flat rectangle. Landscape orientation.
+
+Dimensions: 60 cm (width) x 20 cm (height).
+
+Material: Thick satin-finish paper.
+
+Finish: Soft-matte, low glare.
+
+Key Visual Features: Layflat spread. Visible paper texture.
+
+State: Opened flat.
+
+Image Integration Rules: Placeholder imagery must be printed as a continuous double-page spread, perfectly aligned with the fold and extending to all edges. No borders or distortion. The soft-matte texture and page thickness must remain visible.
+
+Other Available Sizes and Orientations:
+
+A5 Portrait: 21x15 cm
+
+Square: 20x20 cm, 27x27 cm
+
+Landscape: 30x21 cm (popular)
+
+Landscape: 40x30 cm
+
+
+
+Photo Book - Deluxe Fabric Hardcover  –  30x21cm (Closed)
+
+Type: Book / Photo Album
+
+Shape: Rectangular prism, Landscape orientation.
+
+Dimensions: 30 cm (width) x 21 cm (height) x ~2 cm (spine depth for 20 pages, variable with page count).
+
+Material: Hardcover bound in luxurious viscose fabric.
+
+Finish: Fabric-textured matte cover (available in Timeless Beige, Elegant Black, Modern Grey).
+
+Key Visual Features:
+
+Solid hardcover wrapped in elegant woven fabric.
+
+Square, sharp corners.
+
+Clean spine with PUR binding.
+
+Premium but lighter feel compared to layflat books.
+
+State: Closed, resting on its base.
+
+Image Integration Rules:
+
+No imagery printed on the fabric cover — it remains a solid colour.
+
+Fabric weave must be clearly visible.
+
+Other Available Sizes and Orientations:
+
+A5 Portrait: 21x15 cm
+
+Square: 20x20 cm, 27x27 cm
+
+Landscape: 30x21 cm (most popular)
+
+Available Covers:
+
+Beige, Black, Grey
+
+Page Count: Up to 120 pages.
+
+
+
+Deluxe Fabric Photo Book – Opened Flat
+
+Deluxe Fabric Hardcover – 30x21cm (Opened)
+
+Type: Book / Photo Album
+
+Shape: Flat rectangle, landscape orientation.
+
+Dimensions: ~60 cm (width) x 21 cm (height) when fully opened (A4 Landscape).
+
+Material: 200gsm standard glossy paper.
+
+Finish: High-gloss printed pages.
+
+Key Visual Features:
+
+PUR binding with a visible center crease (not layflat).
+
+Pages are flexible and curve slightly near the spine.
+
+High-definition glossy printing.
+
+State: Opened, displaying a double-page spread.
+
+Image Integration Rules:
+
+Placeholder images must be applied as double-page spreads.
+
+Center crease must remain visible.
+
+Gloss reflections must follow paper curvature.
+
+Other Available Sizes and Orientations:
+
+A5 Portrait: 21x15 cm
+
+Square: 20x20 cm, 27x27 cm
+
+Landscape: 30x21 cm (most popular)
+
+Available Covers:
+
+Beige, Black, Grey
+
+Page Count: Up to 120 pages.
+
+
+
+Layflat Photo Book – Closed
+
+Layflat Hardcover –  30x20cm (Closed)
+
+Type: Book / Photo Album
+
+Shape: Rectangular prism, landscape orientation.
+
+Dimensions: 30 cm (width) x 20 cm (height) x ~2.5 cm (spine depth).
+
+Material: Premium laminated hardcover with ultra-thick layflat pages.
+
+Finish: Matte or glossy cover laminate.
+
+Key Visual Features:
+
+Solid, weighty feel thanks to thick layflat binding.
+
+Sharp, square corners and defined spine.
+
+Smooth hardcover surface, customizable with edge-to-edge cover design.
+
+State: Closed, resting on its base.
+
+Image Integration Rules:
+
+Placeholder image must be printed edge-to-edge across the front cover without distortion or borders.
+
+Cover design must follow the flat glossy/matte surface and remain aligned with square edges.
+
+Other Available Sizes and Types:
+
+Square 20x20 cm
+
+A4 Portrait 20x30 cm
+
+Landscape 30x20 cm (most popular)
+
+Page Count: Up to 40 pages.
+
+
+
+Layflat Photo Book – Opened Flat
+
+Layflat Hardcover –30x20cm (Opened)
+
+Type: Book / Photo Album
+
+Shape: Flat rectangle, landscape orientation.
+
+Dimensions: 60 cm (width) x 20 cm (height) when opened flat.
+
+Material: Premium layflat paper with ultra-thick page construction.
+
+Finish: Matte or satin pages with low glare.
+
+Key Visual Features:
+
+Seamless layflat binding — no visible crease, perfect for panoramic images.
+
+Extra-thick, rigid pages that lie completely flat in one continuous horizontal line — no lift, curve, or bend.
+
+Edge-to-edge printing across spreads.
+
+State: Fully opened, lying perfectly flat in one plane, with both pages aligned in a single unbroken line.
+
+Image Integration Rules:
+
+Placeholder images must extend seamlessly across both pages with no misalignment or gap at the spine.
+
+Paper texture and thickness must remain visible.
+
+Full-bleed printing must reach the edges without white borders.
+
+Other Available Sizes and Types:
+
+Square 20x20 cm
+
+A4 Portrait 20x30 cm
+
+Landscape 30x20 cm (most popular)
+
+Page Count: Up to 40 pages.
+
+
+Premium Layflat Photo Book – Closed
+
+Premium Layflat Hardcover – 30x20cm (Closed)
+
+Type: Book / Photo Album
+
+Shape: Rectangular prism, landscape orientation.
+
+Dimensions: 30 cm (width) x 20 cm (height) x ~2.5–3 cm (spine depth, depending on page count).
+
+Material: Italian fabric hardcover binding with premium layflat paper inside.
+
+Finish: Elegant woven textile finish on the cover (available in Beige, Black, or Gray). Subtle matte sheen with tactile fabric texture.
+
+Key Visual Features:
+
+Luxury woven fabric cover with no printed imagery.
+
+Square, sharp corners.
+
+Defined spine, thicker than standard hardcover due to layflat binding.
+
+Premium, high-quality presentation with a modern, minimalist aesthetic.
+
+State: Closed, resting on its base.
+
+Image Integration Rules:
+
+No printed design on the Italian fabric cover.
+
+Cover must appear as a solid colour fabric (Beige, Black, or Gray).
+
+Texture of woven textile must remain clearly visible.
+
+Other Available Sizes:
+
+Square 20x20 cm
+
+A4 Portrait 20x30 cm
+
+Landscape 30x20 cm (most popular)
+
+Available Covers:
+
+Premium Italian Fabric (Beige, Black, Gray)
+
+Page Count: 20, 30, or 40 layflat pages.
+
+Premium Layflat Photo Book – Opened Flat
+
+
+
+Premium Layflat Hardcover – 30x20cm (Opened)
+
+Type: Book / Photo Album
+
+Shape: Flat rectangle, landscape orientation.
+
+Dimensions: 60 cm (width) x 20 cm (height) when fully opened.
+
+Material: Ultra-thick premium layflat paper with Italian fabric cover.
+
+Finish: Matte or satin pages with low glare.
+
+Key Visual Features:
+
+Seamless layflat binding — no gutter loss, panoramic images flow edge-to-edge.
+
+Thick, rigid pages that stay perfectly flat in a single plane — no upward lift at the centre or edges.
+
+Crisp, high-quality printing with sharp details and vibrant colours.
+
+State: Opened flat, both pages forming a perfectly straight, continuous horizontal surface without curvature.
+
+Image Integration Rules:
+
+Placeholder imagery must print seamlessly across both pages.
+
+No visible crease or interruption in the image.
+
+Full-bleed printing must extend to page edges with no white margins.
+
+Page thickness and quality must be clearly visible.
+
+Other Available Sizes:
+
+Square 20x20 cm
+
+A4 Portrait 20x30 cm
+
+Landscape 30x20 cm (most popular)
+
+Available Covers:
+
+Premium Italian Fabric (Beige, Black, Gray)
+
+Page Count: 20, 30, or 40 layflat pages.
+
+
+Photo Book - Black Leather Cover -  (30x21cm) (Closed)
+
+Type: Book / Photo Album
+
+Shape: Rectangular prism. Landscape orientation.
+
+Dimensions: 30 cm (width) x 21 cm (height).
+
+Spine Depth: ~0.5 cm for 20 pages. ~1.5 cm.
+
+Material: Soft textured faux leather cover.
+
+Finish: Matte finish with a consistent, embossed texture.
+
+Key Visual Features: Standard binding. Spine thickness must be visually accurate to the page count. Sharp, square corners.
+
+State: Closed, resting on its base.
+
+Image Integration Rules:
+
+The cover is a solid black colour. No imagery is printed on the cover itself.
+
+The textured pattern of the faux leather must be the dominant visual feature.
+
+Other Available Sizes:
+
+Small landscape: 21 cm (width) x 15 cm (height)
+
+Square: 20 cm (width) x 20 cm (height)
+
+Large Square: 27 cm (width) x 27 cm (height)
+
+
+Photo Book - Black Leather Cover - (Opened)
+
+Type: Book / Photo Album
+
+Shape: Flat rectangle. Landscape orientation.
+
+Dimensions: 60 cm (width) x 21 cm (height).
+
+Material: Thin, flexible 200 gsm paper.
+
+Finish: Matte or semi-gloss paper finish.
+
+Key Visual Features: Standard binding (not layflat). Pages are thin and flexible, creating a slight, natural curve when open. Minimum 20 pages.
+
+State: Opened flat, showing a full spread.
+
+Image Integration Rules:
+
+Placeholder imagery must be printed as double-page spreads.
+
+The thin, flexible nature of the paper must be visible (slight curve, gentle page lift).
+
+No distortion at the spine.
+
+Other Available Sizes:
+
+Small landscape: 42 cm (width) x 15 cm (height)
+
+Square: 40 cm (width) x 20 cm (height)
+
+Large Square: 54 cm (width) x 27 cm (height)
+
+
+
+Photo Book - Leather Window Cutout -  (30x21cm) (Closed)
+
+Type: Book / Photo Album
+
+Shape: Rectangular prism. Landscape orientation.
+
+Dimensions: 30 cm (width) x 21 cm (height).
+
+Spine Depth: ~0.5 cm for 20 pages. ~1.5 cm 
+
+Material: Soft textured faux leather cover with a precision-cut window.
+
+Finish: Matte finish with a consistent, embossed texture.
+
+Key Visual Features: Standard binding. A clean, precise cutout window on the front cover. Spine thickness must be accurate to page count.
+
+State: Closed, resting on its base.
+
+Image Integration Rules:
+
+The cover is a solid colour.
+
+The textured pattern of the faux leather must be clearly visible.
+
+The placeholder image is printed on the first page and must be perfectly aligned and visible through the cutout window.
+
+The clean edges of the cutout must be sharply defined.
+
+Other Available Sizes:
+
+A5 (Portrait): 21x15 cm
+
+Square: 20x20 cm
+
+
+Photo Book - Leather Window Cutout - (30x21cm) (Opened)
+
+Type: Book / Photo Album
+
+Shape: Flat rectangle. Landscape orientation.
+
+Dimensions: 60 cm (width) x 21 cm (height).
+
+Material: Thin, flexible 200 gsm paper.
+
+Finish: Matte or semi-gloss paper finish.
+
+Key Visual Features: Standard binding. Pages are thin and flexible.
+
+State: Opened flat, showing inner pages.
+
+Image Integration Rules:
+
+Placeholder imagery must be printed as double-page spreads.
+
+The image on the first page must be positioned to align with the window cutout.
+
+The thin, flexible quality of the paper must be visible.
+
+Other Available Sizes:
+
+A5 (Portrait): 21x15 cm
+
+Square: 20x20 cm
+
+
+Acrylic Cover Photo Book – Closed
+
+Acrylic Cover Photo Album – 16x12" (Closed)
+
+Type: Book / Photo Album
+
+Shape: Rectangular prism,landscape orientation.
+
+Dimensions: 16 in (width) x 12 in (height) x ~3 cm (spine depth, variable with page count).
+
+Material: Acrylic front panel with fabric-bound spine and back cover. Premium layflat paper inside.
+
+Finish: Glossy acrylic front overlay with smooth edge-to-edge image beneath. Fabric spine and back cover (available in Black, Gray, Beige).
+
+Key Visual Features:
+
+Clear acrylic front creates a glossy, high-definition window effect.
+
+Printed photo sits directly under the acrylic, vibrant and protected.
+
+Luxury fabric binding wraps the spine and rear cover.
+
+Thick, premium feel with sharp edges.
+
+State: Closed, resting on its base.
+
+Image Integration Rules:
+
+Placeholder image must be positioned behind the clear acrylic panel.
+
+Full-bleed image must align perfectly with acrylic edges.
+
+Acrylic surface must retain glossy reflections.
+
+Fabric cover must appear solid coloured with texture visible.
+
+Other Available Sizes and Orientations:
+
+Square: 8x8 in, 12x12 in
+
+Landscape: 12x8 in, 16x12 in (most popular)
+
+Available Covers:
+
+Black
+
+Gray
+
+Beige
+
+Page Count: Up to 50 pages (layflat).
+
+
+
+Acrylic Cover Photo Book – Opened Flat
+
+Acrylic Cover Photo Album – 16x12" (Opened)
+
+Type: Book / Photo Album
+
+Shape: Flat rectangle,  landscape orientation.
+
+Dimensions: ~32 in (width) x 12 in (height) when fully opened (16x12 Landscape).
+
+Material: Ultra-thick layflat photo paper with acrylic-bound front cover.
+
+Finish: Satin or matte layflat pages with low glare.
+
+Key Visual Features:
+
+Seamless layflat binding — pages form a single unbroken plane.
+
+Extra-thick, rigid pages that lie perfectly flat in one continuous line — no lift, bend, or curvature.
+
+Panoramic images extend edge-to-edge with no rise at the spine.
+
+Edges cut with sharp precision.
+
+State: Fully opened, lying in one continuous horizontal plane, with both pages aligned perfectly flat as a single uninterrupted surface.
+
+Image Integration Rules:
+
+Placeholder image must extend seamlessly across both pages.
+
+No gutter loss — images must align perfectly across the layflat binding.
+
+Page texture and thickness must remain visible.
+
+Other Available Sizes and Orientations:
+
+Square: 8x8 in, 12x12 in
+
+Landscape: 12x8 in, 16x12 in (most popular)
+
+Available Covers:
+
+Black
+
+Gray
+
+Beige
+
+Page Count: Up to 50 pages (layflat).
+
+
+
+Photo Book - Acrylic Edge Photo Album – Closed
+
+Acrylic Edge Photo Album – 16x12" (Closed)
+
+Type: Book / Photo Album
+
+Shape: Rectangular prism, landscape orientation.
+
+Dimensions: 16 in (width) x 12 in (height) x ~3 cm (spine depth, variable with page count).
+
+Material: Front cover features a vertical acrylic panel positioned along the outer edge (right-hand side when closed), combined with a fabric-bound spine and back cover. Premium layflat paper inside.
+
+Finish: Glossy acrylic edge panel overlay with fabric-textured binding (available in Black, Gray, Beige).
+
+Key Visual Features:
+
+Acrylic panel extends from top-to-bottom along the outer edge of the front cover.
+
+Printed photo sits beneath the acrylic strip, vibrant and high-definition.
+
+Remaining cover is solid-colour fabric with visible texture.
+
+Thick, substantial profile with a luxury presentation.
+
+State: Closed, resting on its base.
+
+Image Integration Rules:
+
+Placeholder image must align precisely under the vertical acrylic panel.
+
+Acrylic surface must display glossy reflections.
+
+Fabric section must remain unprinted, showing its woven texture.
+
+Other Available Sizes and Orientations:
+
+Square: 8x8 in, 12x12 in
+
+Landscape: 12x8 in, 16x12 in (most popular)
+
+Available Covers:
+
+Black
+
+Gray
+
+Beige
+
+Page Count: Up to 50 pages (layflat).
+
+Acrylic Edge Photo Album – Opened Flat
+
+
+
+Photo Book - Acrylic Edge Photo Album – 16x12" (Opened)
+
+Type: Book / Photo Album
+
+Shape: Flat rectangle, landscape orientation.
+
+Dimensions: ~32 in (width) x 12 in (height) (16x12 Landscape when opened).
+
+Material: Ultra-thick premium layflat photo paper with acrylic/fabric hybrid cover.
+
+Finish: Satin or matte layflat pages with low glare.
+
+Key Visual Features:
+
+Seamless layflat binding — pages remain completely flat across the spread.
+
+Rigid pages that stay perfectly flat in a single plane, no curvature or lift at the centre.
+
+Edge-to-edge placeholders flow naturally across the fold.
+
+Acrylic edge panel is only on the front cover’s outer edge (not visible when open).
+
+State: Opened fully, both pages forming a straight, continuous line with no visible bend.
+
+Image Integration Rules:
+
+Placeholder image must extend seamlessly across both pages.
+
+No gutter loss — image must align perfectly across the layflat fold.
+
+Page texture, thickness, and premium finish must remain visible.
+
+Other Available Sizes and Orientations:
+
+Square: 8x8 in, 12x12 in
+
+Landscape: 12x8 in, 16x12 in (most popular)
+
+Available Covers:
+
+Black
+
+Gray
+
+Beige
+
+Page Count: Up to 50 pages (layflat).
+
+
+
+Photo Book - Acrylic Window Photo Album – Closed
+
+Acrylic Window Photo Album – 16x12" (Closed)
+
+Type: Book / Photo Album
+
+Shape: Rectangular prism, landscape orientation.
+
+Dimensions: 16 in (width) x 12 in (height) x ~3 cm (spine depth, variable with page count).
+
+Material: Fabric hardcover with a square acrylic window panel inset into the front cover (right-hand side). Premium layflat paper inside.
+
+Finish: Matte woven-textured fabric cover (Black, Gray, or Beige) with a glossy acrylic window displaying a photo from the first page.
+
+Key Visual Features:
+
+Fabric cover with a precisely cut square window on the front cover’s right-hand side.
+
+Window is filled with a glossy acrylic panel, showcasing the first page image beneath.
+
+Clean, modern design with contrast between matte fabric and glossy acrylic.
+
+Substantial, rigid hardcover with sharp corners.
+
+State: Closed, resting on its base.
+
+Image Integration Rules:
+
+Placeholder image must align perfectly within the square acrylic window cutout.
+
+Acrylic panel must show realistic glossy reflections.
+
+Fabric must remain solid coloured, with visible woven texture.
+
+Other Available Sizes and Orientations:
+
+Square: 8x8 in, 12x12 in
+
+Landscape: 12x8 in, 16x12 in (most popular)
+
+Available Covers:
+
+Black
+
+Gray
+
+Beige
+
+Page Count: Up to 50 pages (layflat).
+
+Acrylic Window Photo Album – Opened Flat
+
+
+
+Photo Book - Acrylic Window Photo Album – 16x12" (Opened)
+
+Type: Book / Photo Album
+
+Shape: Flat rectangle, landscape orientation.
+
+Dimensions: ~32 in (width) x 12 in (height) when fully opened (16x12 Landscape).
+
+Material: Ultra-thick premium layflat photo paper.
+
+Finish: Satin or matte pages with low glare.
+
+Key Visual Features:
+
+Seamless layflat binding — pages remain completely flat across the spread.
+
+Rigid pages that stay perfectly flat in a single plane, no curvature or lift at the centre.
+
+Edge-to-edge placeholders flow naturally across the fold.
+
+The acrylic window feature is exclusive to the front cover’s right-hand side and is not visible inside the book.
+
+State: Opened fully, both pages forming a straight, continuous line with no visible bend.
+
+Image Integration Rules:
+
+Placeholder image must extend seamlessly across both pages.
+
+No gutter loss — perfect alignment across the layflat fold.
+
+Paper thickness and low-glare finish must remain visible.
+
+Other Available Sizes and Orientations:
+
+Square: 8x8 in, 12x12 in
+
+Landscape: 12x8 in, 16x12 in (most popular)
+
+Available Covers:
+
+Black
+
+Gray
+
+Beige
+
+Page Count: Up to 50 pages (layflat).
+
+
+Photo Blankets
+
+
+Photo Blankets - Fleece Blanket
+
+Most popular – Fleece Blanket – Throw 127x152 cm
+
+Type: Blanket / Textile
+
+Shape: Rectangular, soft.
+
+Dimensions:
+
+Baby: 51 x 63 cm
+
+Medium: 76 x 102 cm
+
+Throw: 127 x 152 cm (most popular)
+
+Queen: 152 x 203 cm
+
+Material: Lightweight microfibre polyester.
+
+Finish: Smooth fleece surface, thin and matte.
+
+Key Visual Features:
+
+Lightest and thinnest option.
+
+Simple stitched edge binding.
+
+Soft to the touch but less plush than Cosy Fleece or Sherpa.
+
+State: Spread flat, folded, or draped.
+
+Image Integration Rules:
+
+Placeholder image must be printed edge-to-edge on the fleece surface.
+
+Printed design should remain clear with subtle fleece texture visible.
+
+
+
+Photo Blankets - Cosy Fleece Blanket
+
+ Cosy Fleece Blanket – Throw 127x152 cm
+
+Type: Blanket / Textile
+
+Shape: Rectangular, thicker fleece.
+
+Dimensions:
+
+Baby: 51 x 63 cm
+
+Medium: 76 x 102 cm
+
+Throw: 127 x 152 cm (most popular)
+
+Queen: 152 x 203 cm
+
+Material: Plush fleece polyester.
+
+Finish: Thicker, warmer fleece with a deeper matte finish.
+
+Key Visual Features:
+
+Fluffier and denser than standard fleece.
+
+Simple stitched edge binding.
+
+Offers extra warmth without being as heavy as Sherpa.
+
+State: Spread flat, folded, or draped.
+
+Image Integration Rules:
+
+Placeholder image must be printed edge-to-edge.
+
+Soft fleece pile should remain visible beneath the print.
+
+
+
+Photo Blankets - Sherpa Fleece Blanket
+
+Sherpa Blanket – Throw 127x152 cm
+
+Type: Blanket / Textile
+
+Shape: Rectangular, double-sided.
+
+Dimensions:
+
+Baby: 51 x 63 cm
+
+Medium: 76 x 102 cm
+
+Throw: 127 x 152 cm (most popular)
+
+Queen: 152 x 203 cm
+
+Material: Soft fleece front with fluffy sherpa backing.
+
+Finish: Smooth printed fleece front, plush sherpa underside.
+
+Key Visual Features:
+
+Thickest and cosiest fleece option.
+
+Distinctive sherpa texture on the reverse (usually white).
+
+Finished edges with folded seam binding.
+
+State: Folded to reveal both sides, draped, or spread flat.
+
+Image Integration Rules:
+
+Placeholder image must cover fleece front only.
+
+White sherpa underside must remain visible at folds and edges.
+
+
+
+Photo Blankets - Woven Blanket
+
+ Woven Blanket – Throw 127x152 cm
+
+Type: Blanket / Textile
+
+Shape: Rectangular with fringed edges.
+
+Dimensions:
+
+Baby: 51 x 63 cm
+
+Medium: 76 x 102 cm
+
+Throw: 127 x 152 cm (most popular)
+
+Queen: 152 x 203 cm
+
+Material: Cotton/polyester woven textile.
+
+Finish: Textured woven surface with matte look.
+
+Key Visual Features:
+
+Decorative fringed edges.
+
+Heavier and more durable than fleece styles.
+
+Printed design is woven into the fabric, giving a tapestry-like feel.
+
+State: Spread flat, folded, or draped.
+
+Image Integration Rules:
+
+Placeholder image must be integrated into the woven texture.
+
+Weave pattern must remain visible across the design.
+
+
+
+Photo Calendar
+
+Most popular - Photo Calendar - Wall - A4 (21x30cm)
+
+Type: Calendar / Wall Hanging
+
+Shape: Vertical rectangle (Portrait orientation).
+
+Dimensions: 21 cm (width) x 30 cm (height).
+
+Material: Cardstock paper.
+
+Finish: Satin or semi-gloss finish.
+
+Key Visual Features: White metal spiral coil binding at the top. A single punch hole for hanging.
+
+State: Hung vertically on a wall, page taut and flat.
+
+Image Integration Rules: Placeholder imagery must be printed within the upper image section (top 50-60%), maintaining clean borders and avoiding any overlay or distortion of the date grid. The grid is a 7x6 layout of empty white boxes with the days "S M T W T F S" in the top row. No numbers in the date boxes. Light reflections must follow the paper surface without flattening its texture.
+
+Other Available Sizes:
+
+A5 (Portrait): 15 cm (width) x 21 cm (height)
+
+A3 (Portrait): 30 cm (width) x 42 cm (height)
+
+
+
+Photo Calendar - Wall Calendar - Double - (21x30cm)
+
+Type: Calendar /  Wall
+
+Shape: Vertical rectangle (Portrait orientation). Center-bound.
+
+Dimensions: Approximately 21 cm (width) x 30 cm (height) when closed.
+
+Material: Cardstock paper.
+
+Finish: Satin or semi-gloss finish.
+
+Key Visual Features: Bound along the center spine with a metal wire. Lies completely flat when open. Simultaneously displays two monthly grids (e.g., current and following month). Grid includes days of the week and date numbers.
+
+Dynamic State 1:  hanging flush on a wall
+
+Dynamic State 2:  positioned flat on a surface (overhead view) 
+
+Image Integration Rules: Placeholder imagery must be printed above or around the calendar grids, maintaining clean borders. The printed date numbers and grid structure must remain perfectly legible and must not be overlayed or distorted. Light reflections must follow the paper surface.
+
+Other Available Sizes: (Based on your previous input)
+
+A4: 21x30 cm
+
+A3: 30x42 cm
+
+
+
+Photo Calendar - Desk Calendar - Tent Stand - (21x15cm)
+
+Type: Calendar / Desk
+
+Shape: Horizontal rectangle (Landscape orientation). Wire-bound at the top edge.
+
+Dimensions: Approximately 21 cm (height) x 15 cm (width) when standing.
+
+Material: Cardstock paper.
+
+Finish: Satin or semi-gloss finish.
+
+Key Visual Features: Wire-bound along the top edge with a metal spiral binding. Stands upright on a triangular tent base. Displays a single month per page with clear date numbers and day-of-week labels. Large area available for personalized photo(s) alongside the calendar grid.
+
+State: Shown standing on a flat desk surface in a triangular (tent) position.
+
+Image Integration Rules: Custom images printed on the left or top portion of each page. Calendar grid positioned cleanly on the right or lower section with no overlay or distortion. Photos fill their section edge-to-edge, maintaining clean borders.
+
+
+
+Photo Canvas
+
+Most popular - Photo Canvas - Square - 20x20cm
+
+Type: Wall Art / Canvas
+
+Shape: Thick, stretched rectangle. Square, portrait, or landscape orientation.
+
+Dimensions: 20 cm (width) x 20 cm (height) x ~3 cm (depth).
+
+Material: Poly-cotton canvas stretched over a wooden frame.
+
+Finish: Matte with visible woven canvas texture.
+
+Key Visual Features: Wrapped edges (gallery wrap) with neatly folded corners. Fabric tension across the frame highlights natural canvas texture.
+
+Dynamic State 1: Hanging flush on a wall 
+
+Dynamic State 2: or leaning upright (if single)
+
+Image Integration Rules: Placeholder image must be printed edge-to-edge across the front and continue seamlessly around the sides. Corners must remain neatly folded, with canvas weave visible on all surfaces.
+
+Other Available Sizes and Orientations:
+
+Square: 20x20cm
+
+Landscape: 30x20cm, 60x30cm
+
+Portrait: 40x30cm, 60x40cm
+
+
+Photo Canvas - Framed Canvas - Portrait - 40x50cm
+
+Type: Wall Art / Canvas
+
+Shape: Thick, stretched rectangle suspended inside a decorative frame with a small gap. Available in square, portrait, and landscape orientations.
+
+Dimensions: 40 cm (width) x 50 cm (height) x ~3.6 cm (canvas depth) + slim outer frame border.
+
+Material: Stretched poly-cotton canvas, mounted inside a floating decorative frame.
+
+Finish: Matte with visible woven canvas texture. Outer frame available in Black, White, or Walnut.
+
+Key Visual Features:
+
+Canvas is tension-stretched with wrapped edges.
+
+A slim gap is visible between the canvas edge and the decorative frame, creating a floating, gallery-style effect.
+
+Neatly folded corners with authentic fabric texture.
+
+Outer frame adds structure and contrast without touching the canvas surface.
+
+Dynamic State 1: Hanging flush on a wall 
+
+Dynamic State 2: leaning upright on a surface.
+
+Image Integration Rules: The placeholder image must be printed edge-to-edge across the front of the canvas and continue onto its wrapped sides. The floating gap between the canvas and frame must remain visible and consistent, highlighting depth and dimension.
+
+Other Available Sizes and Orientations:
+
+Square: 20x20cm, 25x25cm, 30x30cm, 40x40cm
+
+Portrait: 25x30cm, 30x40cm, 40x50cm (most popular), 40x60cm
+
+Landscape: 30x25cm, 40x30cm, 50x40cm, 60x40cm
+
+
+Photo Cushion
+
+Most popular - Photo Cushion - Square - 45x45cm
+
+Type: Cushion / Home Decor
+
+Shape: Square, plump.
+
+Dimensions: 45 cm (width) x 45 cm (height) x ~10 cm (depth).
+
+Material: Matte-finish polyester.
+
+Finish: Soft, matte, light-absorbing.
+
+Key Visual Features: Plump, filled volume. Gently rounded corners. Concealed zip.
+
+Dynamic State 1:  Propped upright (on a chair/ sofa etc.)
+
+Dynamic State 2: Resting on a surface (overhead view) 
+
+Image Integration Rules: Placeholder image must be printed edge-to-edge across the front panel, and a separate one across the back panel both maintaining clarity over gentle surface curves. The design must follow the natural pillow contour without stretching or flattening. Seam shape and light absorption must be clearly rendered.
+
+Other Available Sizes and Orientations:
+
+Square: 30x30cm, 45x45cm, 60x60cm, 100x100cm 
+
+Landscape: 45x30cm
+
+
+
+
+Framed Photo Prints
+Most popular - Framed Photo Print - Landscape - 20x15cm (A5)
+
+Type: Wall Art / Frame / Tabletop
+
+Shape: Rectangular prism. landscape orientations.
+
+Dimensions: 20 cm (width) x 15 cm (height) x ~2 cm (depth).
+
+Material: MDF frame with protective acrylic glass front.
+
+Finish: Matte frame, glossy acrylic glass surface.
+
+Key Visual Features: Slim, modern frame with square corners. Centred image sits behind clear acrylic, producing subtle reflections and glare. Even margins ensure balanced presentation.
+
+Dynamic State 1:  stand upright on a flat surface (shelf, desk, or mantel).
+
+Dynamic State 2: Hanging flush on a wall
+
+Image Integration Rules: Placeholder image must be displayed fully centred, filling the visible photo area without distortion or skew. Acrylic front should show realistic reflections and soft highlights. Frame colour must be clean and consistent, with joins clearly visible at the corners.
+
+Other Available Sizes and Orientations:
+
+Landscape:
+
+20x15cm  — most popular
+
+30x21cm 
+
+42x30cm 
+
+58x40cm 
+
+84x59cm 
+
+Portrait:
+
+15x20cm (A5)
+
+21x30cm (A4)
+
+30x42cm (A3)
+
+40x58cm (A2)
+
+59x84cm (A1)
+
+Frame Colours Available: Black, White, Oak
+
+
+Framed Prints
+
+Most popular - Photo Print - Landscape - 30x20cm
+
+Type: Photographic Print / Tabletop
+
+Shape: Thin, flat rectangle. Landscape orientation.
+
+Dimensions: 30 cm (width) x 20 cm (height).
+
+Material: Premium 200gsm Magno Gloss paper.
+
+Finish: Semi-gloss (satin) finish.
+
+Key Visual Features: Absolutely borderless. Precise cut edges. Thin and flexible.
+
+State:
+
+Dynamic State 1: In a neat stack with other prints, slightly offset to show multiple edges.
+
+Dynamic State 2: Held between thumb and forefinger.
+
+Dynamic State 3: Clipped to a string line with wooden pegs.
+
+Dynamic State 4: Taped (to a board/ fridge/ wardrobe etc) .
+
+Image Integration Rules: Each print must show a separate image The image must be a seamless edge-to-edge print with zero borders.The semi-gloss sheen must be visible on the surface.Use prompt clauses: seamless edge-to-edge printing, zero borders, no white edges
+
+Other Available Sizes: 25x20cm, 20x15cm, 18x13cm, 15x10cm (All Landscape)
+
+
+
+Metal Prints
+Most popular - Metal Print - Portrait - 20x30cm
+
+Type: Wall Art / Print
+
+Shape: Thin, rigid rectangle. Portrait orientation.
+
+Dimensions: 20 cm (width) x 30 cm (height) x ~0.2 cm (depth).
+
+Material: Aluminium sheet.
+
+Finish: High-gloss, intensely reflective.
+
+Key Visual Features: Sharp, square corners. Cleanly cut edges with a slight bevel.
+
+Dynamic State 1: Leaning upright
+
+Dynamic State 2: Hanging flush on a wall.
+
+Image Integration Rules: The placeholder image must be printed edge-to-edge without any borders. The high-gloss finish must remain fully visible, represented by sharp, bright specular highlights and a clear directional sheen. The image must appear embedded within the metal surface. Use of high-contrast images is recommended.
+
+Other Available Sizes and Orientations:
+
+Square: 20x20cm, 25x25cm, 30x30cm
+
+Landscape: 25x18cm, 36x28cm
+
+Portrait: 18x25cm, 28x36cm
+
+
+
+Photo Tile
+Most popular - Photo Tile - Square - 20x20cm
+
+Type: Wall Art / Tile
+
+Shape: Thin, flat square.
+
+Dimensions:
+
+20 cm (width) x 20 cm (height) x ~0.5 cm (depth).
+
+15 cm (width) x 15 cm (height) x ~0.5 cm (depth).
+
+Material: MDF with laminated print surface.
+
+Finish: Semi-gloss laminate with a smooth, wipeable surface.
+
+Key Visual Features: Ultra-slim profile with sharp, right-angled edges. Lightweight and modern appearance.
+
+Dynamic State 1: Hanging flush on a wall.
+
+Dynamic State 2: On a flat surface (overhead view) 
+
+Image Integration Rules: Placeholder image must be applied edge-to-edge, fully covering the square face. The laminate finish should display a soft reflective sheen while keeping the image sharp and vibrant. Edges must remain clean and uninterrupted.
+
+Other Available Sizes and Pack Options:
+
+Sizes:
+
+15x15cm
+
+20x20cm (Premium & most popular)
+
+Pack Options:
+
+Single
+
+Pack of 3
+
+Pack of 4
+
+Pack of 6
+
+Pack of 9 (most popular in 15x15cm)
+
+Pack of 12
+
+
+Framed Photo Tile
+Most popular - Framed Photo Tile - Square - 20x20cm
+
+Type: Wall Art / Tile with Frame
+
+Shape: Thin, flat square or rectangle, set within a modern frame.
+
+Dimensions: 20 cm (width) x 20 cm (height) x ~2 cm (depth including frame).
+
+Material: MDF photo tile with semi-gloss laminate, mounted inside an eco-friendly ABS frame. Optional 5 mm premium foam mountboard for added depth and presentation.
+
+Finish: Semi-gloss tile surface with matte frame.
+
+Key Visual Features:
+
+Slim, modern frame with clean square edges.
+
+Optionally enhanced with a white mountboard to create a more classic, gallery-style effect.
+
+Without mountboard: modern, borderless floating effect within the frame.
+
+Lightweight and durable thanks to ABS construction, resistant to cracks, warping, and UV damage.
+
+Dynamic State 1: Hanging flush on a wall.
+
+Dynamic State 2: Leaning upright on a shelf
+
+Image Integration Rules: Placeholder image must be printed edge-to-edge across the tile surface. With the mountboard option selected, a clean white border must surround the image inside the frame. Reflections should remain subtle, ensuring sharpness of the photo while maintaining the semi-gloss sheen.
+
+Other Available Sizes and Orientations:
+
+Square: 20x20cm, 30x30cm, 40x40cm
+
+Portrait: 20x25cm, 25x30cm, 30x40cm
+
+Landscape: 25x20cm, 40x30cm
+
+Frame Colours Available:
+
+Black
+
+White
+
+Pack Options:
+
+Single
+
+Pack of 4
+
+Pack of 8
+
+Pack of 12
+
+
+Puzzles
+Most popular - Puzzle - Cardboard - 125 Pieces
+
+Type: Puzzle / Game
+
+Shape: Rectangular, uneven surface.
+
+Dimensions: ~28 cm (width) x ~20 cm (height).
+
+Material: Recycled cardboard with semi-gloss laminate.
+
+Finish: Semi-gloss image on matte cardboard pieces.
+
+Key Visual Features: Partially assembled. Loose pieces.
+
+State: On a flat surface, mid-assembly.
+
+Image Integration Rules: The placeholder image must be printed edge-to-edge across the entire surface and align precisely across interlocked pieces. Image clarity and gloss behaviour must remain visible. Loose pieces must show cut detail and tab shape.
+
+
+
+Puzzle - Wooden - 100 Pieces
+
+Type: Puzzle / Game
+
+Shape: Rectangular, uneven surface.
+
+Dimensions: ~36 cm (width) x ~25 cm (height).
+
+Material: MDF with matte laminate.
+
+Finish: Matte image surface, raw MDF edges.
+
+Key Visual Features: Partially assembled. Thick pieces.
+
+State: On a flat surface, mid-assembly.
+
+Image Integration Rules: The placeholder must span the full surface without borders. Matte image laminate and raw MDF edges on loose pieces must be clearly visible.
+
+
+
+Greeting Card – Standard
+
+Most popular – Greeting Card – Standard – 5x7"
+
+Type: Greeting Card / Stationery
+
+Shape: Clean, straight-edged rectangle. Available in portrait (5x7") or landscape (7x5").
+
+Dimensions: 5 in (width) x 7 in (height) or 7 in (width) x 5 in (height).
+
+Material: Premium cardstock (various finishes available).
+
+Finish: Matte, satin, pearlescent, or textured depending on selected paper.
+
+Key Visual Features:
+
+Classic straight edges.
+
+Minimalist, versatile look.
+
+Works well for both casual and formal occasions.
+
+State: Flat single card or folded version with central crease.
+
+Image Integration Rules:
+
+Placeholder image must be printed edge-to-edge on the front face.
+
+If folded, design must be cleanly aligned across front and back panels.
+
+
+
+Greeting Card – Rounded
+
+Most popular – Greeting Card – Rounded – 5x7"
+
+Type: Greeting Card / Stationery
+
+Shape: Rectangular card with softly rounded corners.
+
+Dimensions: 5 in (width) x 7 in (height) or 7 in (width) x 5 in (height).
+
+Material: Premium cardstock (various finishes available).
+
+Finish: Matte, satin, pearlescent, or textured depending on selected paper.
+
+Key Visual Features:
+
+Smoothly curved corner edges.
+
+Softer, modern aesthetic.
+
+Popular for birthdays, thank-yous, and family cards.
+
+State: Flat or folded.
+
+Image Integration Rules:
+
+Placeholder image must follow rounded edges seamlessly.
+
+No clipping or misalignment at corners.
+
+
+
+Greeting Card – Ticket
+
+Most popular – Greeting Card – Ticket – 5x7"
+
+Type: Greeting Card / Stationery
+
+Shape: Rectangular with punched ticket-style corners (inward cut detail).
+
+Dimensions: 5 in (width) x 7 in (height) or 7 in (width) x 5 in (height).
+
+Material: Premium cardstock (various finishes available).
+
+Finish: Matte, satin, pearlescent, or textured depending on selected paper.
+
+Key Visual Features:
+
+Distinctive ticket-inspired corners.
+
+Adds a touch of playfulness and creativity.
+
+Great for party invitations and themed events.
+
+State: Flat or folded.
+
+Image Integration Rules:
+
+Placeholder image must extend seamlessly into corner cutouts.
+
+Edges must remain crisp and defined.
+
+
+
+Greeting Card – Scalloped
+
+Most popular – Greeting Card – Scalloped – 5x7"
+
+Type: Greeting Card / Stationery
+
+Shape: Rectangular with decorative scalloped edges (wavy contour along all sides).
+
+Dimensions: 5 in (width) x 7 in (height) or 7 in (width) x 5 in (height).
+
+Material: Premium cardstock (various finishes available).
+
+Finish: Matte, satin, pearlescent, or textured depending on selected paper.
+
+Key Visual Features:
+
+Wavy edge detail gives an elegant, decorative look.
+
+Ideal for baby showers, weddings, and birthday cards.
+
+More ornate than standard or rounded shapes.
+
+State: Flat or folded.
+
+Image Integration Rules:
+
+Placeholder image must adapt naturally to the scalloped edge.
+
+No flat cropping at decorative curves.
+
+
+
+Greeting Card – Bracket
+
+Most popular – Greeting Card – Bracket – 5x7"
+
+Type: Greeting Card / Stationery
+
+Shape: Rectangular with elegant inward curves at all four edges.
+
+Dimensions: 5 in (width) x 7 in (height) or 7 in (width) x 5 in (height).
+
+Material: Premium cardstock (various finishes available).
+
+Finish: Matte, satin, pearlescent, or textured depending on selected paper.
+
+Key Visual Features:
+
+Curved bracket-style edges.
+
+Formal and decorative presentation.
+
+Popular for wedding invitations, anniversaries, or upscale greetings.
+
+State: Flat or folded.
+
+Image Integration Rules:
+
+Placeholder image must follow curved bracket contours exactly.
+
+No misalignment at edge insets.
+
+
+
+Greeting Card – Folded
+
+Most popular – Greeting Card – Folded – 5x7"
+
+Type: Greeting Card / Stationery
+
+Shape: Rectangular with central crease for folding.
+
+Dimensions: 5 in (width) x 7 in (height) or 7 in (width) x 5 in (height) (folded in half).
+
+Material: Premium cardstock (various finishes available).
+
+Finish: Matte, satin, pearlescent, or textured depending on selected paper.
+
+Key Visual Features:
+
+Traditional greeting card style.
+
+Crease creates front and back covers plus inside writing space.
+
+Classic format for personal messages.
+
+State: Folded upright or opened flat.
+
+Image Integration Rules:
+
+Placeholder image must be printed on the front cover only, edge-to-edge.
+
+Spine crease must remain clearly visible and aligned.
+
+Inside must remain blank or with optional printed text.
+
+
+
+Photo Slate
+
+Most popular - Photo Slate - Landscape - 20x15cm
+
+Type: Tabletop / Slate
+
+Shape: Rectangular with organically chipped stone edges.
+
+Dimensions: 20 cm (width) x 15 cm (height) x ~1 cm (depth).
+
+Material: Natural slate stone with flat polished surface.
+
+Finish: Matte central surface with semi-gloss image. Rough stone perimeter remains uncoated.
+
+Key Visual Features:
+
+Image area extends seamlessly to the chipped edges (no inner frame or defined rectangle).
+
+Rugged stone edges act as a natural border, giving a unique look to each slate.
+
+Depth of ~1 cm provides a substantial, weighty feel.
+
+Supported upright on two small black plastic stands.
+
+State: Resting on its stands on a flat surface.
+
+Image Integration Rules:
+
+The placeholder image must be printed edge-to-edge, blending naturally into the uneven stone perimeter.
+
+No clean rectangle, no border, and no defined print area — the chipped stone edges must form the natural frame.
+
+The texture contrast between the smooth printed surface and rough chipped edges must remain visible.
+
+The stands must appear correctly positioned and proportioned.
+
+Other Available Sizes:
+
+20x15cm (Landscape – most popular)
+
+15x15cm (Square)
+
+20x20cm (Square)
