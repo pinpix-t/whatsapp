@@ -85,22 +85,19 @@ Your response:"""
                     recent = conversation[-6:] if len(conversation) >= 6 else conversation
                     history = "\n".join([f"{'Customer' if msg['role'] == 'user' else 'Assistant'}: {msg['content']}" for msg in recent])
 
-                # Retrieve context for questions about PrinterPix products/services
+                # Retrieve context for ALL questions - let vector search find relevant info
                 context = ""
-                # Expanded keywords to catch more relevant questions
-                relevant_keywords = [
-                    'order', 'track', 'ship', 'deliver', 'product', 'print', 'photo', 'canvas', 'gift',
-                    'mug', 'book', 'calendar', 'card', 'price', 'cost', 'popular', 'best', 'selling',
-                    'return', 'refund', 'policy', 'shipping', 'help', 'support', 'question', 'what', 'how',
-                    'when', 'where', 'why', 'available', 'have', 'sell', 'offer', 'service'
-                ]
-                
-                if any(word in message_lower for word in relevant_keywords):
-                    logger.info(f"Retrieving context for: {message[:50]}...")
-                    relevant_docs = self.vector_store.retrieve(message, k=3)
+                logger.info(f"🔍 Retrieving context for: {message[:50]}...")
+                try:
+                    relevant_docs = self.vector_store.retrieve(message, k=5)  # Get more context
                     if relevant_docs:
-                        context = "\n".join([doc.page_content[:300] for doc in relevant_docs])
-                        logger.info(f"Retrieved {len(relevant_docs)} relevant documents")
+                        context = "\n".join([doc.page_content[:500] for doc in relevant_docs])  # More content
+                        logger.info(f"✅ Retrieved {len(relevant_docs)} relevant documents ({len(context)} chars)")
+                    else:
+                        logger.warning("⚠️ No documents retrieved - vector store might be empty!")
+                except Exception as e:
+                    logger.error(f"❌ Error retrieving from vector store: {e}", exc_info=True)
+                    context = ""
 
                 prompt = self.conversation_prompt.format(
                     message=message,
@@ -169,12 +166,14 @@ Your response:"""
                 return self._ask_for_order_number()
                 
         except Exception as e:
-            logger.error(f"Error in order tracking: {e}")
-            if "Invalid order number" in str(e):
-                return f"❌ {str(e)}\n\nPlease provide a valid order number (8-10 digits) starting with a country code."
-            elif "No tracking information found" in str(e):
+            logger.error(f"Error in order tracking: {e}", exc_info=True)
+            error_msg = str(e)
+            if "Invalid order number" in error_msg:
+                return f"❌ {error_msg}\n\nPlease provide a valid order number (8-10 digits) starting with a country code."
+            elif "No tracking information found" in error_msg:
                 return "📦 No tracking information found for this order number. Please double-check the number or contact support if you need help."
             else:
+                logger.error(f"Unexpected order tracking error: {error_msg}")
                 return "Sorry, I'm having trouble tracking your order right now. Please try again or contact support at 1-800-PRINTERPIX."
 
     def _extract_order_number(self, message: str) -> str:
