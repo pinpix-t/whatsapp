@@ -228,6 +228,25 @@ async def process_message(message_data: dict):
             pass
 
 
+@app.get("/test-vector-store")
+async def test_vector_store():
+    """Test endpoint to check if vector store has data"""
+    try:
+        # Try to retrieve documents
+        results = vector_store.retrieve("products", k=3)
+        
+        return {
+            "vector_store_status": "loaded" if results else "empty",
+            "documents_found": len(results) if results else 0,
+            "sample_docs": [doc.page_content[:200] for doc in results[:2]] if results else []
+        }
+    except Exception as e:
+        return {
+            "vector_store_status": "error",
+            "error": str(e)
+        }
+
+
 @app.get("/health")
 async def health_check():
     """Detailed health check with dependency verification"""
