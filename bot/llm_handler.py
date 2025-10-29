@@ -172,9 +172,11 @@ Your response:"""
                 return f"❌ {error_msg}\n\nPlease provide a valid order number (8-10 digits) starting with a country code."
             elif "No tracking information found" in error_msg:
                 return "📦 No tracking information found for this order number. Please double-check the number or contact support if you need help."
+            elif "Failed to retrieve" in error_msg or "API request failed" in error_msg:
+                return f"⚠️ Sorry, I couldn't reach the tracking system right now. Please try again in a moment, or contact support at 1-800-PRINTERPIX.\n\nError: {error_msg[:100]}"
             else:
                 logger.error(f"Unexpected order tracking error: {error_msg}")
-                return "Sorry, I'm having trouble tracking your order right now. Please try again or contact support at 1-800-PRINTERPIX."
+                return f"Sorry, I'm having trouble tracking your order right now. Error: {error_msg[:150]}\n\nPlease try again or contact support at 1-800-PRINTERPIX."
 
     def _extract_order_number(self, message: str) -> str:
         """Extract order number from message"""

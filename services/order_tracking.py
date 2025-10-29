@@ -117,19 +117,30 @@ class OrderTrackingService:
             }
             
             logger.info(f"Tracking order {clean_order} for website code {website_code}")
+            logger.info(f"API URL: {self.base_url} with params: {params}")
             
-            response = requests.get(
-                self.base_url,
-                params=params,
-                timeout=10
-            )
-            response.raise_for_status()
-            
-            data = response.json()
-            
-            # Check if tracking data exists
-            if 'Tracking' not in data or not data['Tracking']:
-                raise OrderTrackingError("No tracking information found for this order number")
+            try:
+                response = requests.get(
+                    self.base_url,
+                    params=params,
+                    timeout=10
+                )
+                logger.info(f"API Response status: {response.status_code}")
+                response.raise_for_status()
+                
+                data = response.json()
+                logger.info(f"API Response data keys: {list(data.keys())}")
+                
+                # Check if tracking data exists
+                if 'Tracking' not in data or not data['Tracking']:
+                    logger.warning(f"No tracking data in response: {data}")
+                    raise OrderTrackingError("No tracking information found for this order number")
+            except requests.exceptions.Timeout:
+                logger.error(f"Timeout connecting to tracking API for order {order_number}")
+                raise OrderTrackingError("Failed to retrieve tracking information: Request timeout. Please try again.")
+            except requests.exceptions.ConnectionError as e:
+                logger.error(f"Connection error to tracking API: {e}")
+                raise OrderTrackingError(f"Failed to retrieve tracking information: Cannot connect to tracking service.")
             
             # Add metadata
             data['order_number'] = clean_order
@@ -139,6 +150,9 @@ class OrderTrackingService:
             logger.info(f"Successfully retrieved tracking for order {clean_order}")
             return data
             
+        except OrderTrackingError:
+            # Re-raise our custom errors (timeout, connection, etc.) as-is
+            raise
         except requests.exceptions.RequestException as e:
             logger.error(f"API request failed for order {order_number}: {e}")
             raise OrderTrackingError(f"Failed to retrieve tracking information: {str(e)}")
