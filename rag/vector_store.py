@@ -4,7 +4,7 @@ from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
-from config.settings import CHROMA_DB_PATH, RETRIEVAL_TOP_K
+from config.settings import CHROMA_DB_PATH, RETRIEVAL_TOP_K, OPENAI_API_KEY
 import os
 import json
 import csv
@@ -13,7 +13,7 @@ import pandas as pd
 
 class VectorStore:
     def __init__(self):
-        self.embeddings = OpenAIEmbeddings()
+        self.embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
         self.vector_store = None
         self._initialize_store()
 
