@@ -46,22 +46,33 @@ from pathlib import Path
 def check_and_ingest_documents():
     """Check if vector store is empty and ingest documents if needed"""
     try:
-        # Check if chroma_db exists and has data
-        chroma_db_path = Path(os.getenv("CHROMA_DB_PATH", "./chroma_db"))
-        if not chroma_db_path.exists() or not list(chroma_db_path.glob("*.sqlite3")):
-            logger.info("📚 Vector store is empty, ingesting documents...")
+        # Try to retrieve from vector store - if empty or error, ingest
+        try:
+            test_results = vector_store.retrieve("test query", k=1)
+            if test_results and len(test_results) > 0:
+                logger.info("✓ Vector store already has data")
+                return
+        except:
+            pass  # Vector store is empty, continue to ingestion
+        
+        logger.info("📚 Vector store is empty, ingesting documents...")
+        
+        # Check if documents directory exists
+        docs_dir = Path("./data/documents")
+        if docs_dir.exists():
+            # Filter out .gitkeep and .DS_Store
+            doc_files = [f for f in docs_dir.glob("*.*") if f.name not in ['.gitkeep', '.DS_Store']]
             
-            # Check if documents directory exists
-            docs_dir = Path("./data/documents")
-            if docs_dir.exists() and list(docs_dir.glob("*.*")):
+            if doc_files:
+                logger.info(f"📄 Found {len(doc_files)} document files to ingest")
                 chunks_added = vector_store.add_documents(str(docs_dir))
-                logger.info(f"✅ Ingested {chunks_added} document chunks")
+                logger.info(f"✅ Successfully ingested {chunks_added} document chunks into vector store")
             else:
-                logger.warning("⚠️ No documents found in data/documents/ - vector store will be empty")
+                logger.warning("⚠️ No document files found in data/documents/ - vector store will be empty")
         else:
-            logger.info("✓ Vector store already has data")
+            logger.warning("⚠️ data/documents/ directory not found - vector store will be empty")
     except Exception as e:
-        logger.error(f"❌ Error checking/ingesting documents: {e}")
+        logger.error(f"❌ Error checking/ingesting documents: {e}", exc_info=True)
 
 # Run on startup
 check_and_ingest_documents()
