@@ -39,6 +39,33 @@ vector_store = VectorStore()
 llm_handler = LLMHandler(vector_store)
 whatsapp_api = WhatsAppAPI()
 
+# Auto-ingest documents if vector store is empty (for Railway deployment)
+import os
+from pathlib import Path
+
+def check_and_ingest_documents():
+    """Check if vector store is empty and ingest documents if needed"""
+    try:
+        # Check if chroma_db exists and has data
+        chroma_db_path = Path(os.getenv("CHROMA_DB_PATH", "./chroma_db"))
+        if not chroma_db_path.exists() or not list(chroma_db_path.glob("*.sqlite3")):
+            logger.info("📚 Vector store is empty, ingesting documents...")
+            
+            # Check if documents directory exists
+            docs_dir = Path("./data/documents")
+            if docs_dir.exists() and list(docs_dir.glob("*.*")):
+                chunks_added = vector_store.add_documents(str(docs_dir))
+                logger.info(f"✅ Ingested {chunks_added} document chunks")
+            else:
+                logger.warning("⚠️ No documents found in data/documents/ - vector store will be empty")
+        else:
+            logger.info("✓ Vector store already has data")
+    except Exception as e:
+        logger.error(f"❌ Error checking/ingesting documents: {e}")
+
+# Run on startup
+check_and_ingest_documents()
+
 
 @app.get("/")
 async def root():

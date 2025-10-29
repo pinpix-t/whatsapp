@@ -8,8 +8,7 @@ venv/
 .env
 .venv
 chroma_db/
-data/documents/*
-!data/documents/.gitkeep
+!data/documents/
 *.log
 whatsapp_session/
 .DS_Store
