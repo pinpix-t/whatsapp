@@ -74,14 +74,25 @@ async def receive_webhook(request: Request):
     Receive incoming WhatsApp messages
     This is called by WhatsApp when someone sends a message
     """
+    # CRITICAL: Log FIRST before anything else to confirm POST requests arrive
+    logger.info("=" * 80)
+    logger.info("🚨 POST /webhook CALLED - Webhook endpoint hit!")
+    logger.info("=" * 80)
+    
     try:
         # Log raw body first to see if requests are arriving
         body_bytes = await request.body()
-        logger.info(f"📩 RAW webhook POST received (body length: {len(body_bytes)} bytes)")
+        logger.info(f"📦 RAW webhook body received: {len(body_bytes)} bytes")
+        
+        if len(body_bytes) == 0:
+            logger.warning("⚠️ Empty body received!")
+            return {"status": "ok"}
         
         import json
         body = json.loads(body_bytes)
-        logger.info(f"📩 Webhook received (parsed): {body}")
+        logger.info(f"📦 Webhook parsed successfully")
+        logger.info(f"📦 Body keys: {list(body.keys())}")
+        logger.info(f"📦 Full body: {body}")
 
         # Process webhook data directly (no validation needed for demo)
         # webhook_data = WhatsAppWebhook(**body)
