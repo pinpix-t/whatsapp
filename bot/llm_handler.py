@@ -60,11 +60,20 @@ Your response:"""
         """Generate a response - FAST for greetings, detailed for questions"""
         try:
             # ALWAYS show welcome buttons for first message (empty conversation)
+            # This MUST be checked FIRST before any other logic
             conversation = self.redis_store.get_conversation(user_id)
             is_first_message = not conversation or len(conversation) == 0
             
+            logger.info(f"🔍 First message check: conversation={conversation}, is_first={is_first_message}")
+            
             # If this is the first message, ALWAYS send welcome buttons regardless of content
             if is_first_message:
+                logger.info(f"✅ FIRST MESSAGE DETECTED - Sending welcome buttons for user {user_id}")
+                
+                # Save user message first
+                self.redis_store.append_to_conversation(user_id, "user", message)
+                
+                # ALWAYS send buttons on first message
                 if self.whatsapp_api:
                     try:
                         buttons = [
@@ -78,17 +87,18 @@ Your response:"""
                             buttons=buttons
                         )
                         response = None  # Don't send text message, buttons already sent
-                        logger.info("✓ Sent welcome buttons for first message")
+                        logger.info("✅ Sent welcome buttons for first message - user will see 3 buttons")
+                        
+                        # Save assistant response as buttons were sent
+                        self.redis_store.append_to_conversation(user_id, "assistant", "[Welcome buttons sent]")
                     except Exception as e:
-                        logger.warning(f"⚠️ Failed to send interactive buttons: {e}. Falling back to text.")
+                        logger.error(f"❌ Failed to send interactive buttons: {e}", exc_info=True)
+                        # Fallback to text message
                         response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ General FAQ Questions\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
                         logger.info("✓ Sent text fallback for first message")
+                        self.redis_store.append_to_conversation(user_id, "assistant", response)
                 else:
                     response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ General FAQ Questions\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
-                
-                # Save user message only (no assistant response since buttons were sent)
-                self.redis_store.append_to_conversation(user_id, "user", message)
-                if response is not None:
                     self.redis_store.append_to_conversation(user_id, "assistant", response)
                 
                 return response
@@ -100,6 +110,7 @@ Your response:"""
                 return cached_response
 
             message_lower = message.lower().strip()
+            logger.info(f"🔍 Checking greeting for message: '{message_lower}'")
 
             # FAST PATH: Handle greetings without RAG - send welcome buttons
             # Check for greeting patterns (handles hi, hii, hiii, hiiii, etc.)
@@ -109,21 +120,31 @@ Your response:"""
             # Check exact matches first
             if message_lower in exact_greetings:
                 is_greeting = True
+                logger.info(f"✓ Greeting detected: exact match")
             # Check pattern matches for variations (hi+, hello+, hey+)
             # Match: hi, hii, hiii, hiiii, etc. (exactly one h followed by one or more i's)
             elif re.match(r'^hi+$', message_lower):  # hi, hii, hiii, etc.
                 is_greeting = True
-            # Match: hello, helloo, hellooo, etc.
+                logger.info(f"✓ Greeting detected: hi+ pattern")
+            # Match: hello, helloo, hellooo, etc. (hello followed by one or more o's)
             elif re.match(r'^hello+$', message_lower):
                 is_greeting = True
+                logger.info(f"✓ Greeting detected: hello+ pattern")
             # Match: hey, heyy, heyyy, etc.
             elif re.match(r'^hey+$', message_lower):
                 is_greeting = True
+                logger.info(f"✓ Greeting detected: hey+ pattern")
             # Check if starts with greeting followed by space
             elif any(message_lower.startswith(g + ' ') for g in exact_greetings):
                 is_greeting = True
+                logger.info(f"✓ Greeting detected: starts with greeting")
+            # Also check if message starts with any greeting word (more flexible)
+            elif any(message_lower.startswith(g) for g in exact_greetings):
+                is_greeting = True
+                logger.info(f"✓ Greeting detected: starts with greeting word")
             
             if is_greeting:
+                logger.info(f"✅ Processing greeting: '{message_lower}'")
                 # Send interactive buttons instead of text
                 if self.whatsapp_api:
                     try:
