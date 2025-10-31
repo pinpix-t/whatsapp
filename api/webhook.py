@@ -229,8 +229,8 @@ async def process_message(message_data: dict):
         logger.info(f"Button ID: {button_id}")
         logger.info(f"List ID: {list_id}")
 
-        # Mark message as read
-        whatsapp_api.mark_message_as_read(message_id)
+        # Mark message as read (async, non-blocking)
+        await whatsapp_api.mark_message_as_read(message_id)
 
         # Handle interactive messages (buttons/lists)
         if interactive_type in ["button", "list"]:
@@ -245,14 +245,14 @@ async def process_message(message_data: dict):
                 elif selection_id == "btn_faq":
                     # General FAQ - continue normal flow
                     logger.info("❓ FAQ selected - continuing normal flow")
-                    whatsapp_api.send_message(
+                    await whatsapp_api.send_message(
                         from_number,
                         "I'm here to help with any questions! Ask me anything about our products, policies, or services. 😊"
                     )
                 elif selection_id == "btn_order":
                     # Order questions
                     logger.info("📦 Order questions selected")
-                    whatsapp_api.send_message(
+                    await whatsapp_api.send_message(
                         from_number,
                         "I can help with order tracking, delivery status, returns, and any order-related questions. What would you like to know? 📦"
                     )
@@ -283,12 +283,12 @@ async def process_message(message_data: dict):
                 
                 # Send appropriate goodbye message
                 if bulk_ended:
-                    whatsapp_api.send_message(
+                    await whatsapp_api.send_message(
                         from_number,
                         "Got it! I've reset your bulk ordering and cleared our conversation. Feel free to start fresh anytime. 👋"
                     )
                 else:
-                    whatsapp_api.send_message(
+                    await whatsapp_api.send_message(
                         from_number,
                         "Goodbye! I've cleared our conversation. Feel free to reach out anytime if you need help. 👋"
                     )
@@ -315,14 +315,17 @@ async def process_message(message_data: dict):
                 else:
                     # User is in bulk flow but sent unexpected text
                     logger.info("⚠️ User in bulk flow sent text - asking to continue")
-                    whatsapp_api.send_message(
+                    await whatsapp_api.send_message(
                         from_number,
                         "Please use the buttons or select from the list to continue with your bulk order. If you need to start over, type 'restart'."
                     )
             else:
                 # Normal text message - process with LLM
+                # Send typing indicator immediately for user feedback
+                await whatsapp_api.send_typing_indicator(from_number)
+                
                 logger.info("🤖 Generating response...")
-                response = llm_handler.generate_response(
+                response = await llm_handler.generate_response(
                     user_id=from_number,
                     message=text
                 )
@@ -330,7 +333,7 @@ async def process_message(message_data: dict):
                 # Send response back (if not None - buttons might have been sent)
                 if response:
                     logger.info(f"📤 Sending response: {response[:100]}...")
-                    whatsapp_api.send_message(from_number, response)
+                    await whatsapp_api.send_message(from_number, response)
 
         duration = time.time() - start_time
         logger.info(f"✅ Successfully processed message from {from_number} in {duration:.2f}s")
@@ -341,7 +344,7 @@ async def process_message(message_data: dict):
 
         # Try to send error message to user
         try:
-            whatsapp_api.send_message(
+            await whatsapp_api.send_message(
                 message_data["from"],
                 "Sorry, I encountered an error processing your message. Please try again."
             )

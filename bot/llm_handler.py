@@ -9,6 +9,7 @@ from services.order_tracking import order_tracking_service
 from bot.whatsapp_api import WhatsAppAPI
 import logging
 import re
+import asyncio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,8 +56,7 @@ CRITICAL RULES - NO EXCEPTIONS:
 
 Your response:"""
 
-    @retry_openai_call(max_attempts=2)
-    def generate_response(self, user_id: str, message: str):
+    async def generate_response(self, user_id: str, message: str):
         """Generate a response - FAST for greetings, detailed for questions"""
         try:
             # ALWAYS show welcome buttons for first message (empty conversation)
@@ -81,7 +81,7 @@ Your response:"""
                             {"id": "btn_order", "title": "Order Questions"},
                             {"id": "btn_bulk", "title": "Bulk Ordering"}
                         ]
-                        self.whatsapp_api.send_interactive_buttons(
+                        await self.whatsapp_api.send_interactive_buttons(
                             to=user_id,
                             body_text="Hi! Welcome to PrinterPix! How can I help?",
                             buttons=buttons
@@ -153,7 +153,7 @@ Your response:"""
                             {"id": "btn_order", "title": "Order Questions"},
                             {"id": "btn_bulk", "title": "Bulk Ordering"}
                         ]
-                        self.whatsapp_api.send_interactive_buttons(
+                        await self.whatsapp_api.send_interactive_buttons(
                             to=user_id,
                             body_text="Hi! Welcome to PrinterPix! How can I help?",
                             buttons=buttons
@@ -179,7 +179,7 @@ Your response:"""
                             {"id": "btn_order", "title": "Order Questions"},
                             {"id": "btn_bulk", "title": "Bulk Ordering"}
                         ]
-                        self.whatsapp_api.send_interactive_buttons(
+                        await self.whatsapp_api.send_interactive_buttons(
                             to=user_id,
                             body_text="Hi! Welcome to PrinterPix! How can I help?",
                             buttons=buttons
@@ -199,26 +199,39 @@ Your response:"""
 
             # ALL OTHER MESSAGES: Use conversation context and generate proper responses
             else:
-                # Get conversation history FIRST (important for context)
-                conversation = self.redis_store.get_conversation(user_id)
+                # PARALLELIZE: Get conversation history and vector store retrieval at the same time
+                logger.info(f"🔍 Retrieving context for: {message[:50]}...")
+                
+                def get_conversation_sync():
+                    """Get conversation history (sync)"""
+                    return self.redis_store.get_conversation(user_id)
+                
+                def get_context_sync():
+                    """Retrieve vector store context (sync)"""
+                    try:
+                        relevant_docs = self.vector_store.retrieve(message, k=3)  # Reduced from 5 to 3 for speed
+                        if relevant_docs:
+                            context = "\n".join([doc.page_content[:500] for doc in relevant_docs])
+                            logger.info(f"✅ Retrieved {len(relevant_docs)} relevant documents ({len(context)} chars)")
+                            return context
+                        else:
+                            logger.warning("⚠️ No documents retrieved - vector store might be empty!")
+                            return ""
+                    except Exception as e:
+                        logger.error(f"❌ Error retrieving from vector store: {e}", exc_info=True)
+                        return ""
+                
+                # Run both operations in parallel using threads
+                conversation, context = await asyncio.gather(
+                    asyncio.to_thread(get_conversation_sync),
+                    asyncio.to_thread(get_context_sync)
+                )
+                
+                # Format history from conversation
                 history = ""
                 if conversation and len(conversation) > 0:
                     recent = conversation[-6:] if len(conversation) >= 6 else conversation
                     history = "\n".join([f"{'Customer' if msg['role'] == 'user' else 'Assistant'}: {msg['content']}" for msg in recent])
-
-                # Retrieve context for ALL questions - let vector search find relevant info
-                context = ""
-                logger.info(f"🔍 Retrieving context for: {message[:50]}...")
-                try:
-                    relevant_docs = self.vector_store.retrieve(message, k=5)  # Get more context
-                    if relevant_docs:
-                        context = "\n".join([doc.page_content[:500] for doc in relevant_docs])  # More content
-                        logger.info(f"✅ Retrieved {len(relevant_docs)} relevant documents ({len(context)} chars)")
-                    else:
-                        logger.warning("⚠️ No documents retrieved - vector store might be empty!")
-                except Exception as e:
-                    logger.error(f"❌ Error retrieving from vector store: {e}", exc_info=True)
-                    context = ""
 
                 prompt = self.conversation_prompt.format(
                     message=message,
@@ -226,10 +239,13 @@ Your response:"""
                     history=history
                 )
 
-                response = self.llm.predict(prompt)
+                # Use async LLM call
+                response = await self.llm.ainvoke(prompt)
+                response_text = response.content if hasattr(response, 'content') else str(response)
                 
                 # Validate response to prevent hallucinations
-                response = self._validate_response(response, context)
+                response_text = self._validate_response(response_text, context)
+                response = response_text
                 
                 logger.info("✓ Generated conversational response")
 

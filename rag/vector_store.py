@@ -268,8 +268,8 @@ class VectorStore:
             print(f"Error processing CSV {csv_file}: {e}")
             return ""
 
-    def retrieve(self, query: str, k: int = RETRIEVAL_TOP_K):
-        """Retrieve relevant documents for a query"""
+    def retrieve(self, query: str, k: int = 3):
+        """Retrieve relevant documents for a query (optimized: default k=3 for speed)"""
         if not self.vector_store:
             return []
 

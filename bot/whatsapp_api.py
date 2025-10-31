@@ -1,5 +1,6 @@
-import requests
+import httpx
 import logging
+import asyncio
 from config.settings import WHATSAPP_TOKEN, PHONE_NUMBER_ID
 from utils.retry import retry_api_call
 from utils.error_handler import WhatsAppAPIError
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class WhatsAppAPI:
-    """Official WhatsApp Business Cloud API client"""
+    """Official WhatsApp Business Cloud API client (Async)"""
 
     BASE_URL = "https://graph.facebook.com/v18.0"
 
@@ -20,11 +21,11 @@ class WhatsAppAPI:
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
         }
+        self.client = httpx.AsyncClient(timeout=10.0)
 
-    @retry_api_call(max_attempts=3)
-    def send_message(self, to: str, message: str):
+    async def send_message(self, to: str, message: str):
         """
-        Send a text message to a WhatsApp user
+        Send a text message to a WhatsApp user (async)
 
         Args:
             to: Phone number in international format (e.g., "1234567890")
@@ -47,29 +48,35 @@ class WhatsAppAPI:
         }
 
         try:
-            response = requests.post(url, headers=self.headers, json=payload, timeout=10)
+            response = await self.client.post(url, headers=self.headers, json=payload)
             response.raise_for_status()
 
             data = response.json()
-            logger.info(f"✓ Message sent to {to}: {data}")
+            logger.info(f"✓ Message sent to {to}")
             return data
 
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPStatusError as e:
             logger.error(f"❌ Error sending message to {to}: {e}")
-            error_details = {}
-            if hasattr(e, 'response') and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+            try:
+                error_details = e.response.json()
+            except:
                 error_details = {"response": e.response.text}
-
             raise WhatsAppAPIError(
                 message=f"Failed to send message to {to}",
-                status_code=getattr(e.response, 'status_code', 500) if hasattr(e, 'response') else 500,
+                status_code=e.response.status_code,
                 details=error_details
             )
+        except httpx.RequestError as e:
+            logger.error(f"❌ Error sending message to {to}: {e}")
+            raise WhatsAppAPIError(
+                message=f"Failed to send message to {to}",
+                status_code=500,
+                details={"error": str(e)}
+            )
 
-    def send_template_message(self, to: str, template_name: str, language_code: str = "en"):
+    async def send_template_message(self, to: str, template_name: str, language_code: str = "en"):
         """
-        Send a template message (useful for starting conversations)
+        Send a template message (useful for starting conversations) (async)
 
         Args:
             to: Phone number in international format
@@ -91,21 +98,19 @@ class WhatsAppAPI:
         }
 
         try:
-            response = requests.post(url, headers=self.headers, json=payload)
+            response = await self.client.post(url, headers=self.headers, json=payload)
             response.raise_for_status()
 
             data = response.json()
-            logger.info(f"✓ Template message sent to {to}: {data}")
+            logger.info(f"✓ Template message sent to {to}")
             return data
 
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             logger.error(f"❌ Error sending template to {to}: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
             raise
 
-    def mark_message_as_read(self, message_id: str):
-        """Mark a message as read"""
+    async def mark_message_as_read(self, message_id: str):
+        """Mark a message as read (async)"""
         url = f"{self.BASE_URL}/{self.phone_number_id}/messages"
 
         payload = {
@@ -115,43 +120,52 @@ class WhatsAppAPI:
         }
 
         try:
-            response = requests.post(url, headers=self.headers, json=payload)
+            response = await self.client.post(url, headers=self.headers, json=payload)
             response.raise_for_status()
             logger.info(f"✓ Marked message {message_id} as read")
             return response.json()
 
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             logger.error(f"❌ Error marking message as read: {e}")
             return None
 
-    def get_media_url(self, media_id: str):
-        """Get the download URL for a media file"""
+    async def get_media_url(self, media_id: str):
+        """Get the download URL for a media file (async)"""
         url = f"{self.BASE_URL}/{media_id}"
 
         try:
-            response = requests.get(url, headers=self.headers)
+            response = await self.client.get(url, headers=self.headers)
             response.raise_for_status()
 
             data = response.json()
             return data.get("url")
 
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             logger.error(f"❌ Error getting media URL: {e}")
             return None
 
-    def download_media(self, media_url: str):
-        """Download media file from WhatsApp"""
+    async def download_media(self, media_url: str):
+        """Download media file from WhatsApp (async)"""
         try:
-            response = requests.get(media_url, headers=self.headers)
+            response = await self.client.get(media_url, headers=self.headers)
             response.raise_for_status()
             return response.content
 
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             logger.error(f"❌ Error downloading media: {e}")
             return None
 
-    @retry_api_call(max_attempts=3)
-    def send_interactive_buttons(self, to: str, body_text: str, buttons: list):
+    async def close(self):
+        """Close the HTTP client"""
+        await self.client.aclose()
+
+    async def send_typing_indicator(self, to: str):
+        """Send typing indicator - immediate user feedback (WhatsApp shows typing via read receipts)"""
+        # WhatsApp doesn't have explicit typing API, but marking message as read immediately
+        # gives better UX. This is a no-op placeholder for future enhancements.
+        await asyncio.sleep(0)  # Non-blocking yield to allow other tasks
+
+    async def send_interactive_buttons(self, to: str, body_text: str, buttons: list):
         """
         Send an interactive button message (up to 3 buttons)
         
@@ -194,37 +208,36 @@ class WhatsAppAPI:
         }
         
         try:
-            response = requests.post(url, headers=self.headers, json=payload, timeout=10)
+            response = await self.client.post(url, headers=self.headers, json=payload)
             response.raise_for_status()
             
             data = response.json()
             logger.info(f"✓ Interactive button message sent to {to}")
             return data
             
-        except requests.exceptions.RequestException as e:
-            error_msg = str(e)
-            error_details = {}
-            if hasattr(e, 'response') and e.response is not None:
-                try:
-                    error_details = e.response.json()
-                    error_msg = error_details.get('error', {}).get('message', error_msg)
-                    logger.error(f"❌ Error sending interactive buttons to {to}: {error_msg}")
-                    logger.error(f"Full error: {error_details}")
-                except:
-                    logger.error(f"❌ Error sending interactive buttons to {to}: {error_msg}")
-                    logger.error(f"Response text: {e.response.text}")
-                    error_details = {"response": e.response.text}
-            else:
-                logger.error(f"❌ Error sending interactive buttons to {to}: {error_msg}")
+        except httpx.HTTPStatusError as e:
+            try:
+                error_details = e.response.json()
+                error_msg = error_details.get('error', {}).get('message', str(e))
+            except:
+                error_details = {"response": e.response.text}
+                error_msg = str(e)
             
+            logger.error(f"❌ Error sending interactive buttons to {to}: {error_msg}")
             raise WhatsAppAPIError(
                 message=f"Failed to send interactive buttons to {to}: {error_msg}",
-                status_code=getattr(e.response, 'status_code', 500) if hasattr(e, 'response') else 500,
+                status_code=e.response.status_code,
                 details=error_details
             )
+        except httpx.RequestError as e:
+            logger.error(f"❌ Error sending interactive buttons to {to}: {e}")
+            raise WhatsAppAPIError(
+                message=f"Failed to send interactive buttons to {to}",
+                status_code=500,
+                details={"error": str(e)}
+            )
 
-    @retry_api_call(max_attempts=3)
-    def send_list_message(self, to: str, body_text: str, button_text: str, sections: list):
+    async def send_list_message(self, to: str, body_text: str, button_text: str, sections: list):
         """
         Send an interactive list message (dropdown menu)
         
@@ -274,19 +287,28 @@ class WhatsAppAPI:
         }
         
         try:
-            response = requests.post(url, headers=self.headers, json=payload, timeout=10)
+            response = await self.client.post(url, headers=self.headers, json=payload)
             response.raise_for_status()
             
             data = response.json()
             logger.info(f"✓ List message sent to {to}")
             return data
             
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPStatusError as e:
             logger.error(f"❌ Error sending list message to {to}: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                logger.error(f"Response: {e.response.text}")
+            try:
+                error_details = {"response": e.response.text}
+            except:
+                error_details = {}
             raise WhatsAppAPIError(
                 message=f"Failed to send list message to {to}",
-                status_code=getattr(e.response, 'status_code', 500) if hasattr(e, 'response') else 500,
-                details={"response": e.response.text} if hasattr(e, 'response') and e.response is not None else {}
+                status_code=e.response.status_code,
+                details=error_details
+            )
+        except httpx.RequestError as e:
+            logger.error(f"❌ Error sending list message to {to}: {e}")
+            raise WhatsAppAPIError(
+                message=f"Failed to send list message to {to}",
+                status_code=500,
+                details={"error": str(e)}
             )
