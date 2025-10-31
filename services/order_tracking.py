@@ -176,73 +176,126 @@ class OrderTrackingService:
             country = tracking_data.get('country', 'Unknown')
             
             if not tracking_array:
-                return f"📦 No tracking information found for order #{order_number}"
+                return f"📦 I looked for order #{order_number}, but I don't have any tracking information for it yet. It might still be processing - try checking back in a bit, or contact support if you think there's an issue!"
             
             # Handle the actual API response format
             return self._format_actual_tracking_response(order_number, country, tracking_array)
             
         except Exception as e:
             logger.error(f"Error formatting tracking response: {e}")
-            return f"📦 Order #{order_number} found, but there was an error formatting the details. Please try again."
+            return f"📦 I found your order #{order_number}, but I'm having trouble getting the tracking details right now. Could you try again in a moment? If it keeps happening, feel free to contact support!"
     
     def _format_actual_tracking_response(self, order_number: str, country: str, tracking_array: List[Dict]) -> str:
-        """Format tracking based on the actual API response structure following exact rules"""
-        response = f"📦 *Order #{order_number}* ({country})\n\n"
-        
+        """Format tracking in a natural, conversational way"""
         # Parse according to exact rules
         parsed_data = self._parse_tracking_data(tracking_array)
         
-        # Show order-level updates first
-        if parsed_data['orders'] and parsed_data['orders'][0]['counts']['orderLevelUpdates'] > 0:
-            response += "*Order Status:*\n\n"
-            order_updates = [item for item in tracking_array 
-                           if item.get('CONumber', '') == '' and 
-                           item.get('Updates', {}).get('TrackingNumber', '') == '']
-            
-            for i, item in enumerate(order_updates, 1):
-                updates_data = item.get('Updates', {})
-                status = updates_data.get('StatusDesc', 'Unknown')
-                message_title = updates_data.get('MessageTitle', '')
-                message_body = updates_data.get('MessageBody', '')
-                date = updates_data.get('ShipmentDate', '')
-                time = updates_data.get('ShipmentTime', '')
-                
-                status_emoji = self._get_status_emoji(status)
-                
-                response += f"*Update {i}:*\n"
-                response += f"{status_emoji} *Status:* {status}\n"
-                if message_title:
-                    response += f"📝 *Message:* {message_title}\n"
-                if message_body:
-                    response += f"💬 *Details:* {message_body}\n"
-                if date:
-                    response += f"📅 *Date:* {date}\n"
-                if time:
-                    response += f"🕐 *Time:* {time[:8]}\n"
-                response += "\n"
+        if not parsed_data['orders']:
+            return f"📦 I found your order #{order_number} ({country}), but there's no tracking information available yet. It might still be processing - check back in a bit!"
         
-        # Show packages (only those with TrackingNumber)
-        if parsed_data['orders'] and parsed_data['orders'][0]['packages']:
-            packages = parsed_data['orders'][0]['packages']
-            if len(packages) == 1:
-                response += "*Package Details:*\n\n"
-            else:
-                response += f"*Packages ({len(packages)}):*\n\n"
+        order_data = parsed_data['orders'][0]
+        packages = order_data.get('packages', [])
+        
+        # Start with a friendly greeting
+        response = f"Great news! I found your order #{order_number} ({country}). "
+        
+        # Handle order-level updates (most recent first)
+        order_updates = [item for item in tracking_array 
+                       if item.get('CONumber', '') == '' and 
+                       item.get('Updates', {}).get('TrackingNumber', '') == '']
+        
+        if order_updates:
+            # Get the latest update
+            latest_update = order_updates[-1]
+            updates_data = latest_update.get('Updates', {})
+            status = updates_data.get('StatusDesc', 'Unknown')
+            message_title = updates_data.get('MessageTitle', '')
+            message_body = updates_data.get('MessageBody', '')
+            date = updates_data.get('ShipmentDate', '')
+            time = updates_data.get('ShipmentTime', '')
             
-            for i, package in enumerate(packages, 1):
+            status_emoji = self._get_status_emoji(status)
+            
+            # Natural status message
+            if status.lower() in ['delivered', 'completed']:
+                response += f"{status_emoji} It looks like your order has been delivered! "
+            elif 'shipped' in status.lower() or 'courier' in status.lower():
+                response += f"{status_emoji} Your order has shipped and is on the way! "
+            elif 'processing' in status.lower() or 'working' in status.lower():
+                response += f"{status_emoji} Your order is currently being processed. "
+            else:
+                response += f"{status_emoji} Current status: {status}. "
+            
+            # Add message details naturally
+            if message_title or message_body:
+                response += "\n\n"
+                if message_title:
+                    response += f"{message_title}"
+                    if message_body:
+                        response += f" {message_body}"
+                elif message_body:
+                    response += message_body
+            
+            # Add date/time naturally
+            if date:
+                formatted_date = self._format_date_natural(date)
+                if time:
+                    formatted_time = time[:5] if len(time) >= 5 else time[:8]
+                    response += f"\n\nLast updated: {formatted_date} at {formatted_time}"
+                else:
+                    response += f"\n\nLast updated: {formatted_date}"
+        
+        # Handle packages naturally
+        if packages:
+            if len(packages) == 1:
+                package = packages[0]
                 status_emoji = self._get_status_emoji(package['latestStatus'])
                 
-                if len(packages) > 1:
-                    response += f"*Package {i}:*\n"
-                if package['coNumber']:
-                    response += f"📦 *CO Number:* {package['coNumber']}\n"
-                response += f"🚚 *Tracking Number:* {package['trackingNumber']}\n"
-                response += f"{status_emoji} *Status:* {package['latestStatus']}\n"
-                response += f"📅 *Last Update:* {package['latestTimestamp']}\n"
-                response += "\n"
+                response += f"\n\n🚚 Tracking number: {package['trackingNumber']}"
+                
+                if package.get('coNumber'):
+                    response += f"\nCO Number: {package['coNumber']}"
+                
+                # Natural status message for package
+                if package['latestStatus'].lower() in ['delivered', 'completed']:
+                    response += f"\n{status_emoji} This package has been delivered!"
+                elif 'shipped' in package['latestStatus'].lower():
+                    response += f"\n{status_emoji} This package is in transit."
+                else:
+                    response += f"\n{status_emoji} Status: {package['latestStatus']}"
+            else:
+                response += f"\n\nYour order has {len(packages)} packages:\n"
+                for i, package in enumerate(packages, 1):
+                    status_emoji = self._get_status_emoji(package['latestStatus'])
+                    response += f"\n📦 Package {i}:"
+                    if package.get('coNumber'):
+                        response += f" CO {package['coNumber']}"
+                    response += f"\n🚚 Tracking: {package['trackingNumber']}"
+                    response += f"\n{status_emoji} {package['latestStatus']}"
         
-        response += "For more detailed tracking, visit our website or contact support."
+        # Friendly closing
+        response += "\n\nNeed more details? Just ask or visit our website!"
+        
         return response
+    
+    def _format_date_natural(self, date_str: str) -> str:
+        """Format date in a more natural way"""
+        try:
+            # Try to parse date if it's in YYYY-MM-DD format
+            if '-' in date_str and len(date_str) >= 10:
+                year, month, day = date_str[:10].split('-')
+                months = ['January', 'February', 'March', 'April', 'May', 'June',
+                         'July', 'August', 'September', 'October', 'November', 'December']
+                try:
+                    month_name = months[int(month) - 1]
+                    # Remove leading zero from day
+                    day = str(int(day))
+                    return f"{month_name} {day}, {year}"
+                except (ValueError, IndexError):
+                    return date_str
+            return date_str
+        except:
+            return date_str
 
     def _parse_tracking_data(self, tracking_array: List[Dict]) -> Dict:
         """Parse tracking data according to exact rules"""
