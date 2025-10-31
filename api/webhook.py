@@ -241,7 +241,7 @@ async def process_message(message_data: dict):
                 if selection_id == "btn_bulk":
                     # Start bulk ordering flow
                     logger.info("🛒 Starting bulk ordering flow")
-                    bulk_ordering_service.start_bulk_ordering(from_number)
+                    await bulk_ordering_service.start_bulk_ordering(from_number)
                 elif selection_id == "btn_faq":
                     # General FAQ - continue normal flow
                     logger.info("❓ FAQ selected - continuing normal flow")
@@ -259,7 +259,7 @@ async def process_message(message_data: dict):
             else:
                 # Handle bulk ordering interactive responses
                 logger.info(f"🛒 Processing bulk ordering selection: {selection_id}")
-                bulk_ordering_service.handle_interactive_response(from_number, selection_id, list_id)
+                await bulk_ordering_service.handle_interactive_response(from_number, selection_id, list_id)
         
         # Handle text messages
         elif text:
@@ -303,15 +303,15 @@ async def process_message(message_data: dict):
                 if current_state == "asking_quantity":
                     # User is providing quantity
                     logger.info("🔢 Processing quantity input")
-                    bulk_ordering_service.handle_quantity(from_number, text)
+                    await bulk_ordering_service.handle_quantity(from_number, text)
                 elif current_state == "asking_email":
                     # User is providing email
                     logger.info("📧 Processing email input")
-                    bulk_ordering_service.handle_email(from_number, text)
+                    await bulk_ordering_service.handle_email(from_number, text)
                 elif current_state == "asking_postcode":
                     # User is providing postcode
                     logger.info("📮 Processing postcode input")
-                    bulk_ordering_service.handle_postcode(from_number, text)
+                    await bulk_ordering_service.handle_postcode(from_number, text)
                 else:
                     # User is in bulk flow but sent unexpected text
                     logger.info("⚠️ User in bulk flow sent text - asking to continue")
