@@ -139,6 +139,21 @@ class BulkOrderingService:
                 await self._handle_discount_rejection(user_id, current_state)
                 return "discount_rejected"
         
+        # Handle rejection reasons (after showing buttons)
+        elif current_state == "handling_rejection":
+            if button_id == "reject_price":
+                # Offer second discount
+                await self._offer_second_discount(user_id, selections)
+                return "second_discount_offered"
+            elif button_id == "reject_delivery":
+                # Answer delivery time using RAG
+                await self._handle_delivery_time_question(user_id)
+                return "delivery_time_answered"
+            elif button_id == "reject_agent":
+                # Handoff to agent
+                await self._handoff_to_agent(user_id, selections)
+                return "agent_handoff"
+        
         return "unknown_state"
     
     async def _send_next_question(self, user_id: str, product: str) -> None:
@@ -434,13 +449,25 @@ Apply the code at checkout. Happy to help with anything else!"""
         selections = state_data.get("selections", {})
         
         if current_state == "offering_first_discount":
-            # Send friendly message instead of offering second discount
-            await self.whatsapp_api.send_message(
+            # Show 3 buttons for rejection reasons
+            buttons = [
+                {"id": "reject_price", "title": "Not happy with price"},
+                {"id": "reject_delivery", "title": "Delivery time"},
+                {"id": "reject_agent", "title": "Talk to agent"}
+            ]
+            
+            # Update state to handle rejection reason
+            self.redis_store.set_bulk_order_state(
                 user_id,
-                "How can I help to get you started?"
+                "handling_rejection",
+                {"selections": selections, "discount_offers": []}
             )
-            # Clear bulk ordering state so user can start fresh or ask questions
-            self.redis_store.clear_bulk_order_state(user_id)
+            
+            await self.whatsapp_api.send_interactive_buttons(
+                to=user_id,
+                body_text="No problem! What would you like help with?",
+                buttons=buttons
+            )
         elif current_state == "offering_second_discount":
             # Handoff to human agent
             await self._handoff_to_agent(user_id, selections)
@@ -529,6 +556,28 @@ Please contact customer for best rate."""
         # postgres_store.save_analytics_event("bulk_order_handoff", user_id, {"selections": selections})
         
         # Clear bulk ordering state
+        self.redis_store.clear_bulk_order_state(user_id)
+    
+    async def _handle_delivery_time_question(self, user_id: str) -> None:
+        """Handle delivery time question using RAG"""
+        # Send delivery time info from knowledge base
+        # This information is available in our FAQ and policies
+        
+        delivery_info = """Here's our delivery time information:
+
+*Standard Shipping*: 5-7 business days
+*Express Shipping*: 3-5 business days  
+*Rush Shipping*: 1-2 business days
+
+Plus 1-2 business days for production.
+
+For bulk orders: Typically 7-10 business days for production plus shipping. Rush options are available!
+
+Need a specific date? Choose rush shipping and contact us with your required date - we'll do our best to accommodate! 🚚"""
+        
+        await self.whatsapp_api.send_message(user_id, delivery_info)
+        
+        # Clear bulk ordering state so user can continue conversation or ask follow-up questions
         self.redis_store.clear_bulk_order_state(user_id)
 
 
