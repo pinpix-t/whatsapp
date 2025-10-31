@@ -192,6 +192,88 @@ class RedisStore:
             logger.error(f"Error getting stats: {e}")
             return {"status": "error", "error": str(e)}
 
+    @retry_db_operation()
+    def set_bulk_order_state(self, user_id: str, state: str, data: dict, ttl: int = 3600):
+        """
+        Store bulk ordering state for a user
+
+        Args:
+            user_id: User identifier
+            state: Current state in the bulk ordering flow
+            data: State data including selections
+            ttl: Time to live in seconds (default 1 hour)
+        """
+        if not self.client:
+            logger.warning("Redis not available, skipping bulk order state storage")
+            return
+
+        try:
+            key = f"bulk_order:{user_id}"
+            state_data = {
+                "state": state,
+                **data
+            }
+            self.client.setex(
+                key,
+                ttl,
+                json.dumps(state_data)
+            )
+            logger.debug(f"Stored bulk order state for {user_id}: {state}")
+        except Exception as e:
+            logger.error(f"Error storing bulk order state: {e}")
+            raise
+
+    @retry_db_operation()
+    def get_bulk_order_state(self, user_id: str) -> Optional[dict]:
+        """
+        Retrieve bulk ordering state for a user
+
+        Args:
+            user_id: User identifier
+
+        Returns:
+            State data dictionary or None
+        """
+        if not self.client:
+            logger.warning("Redis not available, returning None for bulk order state")
+            return None
+
+        try:
+            key = f"bulk_order:{user_id}"
+            data = self.client.get(key)
+            if data:
+                return json.loads(data)
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving bulk order state: {e}")
+            return None
+
+    @retry_db_operation()
+    def clear_bulk_order_state(self, user_id: str):
+        """Clear bulk ordering state for a user"""
+        if not self.client:
+            return
+
+        try:
+            key = f"bulk_order:{user_id}"
+            self.client.delete(key)
+            logger.debug(f"Cleared bulk order state for {user_id}")
+        except Exception as e:
+            logger.error(f"Error clearing bulk order state: {e}")
+
+    @retry_db_operation()
+    def clear_conversation(self, user_id: str):
+        """Clear conversation history for a user"""
+        if not self.client:
+            return
+
+        try:
+            key = f"conversation:{user_id}"
+            self.client.delete(key)
+            logger.debug(f"Cleared conversation history for {user_id}")
+        except Exception as e:
+            logger.error(f"Error clearing conversation history: {e}")
+
     def close(self):
         """Close Redis connection"""
         if self.client:

@@ -149,3 +149,144 @@ class WhatsAppAPI:
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Error downloading media: {e}")
             return None
+
+    @retry_api_call(max_attempts=3)
+    def send_interactive_buttons(self, to: str, body_text: str, buttons: list):
+        """
+        Send an interactive button message (up to 3 buttons)
+        
+        Args:
+            to: Phone number in international format
+            body_text: Main message text
+            buttons: List of button dicts with 'id' and 'title'
+                    Example: [{"id": "btn_faq", "title": "General FAQ"}]
+        
+        Returns:
+            dict: API response
+        """
+        url = f"{self.BASE_URL}/{self.phone_number_id}/messages"
+        
+        # Format buttons for WhatsApp API (max 3 buttons)
+        formatted_buttons = []
+        for btn in buttons[:3]:  # Limit to 3 buttons
+            formatted_buttons.append({
+                "type": "reply",
+                "reply": {
+                    "id": btn["id"],
+                    "title": btn["title"]
+                }
+            })
+        
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            "type": "interactive",
+            "interactive": {
+                "type": "button",
+                "body": {
+                    "text": body_text
+                },
+                "action": {
+                    "buttons": formatted_buttons
+                }
+            }
+        }
+        
+        try:
+            response = requests.post(url, headers=self.headers, json=payload, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            logger.info(f"✓ Interactive button message sent to {to}")
+            return data
+            
+        except requests.exceptions.RequestException as e:
+            error_msg = str(e)
+            error_details = {}
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_details = e.response.json()
+                    error_msg = error_details.get('error', {}).get('message', error_msg)
+                    logger.error(f"❌ Error sending interactive buttons to {to}: {error_msg}")
+                    logger.error(f"Full error: {error_details}")
+                except:
+                    logger.error(f"❌ Error sending interactive buttons to {to}: {error_msg}")
+                    logger.error(f"Response text: {e.response.text}")
+                    error_details = {"response": e.response.text}
+            else:
+                logger.error(f"❌ Error sending interactive buttons to {to}: {error_msg}")
+            
+            raise WhatsAppAPIError(
+                message=f"Failed to send interactive buttons to {to}: {error_msg}",
+                status_code=getattr(e.response, 'status_code', 500) if hasattr(e, 'response') else 500,
+                details=error_details
+            )
+
+    @retry_api_call(max_attempts=3)
+    def send_list_message(self, to: str, body_text: str, button_text: str, sections: list):
+        """
+        Send an interactive list message (dropdown menu)
+        
+        Args:
+            to: Phone number in international format
+            body_text: Main message text
+            button_text: Text for the button that opens the list (e.g., "Choose Product")
+            sections: List of sections, each containing 'rows' with 'id' and 'title'
+                    Example: [{
+                        "title": "Products",
+                        "rows": [
+                            {"id": "product_blankets", "title": "Blankets"},
+                            {"id": "product_canvas", "title": "Canvas"}
+                        ]
+                    }]
+        
+        Returns:
+            dict: API response
+        """
+        url = f"{self.BASE_URL}/{self.phone_number_id}/messages"
+        
+        # Format sections for WhatsApp API
+        formatted_sections = []
+        for section in sections:
+            formatted_section = {
+                "rows": section.get("rows", [])
+            }
+            if "title" in section:
+                formatted_section["title"] = section["title"]
+            formatted_sections.append(formatted_section)
+        
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            "type": "interactive",
+            "interactive": {
+                "type": "list",
+                "body": {
+                    "text": body_text
+                },
+                "action": {
+                    "button": button_text,
+                    "sections": formatted_sections
+                }
+            }
+        }
+        
+        try:
+            response = requests.post(url, headers=self.headers, json=payload, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            logger.info(f"✓ List message sent to {to}")
+            return data
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Error sending list message to {to}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            raise WhatsAppAPIError(
+                message=f"Failed to send list message to {to}",
+                status_code=getattr(e.response, 'status_code', 500) if hasattr(e, 'response') else 500,
+                details={"response": e.response.text} if hasattr(e, 'response') and e.response is not None else {}
+            )

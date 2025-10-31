@@ -7,6 +7,7 @@ from bot.whatsapp_api import WhatsAppAPI
 from bot.llm_handler import LLMHandler
 from rag.vector_store import VectorStore
 from utils.error_handler import register_error_handlers
+from database.redis_store import redis_store
 import asyncio
 import time
 
@@ -36,8 +37,12 @@ register_error_handlers(app)
 
 # Initialize components
 vector_store = VectorStore()
-llm_handler = LLMHandler(vector_store)
 whatsapp_api = WhatsAppAPI()
+llm_handler = LLMHandler(vector_store, whatsapp_api)
+
+# Initialize bulk ordering service
+from services.bulk_ordering import get_bulk_ordering_service
+bulk_ordering_service = get_bulk_ordering_service(whatsapp_api)
 
 # Auto-ingest documents if vector store is empty (for Railway deployment)
 import os
@@ -160,12 +165,32 @@ async def receive_webhook(request: Request):
                 "type": message.get("type")
             }
 
-            # Only handle text messages for now
+            # Handle text messages
             if message_data["type"] == "text":
                 message_data["text"] = message.get("text", {}).get("body", "")
-
                 # Process message asynchronously
                 asyncio.create_task(process_message(message_data))
+
+            # Handle interactive messages (buttons and lists)
+            elif message_data["type"] == "interactive":
+                interactive = message.get("interactive", {})
+                interactive_type = interactive.get("type")
+                
+                if interactive_type == "button_reply":
+                    button_id = interactive.get("button_reply", {}).get("id")
+                    message_data["button_id"] = button_id
+                    message_data["interactive_type"] = "button"
+                    logger.info(f"🔘 Button clicked: {button_id}")
+                    # Process interactive message asynchronously
+                    asyncio.create_task(process_message(message_data))
+                
+                elif interactive_type == "list_reply":
+                    list_id = interactive.get("list_reply", {}).get("id")
+                    message_data["list_id"] = list_id
+                    message_data["interactive_type"] = "list"
+                    logger.info(f"📋 List selection: {list_id}")
+                    # Process interactive message asynchronously
+                    asyncio.create_task(process_message(message_data))
 
             else:
                 logger.info(f"ℹ️ Unsupported message type: {message_data['type']}")
@@ -192,31 +217,127 @@ async def process_message(message_data: dict):
         from_number = message_data["from"]
         message_id = message_data["message_id"]
         text = message_data.get("text", "")
+        interactive_type = message_data.get("interactive_type")
+        button_id = message_data.get("button_id")
+        list_id = message_data.get("list_id")
 
         logger.info(f"\n{'='*60}")
         logger.info(f"📨 Processing message from {from_number}")
-        logger.info(f"Message: {text}")
+        logger.info(f"Type: {message_data.get('type')}")
+        logger.info(f"Interactive Type: {interactive_type}")
+        logger.info(f"Text: {text}")
+        logger.info(f"Button ID: {button_id}")
+        logger.info(f"List ID: {list_id}")
 
         # Mark message as read
         whatsapp_api.mark_message_as_read(message_id)
 
-        # Generate response using RAG + LLM
-        logger.info("🤖 Generating response...")
-        response = llm_handler.generate_response(
-            user_id=from_number,
-            message=text
-        )
+        # Handle interactive messages (buttons/lists)
+        if interactive_type in ["button", "list"]:
+            selection_id = button_id or list_id
+            
+            # Check if it's a welcome menu button
+            if selection_id in ["btn_faq", "btn_order", "btn_bulk"]:
+                if selection_id == "btn_bulk":
+                    # Start bulk ordering flow
+                    logger.info("🛒 Starting bulk ordering flow")
+                    bulk_ordering_service.start_bulk_ordering(from_number)
+                elif selection_id == "btn_faq":
+                    # General FAQ - continue normal flow
+                    logger.info("❓ FAQ selected - continuing normal flow")
+                    whatsapp_api.send_message(
+                        from_number,
+                        "I'm here to help with any questions! Ask me anything about our products, policies, or services. 😊"
+                    )
+                elif selection_id == "btn_order":
+                    # Order questions
+                    logger.info("📦 Order questions selected")
+                    whatsapp_api.send_message(
+                        from_number,
+                        "I can help with order tracking, delivery status, returns, and any order-related questions. What would you like to know? 📦"
+                    )
+            else:
+                # Handle bulk ordering interactive responses
+                logger.info(f"🛒 Processing bulk ordering selection: {selection_id}")
+                bulk_ordering_service.handle_interactive_response(from_number, selection_id, list_id)
+        
+        # Handle text messages
+        elif text:
+            text_lower = text.lower().strip()
+            
+            # Check for end/restart/cancel commands
+            end_commands = ['restart', 'reset', 'cancel', 'end', 'stop', 'exit', 'start over', 'new order', 'bye']
+            if any(cmd in text_lower for cmd in end_commands):
+                # Clear bulk ordering state if exists
+                bulk_state = redis_store.get_bulk_order_state(from_number)
+                bulk_ended = False
+                
+                if bulk_state:
+                    redis_store.clear_bulk_order_state(from_number)
+                    bulk_ended = True
+                    logger.info(f"🔄 User {from_number} ended bulk ordering flow")
+                
+                # Clear conversation history (normal conversations)
+                redis_store.clear_conversation(from_number)
+                logger.info(f"🔄 User {from_number} cleared conversation history")
+                
+                # Send appropriate goodbye message
+                if bulk_ended:
+                    whatsapp_api.send_message(
+                        from_number,
+                        "Got it! I've reset your bulk ordering and cleared our conversation. Feel free to start fresh anytime. 👋"
+                    )
+                else:
+                    whatsapp_api.send_message(
+                        from_number,
+                        "Goodbye! I've cleared our conversation. Feel free to reach out anytime if you need help. 👋"
+                    )
+                return
+            
+            # Check if user is in bulk ordering flow
+            bulk_state = redis_store.get_bulk_order_state(from_number)
+            
+            if bulk_state:
+                current_state = bulk_state.get("state")
+                
+                if current_state == "asking_quantity":
+                    # User is providing quantity
+                    logger.info("🔢 Processing quantity input")
+                    bulk_ordering_service.handle_quantity(from_number, text)
+                elif current_state == "asking_email":
+                    # User is providing email
+                    logger.info("📧 Processing email input")
+                    bulk_ordering_service.handle_email(from_number, text)
+                elif current_state == "asking_postcode":
+                    # User is providing postcode
+                    logger.info("📮 Processing postcode input")
+                    bulk_ordering_service.handle_postcode(from_number, text)
+                else:
+                    # User is in bulk flow but sent unexpected text
+                    logger.info("⚠️ User in bulk flow sent text - asking to continue")
+                    whatsapp_api.send_message(
+                        from_number,
+                        "Please use the buttons or select from the list to continue with your bulk order. If you need to start over, type 'restart'."
+                    )
+            else:
+                # Normal text message - process with LLM
+                logger.info("🤖 Generating response...")
+                response = llm_handler.generate_response(
+                    user_id=from_number,
+                    message=text
+                )
 
-        # Send response back
-        logger.info(f"📤 Sending response: {response[:100]}...")
-        whatsapp_api.send_message(from_number, response)
+                # Send response back (if not None - buttons might have been sent)
+                if response:
+                    logger.info(f"📤 Sending response: {response[:100]}...")
+                    whatsapp_api.send_message(from_number, response)
 
         duration = time.time() - start_time
-        logger.info(f"✅ Successfully responded to {from_number} in {duration:.2f}s")
+        logger.info(f"✅ Successfully processed message from {from_number} in {duration:.2f}s")
         logger.info(f"{'='*60}\n")
 
     except Exception as e:
-        logger.error(f"❌ Error processing message: {e}")
+        logger.error(f"❌ Error processing message: {e}", exc_info=True)
 
         # Try to send error message to user
         try:

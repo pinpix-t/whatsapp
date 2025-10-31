@@ -6,6 +6,7 @@ from database.redis_store import redis_store
 from utils.retry import retry_openai_call
 from utils.error_handler import LLMError
 from services.order_tracking import order_tracking_service
+from bot.whatsapp_api import WhatsAppAPI
 import logging
 import re
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class LLMHandler:
-    def __init__(self, vector_store):
+    def __init__(self, vector_store, whatsapp_api: WhatsAppAPI = None):
         self.vector_store = vector_store
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
@@ -25,6 +26,7 @@ class LLMHandler:
 
         # Use Redis for conversation storage
         self.redis_store = redis_store
+        self.whatsapp_api = whatsapp_api
 
         # Conversational prompt for all non-greeting messages
         self.conversation_prompt = """You are a professional PrinterPix support assistant on WhatsApp. You MUST be 100% accurate and never hallucinate.
@@ -57,7 +59,41 @@ Your response:"""
     def generate_response(self, user_id: str, message: str):
         """Generate a response - FAST for greetings, detailed for questions"""
         try:
-            # Check cache first
+            # ALWAYS show welcome buttons for first message (empty conversation)
+            conversation = self.redis_store.get_conversation(user_id)
+            is_first_message = not conversation or len(conversation) == 0
+            
+            # If this is the first message, ALWAYS send welcome buttons regardless of content
+            if is_first_message:
+                if self.whatsapp_api:
+                    try:
+                        buttons = [
+                            {"id": "btn_faq", "title": "General FAQ"},
+                            {"id": "btn_order", "title": "Order Questions"},
+                            {"id": "btn_bulk", "title": "Bulk Ordering"}
+                        ]
+                        self.whatsapp_api.send_interactive_buttons(
+                            to=user_id,
+                            body_text="Hi! Welcome to PrinterPix! How can I help?",
+                            buttons=buttons
+                        )
+                        response = None  # Don't send text message, buttons already sent
+                        logger.info("✓ Sent welcome buttons for first message")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to send interactive buttons: {e}. Falling back to text.")
+                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ General FAQ Questions\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                        logger.info("✓ Sent text fallback for first message")
+                else:
+                    response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ General FAQ Questions\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                
+                # Save user message only (no assistant response since buttons were sent)
+                self.redis_store.append_to_conversation(user_id, "user", message)
+                if response is not None:
+                    self.redis_store.append_to_conversation(user_id, "assistant", response)
+                
+                return response
+            
+            # Check cache first (only for non-first messages)
             cached_response = self.redis_store.get_cached_response(message)
             if cached_response:
                 logger.info("✓ Using cached response")
@@ -65,11 +101,75 @@ Your response:"""
 
             message_lower = message.lower().strip()
 
-            # FAST PATH: Handle greetings without RAG
-            greetings = ['hi', 'hello', 'hey', 'hola', 'howdy', 'sup', 'yo', 'greetings', 'hii', 'hellooooo']
-            if message_lower in greetings or any(message_lower.startswith(g + ' ') or message_lower == g for g in greetings):
-                response = "Hello! Welcome to PrinterPix! How can I help you with your order today?"
-                logger.info("✓ Fast greeting response")
+            # FAST PATH: Handle greetings without RAG - send welcome buttons
+            # Check for greeting patterns (handles hi, hii, hiii, hiiii, etc.)
+            exact_greetings = ['hi', 'hello', 'hey', 'hola', 'howdy', 'sup', 'yo', 'greetings']
+            
+            is_greeting = False
+            # Check exact matches first
+            if message_lower in exact_greetings:
+                is_greeting = True
+            # Check pattern matches for variations (hi+, hello+, hey+)
+            # Match: hi, hii, hiii, hiiii, etc. (exactly one h followed by one or more i's)
+            elif re.match(r'^hi+$', message_lower):  # hi, hii, hiii, etc.
+                is_greeting = True
+            # Match: hello, helloo, hellooo, etc.
+            elif re.match(r'^hello+$', message_lower):
+                is_greeting = True
+            # Match: hey, heyy, heyyy, etc.
+            elif re.match(r'^hey+$', message_lower):
+                is_greeting = True
+            # Check if starts with greeting followed by space
+            elif any(message_lower.startswith(g + ' ') for g in exact_greetings):
+                is_greeting = True
+            
+            if is_greeting:
+                # Send interactive buttons instead of text
+                if self.whatsapp_api:
+                    try:
+                        buttons = [
+                            {"id": "btn_faq", "title": "General FAQ"},
+                            {"id": "btn_order", "title": "Order Questions"},
+                            {"id": "btn_bulk", "title": "Bulk Ordering"}
+                        ]
+                        self.whatsapp_api.send_interactive_buttons(
+                            to=user_id,
+                            body_text="Hi! Welcome to PrinterPix! How can I help?",
+                            buttons=buttons
+                        )
+                        response = None  # Don't send text message, buttons already sent
+                        logger.info("✓ Sent welcome buttons")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to send interactive buttons: {e}. Falling back to text.")
+                        # Fallback to text message if buttons fail
+                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ General FAQ Questions\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                        logger.info("✓ Sent text fallback")
+                else:
+                    response = "Hello! Welcome to PrinterPix! How can I help you with your order today?"
+                    logger.info("✓ Fast greeting response (no WhatsApp API)")
+
+            # VAGUE/UNCLEAR MESSAGES: Send welcome buttons again
+            elif message_lower in ['uhm', 'uh', 'um', 'hm', 'hmm', 'what', '?', '??', 'idk', "i don't know", "i dont know"]:
+                # User seems unclear, send welcome buttons to guide them
+                if self.whatsapp_api:
+                    try:
+                        buttons = [
+                            {"id": "btn_faq", "title": "General FAQ"},
+                            {"id": "btn_order", "title": "Order Questions"},
+                            {"id": "btn_bulk", "title": "Bulk Ordering"}
+                        ]
+                        self.whatsapp_api.send_interactive_buttons(
+                            to=user_id,
+                            body_text="Hi! Welcome to PrinterPix! How can I help?",
+                            buttons=buttons
+                        )
+                        response = None
+                        logger.info("✓ Sent welcome buttons for vague message")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to send interactive buttons: {e}. Falling back to text.")
+                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ General FAQ Questions\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                else:
+                    response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ General FAQ Questions\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
 
             # ORDER TRACKING: Handle order tracking requests
             elif self._is_order_tracking_request(message_lower):
@@ -112,12 +212,12 @@ Your response:"""
                 
                 logger.info("✓ Generated conversational response")
 
-            # Save conversation to Redis
+            # Save conversation to Redis (only if response is not None)
             self.redis_store.append_to_conversation(user_id, "user", message)
-            self.redis_store.append_to_conversation(user_id, "assistant", response)
-
-            # Cache response
-            self.redis_store.cache_response(message, response, ttl=3600)
+            if response is not None:
+                self.redis_store.append_to_conversation(user_id, "assistant", response)
+                # Cache response
+                self.redis_store.cache_response(message, response, ttl=3600)
 
             return response
 
