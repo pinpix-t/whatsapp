@@ -347,9 +347,15 @@ class BulkPricingService:
         
         # Fallback to local mapping if Supabase doesn't have it
         if base_price is None:
-            base_price = get_base_price_from_mapping(product_reference_code)
-            if base_price is not None:
-                logger.info(f"Found base price from local mapping for {product_reference_code}: £{base_price}")
+            try:
+                base_price = get_base_price_from_mapping(product_reference_code)
+                if base_price is not None:
+                    logger.info(f"Found base price from local mapping for {product_reference_code}: £{base_price}")
+                else:
+                    logger.warning(f"No base price found in mapping for {product_reference_code}")
+            except Exception as e:
+                logger.error(f"Error getting base price from mapping: {e}")
+                base_price = None
         
         # Fallback to API if neither Supabase nor mapping have it
         if base_price is None:
