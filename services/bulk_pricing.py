@@ -108,25 +108,29 @@ class BulkPricingService:
             return None
         
         try:
-            # Query Supabase table for base price
-            # Try common column names: BasePrice, Price, UnitPrice, base_price, price
-            response = self.supabase.table("pricing_b_d").select("BasePrice, Price, UnitPrice, base_price, price").eq(
+            # Query Supabase table to check available columns
+            # NOTE: pricing_b_d table currently only has PercentDiscount, not base prices
+            response = self.supabase.table("pricing_b_d").select("*").eq(
                 "ProductReferenceCode", product_reference_code
             ).limit(1).execute()
             
             if response.data and len(response.data) > 0:
                 row = response.data[0]
-                # Try various price field names
-                price_fields = ["BasePrice", "Price", "UnitPrice", "base_price", "price"]
+                available_fields = list(row.keys())
+                logger.debug(f"Available fields in pricing_b_d for {product_reference_code}: {available_fields}")
+                
+                # Try various price field names in case they add it later
+                price_fields = ["BasePrice", "Price", "UnitPrice", "base_price", "price", "UnitPrice", "BasePricePerUnit"]
                 for field in price_fields:
                     if field in row and row[field] is not None:
                         base_price = float(row[field])
                         logger.info(f"Found base price for {product_reference_code}: £{base_price}")
                         return base_price
                 
-                logger.warning(f"No base price field found in response for {product_reference_code}. Available fields: {list(row.keys())}")
+                logger.warning(f"No base price field found. pricing_b_d table only has: {available_fields}")
+                logger.warning(f"Base price needs to be added to pricing_b_d table or retrieved from another source")
             
-            logger.warning(f"No base price found for {product_reference_code}")
+            logger.warning(f"No data found for {product_reference_code} in pricing_b_d table")
             return None
             
         except Exception as e:
