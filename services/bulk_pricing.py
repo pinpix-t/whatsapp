@@ -32,6 +32,8 @@ class BulkPricingService:
             logger.warning("Supabase credentials not configured")
         
         # Pricing API base URL
+        # NOTE: This API may require authentication or a different request format
+        # Currently returns 400 Bad Request - base price lookup is disabled until API access is configured
         self.pricing_api_url = "https://qt-api.printerpix.co.uk/artwrap/GetProductsAndTierPricingV2/"
     
     def get_product_reference_code(self, selections: Dict) -> Optional[str]:
@@ -174,6 +176,15 @@ class BulkPricingService:
                             logger.info(f"First product keys: {list(data['products'][0].keys()) if isinstance(data['products'][0], dict) else 'Not a dict'}")
                 return None
                 
+        except requests.exceptions.HTTPError as e:
+            if e.response and e.response.status_code == 400:
+                error_data = e.response.json() if e.response.content else {}
+                logger.error(f"Pricing API returned 400 Bad Request: {error_data}")
+                logger.error(f"Request body sent: {body_data}")
+                logger.warning("Pricing API may require different format or authentication")
+            else:
+                logger.error(f"HTTP error calling pricing API: {e}")
+            return None
         except requests.exceptions.RequestException as e:
             logger.error(f"Error calling pricing API: {e}")
             return None
