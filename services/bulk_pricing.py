@@ -271,6 +271,29 @@ class BulkPricingService:
         """
         return f"£{amount:.2f}"
     
+    def _get_default_base_price_for_product(self, product: str) -> Optional[float]:
+        """
+        Get a default base price for a product type when specific selections aren't available
+        
+        Args:
+            product: Product type (e.g., "blankets", "canvas")
+            
+        Returns:
+            Default base price or None
+        """
+        # Use first available ProductReferenceCode for this product as fallback
+        default_refs = {
+            "blankets": "BlanketSherpafleece_25x20",
+            "canvas": "Canvas_F18_10x10",
+            "photobooks": "PB_CailuxCover_8x6_Black_20pp",
+            "mugs": "Mug_Basic_White_PackOf2",
+        }
+        
+        if product in default_refs:
+            return get_base_price_from_mapping(default_refs[product])
+        
+        return None
+    
     def get_bulk_price_info(
         self, 
         selections: Dict, 
@@ -317,11 +340,39 @@ class BulkPricingService:
         product_reference_code = self.get_product_reference_code(selections)
         result["product_reference_code"] = product_reference_code
         
+        # If ProductReferenceCode not found, try to use a default base price for the product
         if not product_reference_code:
             logger.warning(f"Could not get ProductReferenceCode from selections: {selections}")
             logger.info(f"Missing fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
-            result["error_message"] = "Product reference code not found (missing fabric/size selections?)"
-            return result
+            
+            # Try to get a default base price for the product type
+            product = selections.get("product")
+            if product:
+                # Use first available ProductReferenceCode for this product as fallback
+                # This allows us to show pricing even without specific fabric/size
+                default_base_price = self._get_default_base_price_for_product(product)
+                if default_base_price:
+                    logger.info(f"Using default base price for product {product}: £{default_base_price}")
+                    # Continue with discount lookup using a default ProductReferenceCode
+                    # For blankets, use a common one like Sherpa Baby
+                    if product == "blankets":
+                        product_reference_code = "BlanketSherpafleece_25x20"
+                    elif product == "canvas":
+                        product_reference_code = "Canvas_F18_10x10"
+                    elif product == "photobooks":
+                        product_reference_code = "PB_CailuxCover_8x6_Black_20pp"
+                    elif product == "mugs":
+                        product_reference_code = "Mug_Basic_White_PackOf2"
+                    
+                    if product_reference_code:
+                        result["product_reference_code"] = product_reference_code
+                        logger.info(f"Using default ProductReferenceCode: {product_reference_code} for pricing estimate")
+                else:
+                    result["error_message"] = "Product reference code not found (missing fabric/size selections?)"
+                    return result
+            else:
+                result["error_message"] = "Product reference code not found (missing fabric/size selections?)"
+                return result
         
         logger.info(f"Found ProductReferenceCode: {product_reference_code} for selections: {selections}")
         
