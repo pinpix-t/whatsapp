@@ -163,8 +163,15 @@ class BulkPricingService:
                 return price
             else:
                 logger.warning(f"Price not found in API response. Available keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
-                # Log full response for debugging (first 500 chars)
-                logger.debug(f"API response preview: {str(data)[:500]}")
+                # Log full response for debugging (first 1000 chars)
+                logger.warning(f"API response preview: {str(data)[:1000]}")
+                # Try to log more details about the response structure
+                if isinstance(data, dict):
+                    logger.warning(f"Response type: dict with {len(data)} keys")
+                    if "products" in data:
+                        logger.info(f"Found 'products' array with {len(data['products'])} items")
+                        if len(data['products']) > 0:
+                            logger.info(f"First product keys: {list(data['products'][0].keys()) if isinstance(data['products'][0], dict) else 'Not a dict'}")
                 return None
                 
         except requests.exceptions.RequestException as e:
@@ -251,8 +258,12 @@ class BulkPricingService:
         result["product_reference_code"] = product_reference_code
         
         if not product_reference_code:
-            result["error_message"] = "Product reference code not found"
+            logger.warning(f"Could not get ProductReferenceCode from selections: {selections}")
+            logger.info(f"Missing fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
+            result["error_message"] = "Product reference code not found (missing fabric/size selections?)"
             return result
+        
+        logger.info(f"Found ProductReferenceCode: {product_reference_code} for selections: {selections}")
         
         # Get price point ID
         price_point_id = PRICE_POINT_MAPPING.get(offer_type)
@@ -271,10 +282,19 @@ class BulkPricingService:
         # Get productPageId from mapping if not provided
         if not product_page_id:
             product_page_id = get_product_page_id(selections)
+            if not product_page_id:
+                logger.warning(f"Could not get productPageId from selections: {selections}")
+                logger.info(f"Missing required fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
         
         # Get base price from API (optional - can proceed without it)
-        base_price = self.get_base_price_from_api(selections, product_page_id)
-        result["base_price"] = base_price
+        if product_page_id:
+            logger.info(f"Attempting to get base price with productPageId: {product_page_id}")
+            base_price = self.get_base_price_from_api(selections, product_page_id)
+            result["base_price"] = base_price
+        else:
+            logger.warning("Cannot get base price - productPageId not available (missing fabric/size selections?)")
+            base_price = None
+            result["base_price"] = None
         
         # If we have both discount and base price, calculate totals
         if base_price is not None:

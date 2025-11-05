@@ -363,6 +363,20 @@ Send your postcode, or type 'skip' to continue without it."""
     
     async def _offer_first_discount(self, user_id: str, selections: Dict) -> None:
         """Offer first discount code with pricing (shows WORSE discount first)"""
+        # Validate that we have required selections for this product
+        product = selections.get("product", "")
+        
+        # Check if product requires fabric/size and we have them
+        if product in BULK_PRODUCTS:
+            product_config = BULK_PRODUCTS[product]
+            required_steps = [q["step"] for q in product_config["questions"]]
+            missing_steps = [step for step in required_steps if step not in selections]
+            
+            if missing_steps:
+                logger.warning(f"Missing required selections for {product}: {missing_steps}")
+                logger.warning(f"Current selections: {selections}")
+                # This shouldn't happen if flow is correct, but log it
+        
         # Show the worse discount first (second_offer = price point B)
         discount_code = DISCOUNT_CODES["second_offer"]
         
@@ -377,7 +391,6 @@ Send your postcode, or type 'skip' to continue without it."""
         )
         
         # Get product name (handle Other products)
-        product = selections.get("product", "")
         if product in OTHER_PRODUCTS:
             product_name = OTHER_PRODUCTS[product]["name"]
         elif product in BULK_PRODUCTS:
@@ -386,6 +399,9 @@ Send your postcode, or type 'skip' to continue without it."""
             product_name = product.title()
         
         quantity = selections.get("quantity", 0)
+        
+        # Log selections for debugging
+        logger.info(f"Getting pricing for product={product}, selections={selections}, quantity={quantity}")
         
         # Get pricing information - use second_offer (worse discount) first
         price_info = bulk_pricing_service.get_bulk_price_info(
