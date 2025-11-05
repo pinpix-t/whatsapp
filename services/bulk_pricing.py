@@ -331,6 +331,9 @@ class BulkPricingService:
                 "error_message": str (if success=False)
             }
         """
+        logger.info(f"🔍 get_bulk_price_info called: selections={selections}, quantity={quantity}, offer_type={offer_type}")
+        logger.info(f"🔍 get_base_price_from_mapping available: {get_base_price_from_mapping is not None}")
+        
         result = {
             "success": False,
             "product_reference_code": None,
@@ -450,11 +453,15 @@ class BulkPricingService:
             result["formatted_unit_price"] = self.format_price_gbp(unit_price)
             result["formatted_total_price"] = self.format_price_gbp(total_price)
             result["success"] = True
+            
+            logger.info(f"✅ PRICING CALCULATED: base_price=£{base_price}, unit_price=£{unit_price}, total_price=£{total_price}")
         else:
             # We have discount but no base price - can still show discount percentage
             result["success"] = True  # Partial success - can show discount
             result["error_message"] = "Base price unavailable, showing discount only"
+            logger.warning(f"❌ NO BASE PRICE: base_price=None, discount_percent={discount_percent}, product_reference_code={product_reference_code}")
         
+        logger.info(f"🔍 FINAL RESULT: success={result['success']}, base_price={result['base_price']}, total_price={result['total_price']}")
         return result
 
 
