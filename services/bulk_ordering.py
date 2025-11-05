@@ -410,6 +410,9 @@ Send your postcode, or type 'skip' to continue without it."""
             offer_type="second_offer"
         )
         
+        # Log price info for debugging
+        logger.info(f"Price info result: success={price_info.get('success')}, base_price={price_info.get('base_price')}, total_price={price_info.get('total_price')}, error={price_info.get('error_message')}")
+        
         # Build message with pricing
         if price_info["success"] and price_info["total_price"] is not None:
             # Full pricing available
