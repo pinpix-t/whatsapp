@@ -11,7 +11,14 @@ from config.settings import SUPABASE_URL, SUPABASE_KEY
 from config.bulk_product_mapping import get_product_reference_code
 from config.bulk_product_page_ids import get_product_page_id
 from config.bulk_products import PRICE_POINT_MAPPING
-from config.bulk_base_prices import get_base_price as get_base_price_from_mapping
+
+# Import base price mapping with fallback
+try:
+    from config.bulk_base_prices import get_base_price as get_base_price_from_mapping
+except ImportError as e:
+    logger.warning(f"⚠️ Cannot import bulk_base_prices module: {e}")
+    logger.warning("Base prices will not be available from mapping file")
+    get_base_price_from_mapping = None
 
 logger = logging.getLogger(__name__)
 
