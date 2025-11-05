@@ -89,6 +89,50 @@ class BulkPricingService:
             logger.error(f"Error querying Supabase for discount: {e}")
             return None
     
+    def get_base_price_from_supabase(self, product_reference_code: str) -> Optional[float]:
+        """
+        Get base price from Supabase lookup table
+        
+        Args:
+            product_reference_code: ProductReferenceCode (e.g., "BlanketSherpafleece_25x20")
+            
+        Returns:
+            Base price in GBP or None if not found
+        """
+        if not self.supabase:
+            logger.warning("Supabase not available, cannot get base price")
+            return None
+        
+        if not product_reference_code:
+            logger.warning(f"Missing product_reference_code for base price lookup")
+            return None
+        
+        try:
+            # Query Supabase table for base price
+            # Try common column names: BasePrice, Price, UnitPrice, base_price, price
+            response = self.supabase.table("pricing_b_d").select("BasePrice, Price, UnitPrice, base_price, price").eq(
+                "ProductReferenceCode", product_reference_code
+            ).limit(1).execute()
+            
+            if response.data and len(response.data) > 0:
+                row = response.data[0]
+                # Try various price field names
+                price_fields = ["BasePrice", "Price", "UnitPrice", "base_price", "price"]
+                for field in price_fields:
+                    if field in row and row[field] is not None:
+                        base_price = float(row[field])
+                        logger.info(f"Found base price for {product_reference_code}: £{base_price}")
+                        return base_price
+                
+                logger.warning(f"No base price field found in response for {product_reference_code}. Available fields: {list(row.keys())}")
+            
+            logger.warning(f"No base price found for {product_reference_code}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error querying Supabase for base price: {e}")
+            return None
+    
     def get_base_price_from_api(self, product_selections: Dict, product_page_id: Optional[str] = None) -> Optional[float]:
         """
         Get base price from pricing API
@@ -290,22 +334,26 @@ class BulkPricingService:
             result["error_message"] = "Discount not found in lookup table"
             return result
         
-        # Get productPageId from mapping if not provided
-        if not product_page_id:
-            product_page_id = get_product_page_id(selections)
-            if not product_page_id:
-                logger.warning(f"Could not get productPageId from selections: {selections}")
-                logger.info(f"Missing required fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
+        # Get base price from Supabase (preferred method)
+        base_price = self.get_base_price_from_supabase(product_reference_code)
         
-        # Get base price from API (optional - can proceed without it)
-        if product_page_id:
-            logger.info(f"Attempting to get base price with productPageId: {product_page_id}")
-            base_price = self.get_base_price_from_api(selections, product_page_id)
-            result["base_price"] = base_price
-        else:
-            logger.warning("Cannot get base price - productPageId not available (missing fabric/size selections?)")
-            base_price = None
-            result["base_price"] = None
+        # Fallback to API if Supabase doesn't have base price
+        if base_price is None:
+            # Get productPageId from mapping if not provided
+            if not product_page_id:
+                product_page_id = get_product_page_id(selections)
+                if not product_page_id:
+                    logger.warning(f"Could not get productPageId from selections: {selections}")
+                    logger.info(f"Missing required fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
+            
+            # Try API as fallback (optional - can proceed without it)
+            if product_page_id:
+                logger.info(f"Attempting to get base price from API with productPageId: {product_page_id}")
+                base_price = self.get_base_price_from_api(selections, product_page_id)
+            else:
+                logger.warning("Cannot get base price - productPageId not available (missing fabric/size selections?)")
+        
+        result["base_price"] = base_price
         
         # If we have both discount and base price, calculate totals
         if base_price is not None:
