@@ -11,6 +11,7 @@ from config.settings import SUPABASE_URL, SUPABASE_KEY
 from config.bulk_product_mapping import get_product_reference_code
 from config.bulk_product_page_ids import get_product_page_id
 from config.bulk_products import PRICE_POINT_MAPPING
+from config.bulk_base_prices import get_base_price as get_base_price_from_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -338,10 +339,19 @@ class BulkPricingService:
             result["error_message"] = "Discount not found in lookup table"
             return result
         
-        # Get base price from Supabase (preferred method)
+        # Get base price - try multiple sources in order:
+        # 1. Supabase (preferred if column exists)
+        # 2. Local mapping file (fallback)
+        # 3. External API (last resort)
         base_price = self.get_base_price_from_supabase(product_reference_code)
         
-        # Fallback to API if Supabase doesn't have base price
+        # Fallback to local mapping if Supabase doesn't have it
+        if base_price is None:
+            base_price = get_base_price_from_mapping(product_reference_code)
+            if base_price is not None:
+                logger.info(f"Found base price from local mapping for {product_reference_code}: £{base_price}")
+        
+        # Fallback to API if neither Supabase nor mapping have it
         if base_price is None:
             # Get productPageId from mapping if not provided
             if not product_page_id:
@@ -350,7 +360,7 @@ class BulkPricingService:
                     logger.warning(f"Could not get productPageId from selections: {selections}")
                     logger.info(f"Missing required fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
             
-            # Try API as fallback (optional - can proceed without it)
+            # Try API as last resort (optional - can proceed without it)
             if product_page_id:
                 logger.info(f"Attempting to get base price from API with productPageId: {product_page_id}")
                 base_price = self.get_base_price_from_api(selections, product_page_id)
