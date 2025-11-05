@@ -398,22 +398,22 @@ class BulkPricingService:
         
         # Fallback to local mapping if Supabase doesn't have it
         if base_price is None:
-            try:
-                base_price = get_base_price_from_mapping(product_reference_code)
-                if base_price is not None:
-                    logger.info(f"✅ Found base price from local mapping for {product_reference_code}: £{base_price}")
-                else:
-                    logger.warning(f"❌ No base price found in mapping for {product_reference_code}")
-                    logger.warning(f"Available mappings: Check config/bulk_base_prices.py")
-            except ImportError as e:
-                logger.error(f"❌ Import error: Cannot import bulk_base_prices module: {e}")
-                logger.error("This suggests the file may not be deployed. Check Railway logs.")
+            if get_base_price_from_mapping is None:
+                logger.error("❌ bulk_base_prices module not imported - file may be missing on Railway")
                 base_price = None
-            except Exception as e:
-                logger.error(f"❌ Error getting base price from mapping: {e}")
-                import traceback
-                logger.error(traceback.format_exc())
-                base_price = None
+            else:
+                try:
+                    base_price = get_base_price_from_mapping(product_reference_code)
+                    if base_price is not None:
+                        logger.info(f"✅ Found base price from local mapping for {product_reference_code}: £{base_price}")
+                    else:
+                        logger.warning(f"❌ No base price found in mapping for {product_reference_code}")
+                        logger.warning(f"Available mappings: Check config/bulk_base_prices.py")
+                except Exception as e:
+                    logger.error(f"❌ Error getting base price from mapping: {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+                    base_price = None
         
         # Fallback to API if neither Supabase nor mapping have it
         if base_price is None:
