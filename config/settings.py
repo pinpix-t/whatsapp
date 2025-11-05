@@ -34,3 +34,7 @@ DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 APP_SECRET = os.getenv("APP_SECRET")  # For webhook signature verification
 ALLOWED_IPS = os.getenv("ALLOWED_IPS", "").split(",") if os.getenv("ALLOWED_IPS") else []
 ENABLE_WEBHOOK_VERIFICATION = os.getenv("ENABLE_WEBHOOK_VERIFICATION", "true").lower() == "true"
+
+# Supabase Settings
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")

@@ -60,8 +60,11 @@ class OrderTrackingService:
             first_two_digits = int(clean_order[:2])
             if first_two_digits in self.CODE_TO_COUNTRY:
                 return first_two_digits
-                
-        return None
+        
+        # Default fallback: try website code 1 (US) if no match found
+        # This handles cases where country code isn't clearly identifiable
+        logger.warning(f"Could not identify website code for {clean_order}, defaulting to 1 (US)")
+        return 1
     
     def validate_order_number(self, order_number: str) -> Tuple[bool, str]:
         """
@@ -126,6 +129,24 @@ class OrderTrackingService:
                     timeout=10
                 )
                 logger.info(f"API Response status: {response.status_code}")
+                
+                # Handle 500 errors from the API
+                if response.status_code == 500:
+                    logger.error(f"Tracking API returned 500 error for order {order_number}")
+                    # Try alternative website codes if first attempt fails
+                    if website_code == 1:
+                        # Try UK (4) as fallback
+                        logger.info(f"Retrying with website code 4 (UK)")
+                        params_retry = {'webSiteCode': 4, 'orderNo': clean_order}
+                        response_retry = requests.get(self.base_url, params=params_retry, timeout=10)
+                        if response_retry.status_code == 200:
+                            response = response_retry
+                            website_code = 4
+                        else:
+                            raise OrderTrackingError("The tracking system is currently unavailable. Please try again later or contact support.")
+                    else:
+                        raise OrderTrackingError("The tracking system is currently unavailable. Please try again later or contact support.")
+                
                 response.raise_for_status()
                 
                 data = response.json()

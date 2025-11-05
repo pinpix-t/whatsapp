@@ -28,3 +28,7 @@ APP_SECRET=printerpix_secret_key_2025
 ALLOWED_IPS=
 ENABLE_WEBHOOK_VERIFICATION=true
 
+# Supabase Configuration (for bulk pricing lookup table)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-supabase-anon-key
+

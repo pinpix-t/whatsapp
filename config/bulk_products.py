@@ -110,6 +110,14 @@ DISCOUNT_CODES = {
     "second_offer": "BULK103025CS"    # 10% discount
 }
 
+# Price point mapping: discount codes map to PricePointId UUID in Supabase
+# 2BULK103025CSR is price point D, BULK103025CS is price point B
+# Based on CSV: 563f6010... appears to be one price point, 5d21e679... appears to be another
+PRICE_POINT_MAPPING = {
+    "first_offer": "563f6010-fbf4-4474-bc7f-f35879f6b1ee",  # Price point for 2BULK103025CSR
+    "second_offer": "5d21e679-f8b2-495e-ac26-86aefbffc190"  # Price point for BULK103025CS
+}
+
 # Other products (no detailed qualification questions)
 OTHER_PRODUCTS = {
     "wall_calendar": {

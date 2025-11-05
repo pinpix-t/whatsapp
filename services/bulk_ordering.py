@@ -8,8 +8,9 @@ import re
 from typing import Dict, Optional, Tuple
 from config.bulk_products import (
     BULK_PRODUCTS, DISCOUNT_CODES, PRODUCT_SELECTION_LIST, PRODUCT_URLS, HOMEPAGE_URL,
-    OTHER_PRODUCTS, OTHER_PRODUCTS_LIST
+    OTHER_PRODUCTS, OTHER_PRODUCTS_LIST, PRICE_POINT_MAPPING
 )
+from services.bulk_pricing import bulk_pricing_service
 from database.redis_store import redis_store
 from bot.whatsapp_api import WhatsAppAPI
 
@@ -361,8 +362,9 @@ Send your postcode, or type 'skip' to continue without it."""
         await self._offer_first_discount(user_id, selections)
     
     async def _offer_first_discount(self, user_id: str, selections: Dict) -> None:
-        """Offer first discount code"""
-        discount_code = DISCOUNT_CODES["first_offer"]
+        """Offer first discount code with pricing (shows WORSE discount first)"""
+        # Show the worse discount first (second_offer = price point B)
+        discount_code = DISCOUNT_CODES["second_offer"]
         
         # Store offer
         state_data = self.redis_store.get_bulk_order_state(user_id)
@@ -385,18 +387,56 @@ Send your postcode, or type 'skip' to continue without it."""
         
         quantity = selections.get("quantity", 0)
         
-        message = f"""Great! Here's your quick quote:
+        # Get pricing information - use second_offer (worse discount) first
+        price_info = bulk_pricing_service.get_bulk_price_info(
+            selections=selections,
+            quantity=quantity,
+            offer_type="second_offer"
+        )
+        
+        # Build message with pricing
+        if price_info["success"] and price_info["total_price"] is not None:
+            # Full pricing available
+            message = f"""Great! Here's your quick quote:
 
 Product: {product_name}
 Quantity: {quantity} units
+Unit Price: {price_info["formatted_unit_price"]}
+Total Price: {price_info["formatted_total_price"]}
+Discount: {price_info["discount_percent"]:.1f}% off
 
 Use discount code: *{discount_code}* for your bulk order on our website.
 
 Ready to proceed?"""
+        elif price_info["success"] and price_info["discount_percent"] is not None:
+            # Discount available but no base price
+            message = f"""Great! Here's your quick quote:
 
+Product: {product_name}
+Quantity: {quantity} units
+Discount: {price_info["discount_percent"]:.1f}% off
+
+⚠️ Live price is temporarily unavailable.
+
+Use discount code: *{discount_code}* for your bulk order on our website.
+
+Ready to proceed?"""
+        else:
+            # Pricing unavailable
+            message = f"""Great! Here's your quick quote:
+
+Product: {product_name}
+Quantity: {quantity} units
+
+⚠️ Live price is temporarily unavailable.
+
+Use discount code: *{discount_code}* for your bulk order on our website.
+
+Ready to proceed?"""
+        
         buttons = [
-            {"id": "discount_accept", "title": "Yes"},
-            {"id": "discount_reject", "title": "No"}
+            {"id": "discount_accept", "title": "Yes, I'll use it"},
+            {"id": "discount_reject", "title": "Need better price"}
         ]
         
         await self.whatsapp_api.send_interactive_buttons(
@@ -409,7 +449,12 @@ Ready to proceed?"""
         """Handle when user accepts discount"""
         state_data = self.redis_store.get_bulk_order_state(user_id)
         selections = state_data.get("selections", {})
-        discount_code = DISCOUNT_CODES["first_offer"] if current_state == "offering_first_discount" else DISCOUNT_CODES["second_offer"]
+        # Determine correct discount code based on state
+        # offering_first_discount = second_offer (worse), offering_second_discount = first_offer (better)
+        if current_state == "offering_first_discount":
+            discount_code = DISCOUNT_CODES["second_offer"]  # Worse discount shown first
+        else:
+            discount_code = DISCOUNT_CODES["first_offer"]  # Better discount shown second
         
         # Determine product URL
         product = selections.get("product", "")
@@ -443,38 +488,74 @@ Apply the code at checkout. Happy to help with anything else!"""
         # Default to homepage if product not found
         return HOMEPAGE_URL
     
+    async def handle_discount_text_response(self, user_id: str, text: str, current_state: str) -> None:
+        """Handle text responses when user is in discount offering state"""
+        text_lower = text.lower().strip()
+        
+        # Check for rejection words
+        rejection_words = ['no', 'not happy', 'not satisfied', 'need better', 'better price', 'too high', 'expensive', 'cant afford', 'decline', 'reject', 'pass', 'skip']
+        acceptance_words = ['yes', 'accept', 'ok', 'okay', 'sure', 'proceed', 'continue', 'use it', 'i\'ll use', 'take it']
+        
+        if any(word in text_lower for word in rejection_words):
+            # User is rejecting - treat as button click on "discount_reject"
+            logger.info(f"User rejected discount via text: {text}")
+            await self._handle_discount_rejection(user_id, current_state)
+        elif any(word in text_lower for word in acceptance_words):
+            # User is accepting - treat as button click on "discount_accept"
+            logger.info(f"User accepted discount via text: {text}")
+            await self._handle_discount_acceptance(user_id, current_state)
+        else:
+            # Unclear response - ask them to use buttons
+            await self.whatsapp_api.send_message(
+                user_id,
+                "Please use the buttons above to respond. Or type 'No' if you need a better price, or 'Yes' if you'll use the code."
+            )
+    
     async def _handle_discount_rejection(self, user_id: str, current_state: str) -> None:
         """Handle when user rejects discount"""
         state_data = self.redis_store.get_bulk_order_state(user_id)
         selections = state_data.get("selections", {})
         
         if current_state == "offering_first_discount":
-            # Show 3 buttons for rejection reasons
-            buttons = [
-                {"id": "reject_price", "title": "Not happy with price"},
-                {"id": "reject_delivery", "title": "Delivery time"},
-                {"id": "reject_agent", "title": "Talk to agent"}
-            ]
+            # User asked for better price - show the BETTER discount (first_offer = price point D)
+            quantity = selections.get("quantity", 0)
             
-            # Update state to handle rejection reason
-            self.redis_store.set_bulk_order_state(
-                user_id,
-                "handling_rejection",
-                {"selections": selections, "discount_offers": []}
+            # Get the better discount (first_offer = price point D)
+            better_price_info = bulk_pricing_service.get_bulk_price_info(
+                selections=selections,
+                quantity=quantity,
+                offer_type="first_offer"
             )
             
-            await self.whatsapp_api.send_interactive_buttons(
-                to=user_id,
-                body_text="No problem! What would you like help with?",
-                buttons=buttons
+            # Get the worse discount (second_offer = price point B) for comparison logging
+            worse_price_info = bulk_pricing_service.get_bulk_price_info(
+                selections=selections,
+                quantity=quantity,
+                offer_type="second_offer"
             )
-        elif current_state == "offering_second_discount":
+            
+            better_discount = better_price_info.get("discount_percent", 0) or 0
+            worse_discount = worse_price_info.get("discount_percent", 0) or 0
+            
+            # Log what we found for debugging
+            logger.info(f"💰 Discount comparison for user {user_id}: Worse (shown first)={worse_discount:.1f}%, Better (offering now)={better_discount:.1f}%")
+            
+            # Always show the better discount when they ask for better price
+            if better_discount > worse_discount:
+                logger.info(f"✅ Showing better discount ({better_discount:.1f}%) - was showing {worse_discount:.1f}% before")
+                await self._offer_second_discount(user_id, selections)
+            else:
+                # This shouldn't happen, but handle gracefully
+                logger.warning(f"⚠️ Better discount ({better_discount:.1f}%) is not better than worse ({worse_discount:.1f}%) - showing anyway")
+                await self._offer_second_discount(user_id, selections)
+        elif current_state == "offering_second_discount" or current_state == "offering_best_available":
             # Handoff to human agent
             await self._handoff_to_agent(user_id, selections)
     
     async def _offer_second_discount(self, user_id: str, selections: Dict) -> None:
-        """Offer second discount code"""
-        discount_code = DISCOUNT_CODES["second_offer"]
+        """Offer better discount code (first_offer = price point D) when user asks for better price"""
+        # Show the better discount (first_offer = price point D)
+        discount_code = DISCOUNT_CODES["first_offer"]
         
         # Store offer
         state_data = self.redis_store.get_bulk_order_state(user_id)
@@ -497,18 +578,56 @@ Apply the code at checkout. Happy to help with anything else!"""
         
         quantity = selections.get("quantity", 0)
         
-        message = f"""I can extend a better bulk incentive today:
+        # Get pricing information - use first_offer (better discount)
+        price_info = bulk_pricing_service.get_bulk_price_info(
+            selections=selections,
+            quantity=quantity,
+            offer_type="first_offer"
+        )
+        
+        # Build message with pricing
+        if price_info["success"] and price_info["total_price"] is not None:
+            # Full pricing available
+            message = f"""I can extend a better bulk incentive today:
+
+Product: {product_name}
+Quantity: {quantity} units
+Unit Price: {price_info["formatted_unit_price"]}
+Total Price: {price_info["formatted_total_price"]}
+Discount: {price_info["discount_percent"]:.1f}% off
+
+Use discount code: *{discount_code}* for your bulk order on our website.
+
+Want me to update your pay link?"""
+        elif price_info["success"] and price_info["discount_percent"] is not None:
+            # Discount available but no base price
+            message = f"""I can extend a better bulk incentive today:
+
+Product: {product_name}
+Quantity: {quantity} units
+Discount: {price_info["discount_percent"]:.1f}% off
+
+⚠️ Live price is temporarily unavailable.
+
+Use discount code: *{discount_code}* for your bulk order on our website.
+
+Want me to update your pay link?"""
+        else:
+            # Pricing unavailable
+            message = f"""I can extend a better bulk incentive today:
 
 Product: {product_name}
 Quantity: {quantity} units
 
+⚠️ Live price is temporarily unavailable.
+
 Use discount code: *{discount_code}* for your bulk order on our website.
 
-Ready to proceed?"""
+Want me to update your pay link?"""
 
         buttons = [
-            {"id": "discount_accept", "title": "Yes"},
-            {"id": "discount_reject", "title": "No"}
+            {"id": "discount_accept", "title": "Yes, I'll use it"},
+            {"id": "discount_reject", "title": "Still too high"}
         ]
         
         await self.whatsapp_api.send_interactive_buttons(

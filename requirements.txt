@@ -15,10 +15,11 @@ tiktoken==0.5.2
 redis==5.0.1
 psycopg2-binary==2.9.9
 sqlalchemy==2.0.25
+supabase==2.0.0
 
 # HTTP & API
 requests==2.31.0
-httpx==0.26.0
+httpx==0.24.1
 
 # Security & Rate Limiting
 slowapi==0.1.9

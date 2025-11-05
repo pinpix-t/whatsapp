@@ -312,6 +312,10 @@ async def process_message(message_data: dict):
                     # User is providing postcode
                     logger.info("📮 Processing postcode input")
                     await bulk_ordering_service.handle_postcode(from_number, text)
+                elif current_state in ["offering_first_discount", "offering_second_discount", "offering_best_available"]:
+                    # User is responding to discount offer - check for rejection words
+                    logger.info(f"💰 Processing discount response in state: {current_state}")
+                    await bulk_ordering_service.handle_discount_text_response(from_number, text, current_state)
                 else:
                     # User is in bulk flow but sent unexpected text
                     logger.info("⚠️ User in bulk flow sent text - asking to continue")

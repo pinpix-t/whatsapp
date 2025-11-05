@@ -268,16 +268,22 @@ Your response:"""
         tracking_keywords = [
             'track', 'tracking', 'order status', 'where is my order',
             'delivery status', 'shipping status', 'order number',
-            'track order', 'order tracking', 'my order', 'order info'
+            'track order', 'order tracking', 'my order', 'order info',
+            'order nuber', 'ordernumber', 'order no', 'order#'
         ]
         
-        # Check for tracking keywords
+        # Check for tracking keywords (including common typos)
         if any(keyword in message_lower for keyword in tracking_keywords):
             return True
             
         # Check if message contains what looks like an order number (8-10 digits)
         order_pattern = r'\b\d{8,10}\b'
         if re.search(order_pattern, message_lower):
+            return True
+        
+        # Also check for 7-11 digit numbers (edge cases)
+        fallback_pattern = r'\b\d{7,11}\b'
+        if re.search(fallback_pattern, message_lower):
             return True
             
         return False
@@ -309,21 +315,32 @@ Your response:"""
                 return f"❌ {error_msg}\n\nPlease provide a valid order number (8-10 digits) starting with a country code."
             elif "No tracking information found" in error_msg:
                 return "📦 No tracking information found for this order number. Please double-check the number or contact support if you need help."
-            elif "Failed to retrieve" in error_msg or "API request failed" in error_msg:
-                return f"⚠️ Sorry, I couldn't reach the tracking system right now. Please try again in a moment, or contact support at 1-800-PRINTERPIX.\n\nError: {error_msg[:100]}"
+            elif "Failed to retrieve" in error_msg or "API request failed" in error_msg or "currently unavailable" in error_msg:
+                return "⚠️ Sorry, I couldn't reach the tracking system right now. Please try again in a moment, or contact support at 1-800-PRINTERPIX.\n\nIf you have your order confirmation email, you can also check your tracking information there."
             else:
                 logger.error(f"Unexpected order tracking error: {error_msg}")
                 return f"Sorry, I'm having trouble tracking your order right now. Error: {error_msg[:150]}\n\nPlease try again or contact support at 1-800-PRINTERPIX."
 
     def _extract_order_number(self, message: str) -> str:
         """Extract order number from message"""
-        # Look for 8-10 digit numbers
+        # Look for 8-10 digit numbers (more flexible - handles numbers anywhere)
+        # First try exact pattern
         order_pattern = r'\b(\d{8,10})\b'
         matches = re.findall(order_pattern, message)
         
         if matches:
             # Return the first match
             return matches[0]
+        
+        # Fallback: look for any sequence of 7-11 digits (handle edge cases)
+        fallback_pattern = r'(\d{7,11})'
+        fallback_matches = re.findall(fallback_pattern, message)
+        
+        if fallback_matches:
+            # Filter to valid range
+            for match in fallback_matches:
+                if 8 <= len(match) <= 10:
+                    return match
         
         return None
 
