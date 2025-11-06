@@ -213,19 +213,20 @@ class BulkPricingService:
                                 for price_entry in prices:
                                     if price_entry.get("quantity") == 1:
                                         base_price = float(price_entry.get("price", 0))
-                                        logger.info(f"Found base price from API for {product_reference_code}: £{base_price}")
+                                        logger.info(f"✅ Found exact match: API returned base price for {product_reference_code}: £{base_price}")
                                         return base_price
+                        
+                        # No exact match found - log available options for debugging
+                        available_ids = [tier.get("platinumProductReferenceId", "unknown") for tier in tier_pricings]
+                        logger.warning(f"⚠️ No exact match found for {product_reference_code} in API response")
+                        logger.warning(f"Available platinumProductReferenceIds: {available_ids}")
+                        logger.warning("Will fall back to local mapping file instead of using wrong product's price")
+                        # Don't use first tier's price if it doesn't match - return None to fall back to local mapping
+                        return None
                     
-                    # If no match found or no product_reference_code, use first tier's QTY=1 price
-                    if base_price is None and len(tier_pricings) > 0:
-                        first_tier = tier_pricings[0]
-                        prices = first_tier.get("prices", [])
-                        for price_entry in prices:
-                            if price_entry.get("quantity") == 1:
-                                base_price = float(price_entry.get("price", 0))
-                                platinum_id = first_tier.get("platinumProductReferenceId", "unknown")
-                                logger.info(f"Using first tier pricing from API ({platinum_id}): £{base_price}")
-                                return base_price
+                    # If no product_reference_code provided, we can't safely match - return None
+                    logger.warning("No product_reference_code provided for API lookup - cannot safely match")
+                    return None
             
             # Fallback: try to get price from products array
             if base_price is None and isinstance(data, dict) and "data" in data:
