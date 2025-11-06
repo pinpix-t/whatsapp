@@ -145,27 +145,22 @@ class BulkOrderingService:
                 return "discount_rejected"
         
         # Handle decline reason follow-up
-        elif current_state == "asking_decline_reason":
-            if button_id == "decline_not_ready":
-                logger.info(f"User {user_id} clicked 'Not ready yet' button")
-                await self._handle_decline_not_ready(user_id)
-                return "decline_not_ready"
-            elif button_id == "decline_too_expensive":
-                logger.info(f"User {user_id} clicked 'Too expensive' button")
-                await self._handle_decline_too_expensive(user_id)
-                return "decline_too_expensive"
-            else:
-                logger.warning(f"Unknown button_id {button_id} in asking_decline_reason state for user {user_id}")
-        
-        # Also handle decline buttons even if state doesn't match (fallback)
-        elif button_id in ["decline_not_ready", "decline_too_expensive"]:
-            logger.info(f"Handling decline button {button_id} for user {user_id} (fallback - state: {current_state})")
-            if button_id == "decline_not_ready":
-                await self._handle_decline_not_ready(user_id)
-                return "decline_not_ready"
-            elif button_id == "decline_too_expensive":
-                await self._handle_decline_too_expensive(user_id)
-                return "decline_too_expensive"
+        if button_id == "decline_not_ready":
+            logger.info(f"User {user_id} clicked 'Not ready yet' button")
+            await self._handle_decline_not_ready(user_id)
+            return "decline_not_ready"
+        elif button_id == "decline_too_expensive":
+            logger.info(f"User {user_id} clicked 'Too expensive' button")
+            await self._handle_decline_too_expensive(user_id)
+            return "decline_too_expensive"
+        elif button_id == "still_not_ready":
+            logger.info(f"User {user_id} clicked 'Still not ready' button")
+            await self._handle_decline_not_ready(user_id)
+            return "still_not_ready"
+        elif button_id == "too_expensive_after_second":
+            logger.info(f"User {user_id} clicked 'Too expensive' after second discount")
+            await self._handle_too_expensive_after_second(user_id)
+            return "too_expensive_after_second"
         
         # Handle rejection reasons (after showing buttons) - legacy handler
         elif current_state == "handling_rejection":
@@ -606,22 +601,13 @@ Apply the code at checkout. Happy to help with anything else!"""
         """Handle when user rejects discount - show follow-up question"""
         state_data = self.redis_store.get_bulk_order_state(user_id)
         selections = state_data.get("selections", {})
-        offers = state_data.get("discount_offers", [])
         
-        # Store which quote level was shown for later reference
-        if current_state == "offering_first_discount":
-            quote_level = "second_offer"  # Worse discount shown first
-        elif current_state == "offering_second_discount":
-            quote_level = "first_offer"  # Better discount shown second
+        # If rejecting second discount, show new buttons
+        if current_state == "offering_second_discount":
+            await self._ask_after_second_discount(user_id)
         else:
-            quote_level = "unknown"
-        
-        # Store quote level in state for escalation
-        state_data["last_quote_level"] = quote_level
-        state_data["last_quote_state"] = current_state
-        
-        # Show follow-up question asking for reason
-        await self._ask_decline_reason(user_id, selections, state_data)
+            # First discount rejection - ask for reason
+            await self._ask_decline_reason(user_id, selections, state_data)
     
     async def _ask_decline_reason(self, user_id: str, selections: Dict, state_data: Dict) -> None:
         """Ask user for reason they don't want to proceed"""
@@ -648,6 +634,32 @@ Apply the code at checkout. Happy to help with anything else!"""
             buttons=buttons
         )
     
+    async def _ask_after_second_discount(self, user_id: str) -> None:
+        """Ask user after showing second discount with new buttons"""
+        state_data = self.redis_store.get_bulk_order_state(user_id)
+        if not state_data:
+            state_data = {"selections": {}, "discount_offers": []}
+        
+        # Update state
+        self.redis_store.set_bulk_order_state(
+            user_id,
+            "asking_after_second_discount",
+            state_data
+        )
+        
+        message = "Is there a reason you don't want to proceed?"
+        
+        buttons = [
+            {"id": "still_not_ready", "title": "Still not ready"},
+            {"id": "too_expensive_after_second", "title": "Too expensive"}
+        ]
+        
+        await self.whatsapp_api.send_interactive_buttons(
+            to=user_id,
+            body_text=message,
+            buttons=buttons
+        )
+    
     async def _handle_decline_not_ready(self, user_id: str) -> None:
         """Handle when user says 'Not ready yet'"""
         message = """No problem! Your quote is valid for 14 days, so you can use it at your convenience.
@@ -662,57 +674,34 @@ Feel free to reach out if you have any questions! 😊"""
         self.redis_store.clear_bulk_order_state(user_id)
     
     async def _handle_decline_too_expensive(self, user_id: str) -> None:
-        """Handle when user says 'Too expensive' - escalate to support"""
-        try:
-            state_data = self.redis_store.get_bulk_order_state(user_id)
-            if not state_data:
-                logger.error(f"No state data found for user {user_id} when handling too expensive")
-                await self.whatsapp_api.send_message(
-                    user_id,
-                    "I apologize, there was an error processing your request. Please try again or contact support."
-                )
-                return
-            
-            selections = state_data.get("selections", {})
-            quote_level = state_data.get("last_quote_level", "unknown")
-            quote_state = state_data.get("last_quote_state", "unknown")
-            
-            # Store quote level in selections for escalation
-            selections["escalation_quote_level"] = quote_level
-            selections["escalation_quote_state"] = quote_state
-            
-            logger.info(f"User {user_id} said too expensive after quote level: {quote_level} (state: {quote_state})")
-            logger.info(f"State data keys: {list(state_data.keys())}")
-            
-            # Check if we should show better offer or escalate
-            if quote_state == "offering_first_discount":
-                # User rejected first (worse) offer - show better offer
-                logger.info(f"Showing better offer for user {user_id}")
-                await self._offer_second_discount(user_id, selections)
-            elif quote_state == "offering_second_discount" or quote_state == "unknown":
-                # User rejected best offer or state unknown - escalate to support
-                logger.info(f"Escalating to support for user {user_id} (quote_state: {quote_state})")
-                await self._escalate_to_support(user_id, selections)
-            else:
-                # Fallback - escalate to support
-                logger.warning(f"Unknown quote_state {quote_state} for user {user_id}, escalating to support")
-                await self._escalate_to_support(user_id, selections)
-        except Exception as e:
-            logger.error(f"Error handling decline too expensive for user {user_id}: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
+        """Handle when user says 'Too expensive' - show better discount"""
+        state_data = self.redis_store.get_bulk_order_state(user_id)
+        if not state_data:
+            logger.error(f"No state data found for user {user_id} when handling too expensive")
+            await self.whatsapp_api.send_message(
+                user_id,
+                "I apologize, there was an error processing your request. Please try again or contact support."
+            )
+            return
+        
+        selections = state_data.get("selections", {})
+        logger.info(f"User {user_id} said too expensive - showing better discount")
+        await self._offer_second_discount(user_id, selections)
+    
+    async def _handle_too_expensive_after_second(self, user_id: str) -> None:
+        """Handle when user says 'Too expensive' after second discount - create Freshdesk ticket"""
+        state_data = self.redis_store.get_bulk_order_state(user_id)
+        if not state_data:
+            logger.error(f"No state data found for user {user_id} when handling too expensive after second")
             await self.whatsapp_api.send_message(
                 user_id,
                 "I apologize, there was an error processing your request. I've forwarded it to our support team who will reach out to you shortly."
             )
-            # Try to escalate anyway
-            try:
-                state_data = self.redis_store.get_bulk_order_state(user_id)
-                if state_data:
-                    selections = state_data.get("selections", {})
-                    await self._escalate_to_support(user_id, selections)
-            except:
-                pass
+            return
+        
+        selections = state_data.get("selections", {})
+        logger.info(f"User {user_id} said too expensive after second discount - creating Freshdesk ticket")
+        await self._escalate_to_support(user_id, selections, ask_name=False)
     
     async def _offer_second_discount(self, user_id: str, selections: Dict) -> None:
         """Offer better discount code (first_offer = price point D) when user asks for better price"""
