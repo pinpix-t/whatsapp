@@ -203,22 +203,40 @@ class BulkPricingService:
                 if tier_pricings and isinstance(tier_pricings, list):
                     # If product_reference_code is provided, try to match it
                     if product_reference_code:
+                        # Normalize our ProductReferenceCode for comparison (remove underscores, lowercase)
+                        our_code_normalized = product_reference_code.lower().replace("_", "").replace("-", "")
+                        
                         # Try to find matching tier pricing by platinumProductReferenceId
                         for tier in tier_pricings:
                             platinum_id = tier.get("platinumProductReferenceId", "")
-                            # Case-insensitive comparison
-                            if platinum_id and platinum_id.lower() == product_reference_code.lower():
-                                # Found matching tier, get price for QTY=1
+                            if not platinum_id:
+                                continue
+                            
+                            # Try exact case-insensitive match first
+                            if platinum_id.lower() == product_reference_code.lower():
+                                # Found exact match, get price for QTY=1
                                 prices = tier.get("prices", [])
                                 for price_entry in prices:
                                     if price_entry.get("quantity") == 1:
                                         base_price = float(price_entry.get("price", 0))
                                         logger.info(f"✅ Found exact match: API returned base price for {product_reference_code}: £{base_price}")
                                         return base_price
+                            
+                            # Try normalized comparison (ignore underscores/dashes)
+                            api_code_normalized = platinum_id.lower().replace("_", "").replace("-", "")
+                            if api_code_normalized == our_code_normalized:
+                                # Found normalized match, get price for QTY=1
+                                prices = tier.get("prices", [])
+                                for price_entry in prices:
+                                    if price_entry.get("quantity") == 1:
+                                        base_price = float(price_entry.get("price", 0))
+                                        logger.info(f"✅ Found normalized match: API returned base price for {product_reference_code} (matched {platinum_id}): £{base_price}")
+                                        return base_price
                         
-                        # No exact match found - log available options for debugging
-                        available_ids = [tier.get("platinumProductReferenceId", "unknown") for tier in tier_pricings]
-                        logger.warning(f"⚠️ No exact match found for {product_reference_code} in API response")
+                        # No match found - log available options for debugging
+                        available_ids = [tier.get("platinumProductReferenceId", "unknown") for tier in tier_pricings if tier.get("platinumProductReferenceId")]
+                        logger.warning(f"⚠️ No match found for {product_reference_code} in API response")
+                        logger.warning(f"Looking for: {product_reference_code} (normalized: {our_code_normalized})")
                         logger.warning(f"Available platinumProductReferenceIds: {available_ids}")
                         logger.warning("Will fall back to local mapping file instead of using wrong product's price")
                         # Don't use first tier's price if it doesn't match - return None to fall back to local mapping
