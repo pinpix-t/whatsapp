@@ -11,6 +11,8 @@ from config.bulk_products import (
     OTHER_PRODUCTS, OTHER_PRODUCTS_LIST, PRICE_POINT_MAPPING
 )
 from services.bulk_pricing import bulk_pricing_service
+from services.freshdesk_service import FreshdeskService
+from services.region_lookup import RegionLookupService
 from database.redis_store import redis_store
 from bot.whatsapp_api import WhatsAppAPI
 
@@ -23,6 +25,8 @@ class BulkOrderingService:
     def __init__(self, whatsapp_api: WhatsAppAPI):
         self.whatsapp_api = whatsapp_api
         self.redis_store = redis_store
+        self.freshdesk_service = FreshdeskService()
+        self.region_lookup_service = RegionLookupService()
     
     async def start_bulk_ordering(self, user_id: str) -> None:
         """Start the bulk ordering flow - show product selection"""
@@ -140,7 +144,16 @@ class BulkOrderingService:
                 await self._handle_discount_rejection(user_id, current_state)
                 return "discount_rejected"
         
-        # Handle rejection reasons (after showing buttons)
+        # Handle decline reason follow-up
+        elif current_state == "asking_decline_reason":
+            if button_id == "decline_not_ready":
+                await self._handle_decline_not_ready(user_id)
+                return "decline_not_ready"
+            elif button_id == "decline_too_expensive":
+                await self._handle_decline_too_expensive(user_id)
+                return "decline_too_expensive"
+        
+        # Handle rejection reasons (after showing buttons) - legacy handler
         elif current_state == "handling_rejection":
             if button_id == "reject_price":
                 # Offer second discount
@@ -361,6 +374,30 @@ Send your postcode, or type 'skip' to continue without it."""
         # Now offer discount
         await self._offer_first_discount(user_id, selections)
     
+    async def handle_name_for_escalation(self, user_id: str, name_text: str) -> None:
+        """Handle name input for escalation (optional)"""
+        name_text = name_text.strip()
+        
+        # Skip if user wants to skip
+        if name_text.lower() in ['skip', 'no', 'n', 'none', 'not needed', '']:
+            name = None
+        else:
+            name = name_text
+        
+        # Store name if provided
+        state_data = self.redis_store.get_bulk_order_state(user_id)
+        selections = state_data.get("selections", {})
+        if name:
+            selections["name"] = name
+        
+        # Clear pending escalation flag and proceed with escalation
+        state_data["selections"] = selections
+        state_data.pop("pending_escalation", None)
+        self.redis_store.set_bulk_order_state(user_id, state_data.get("state", "unknown"), state_data)
+        
+        # Proceed with escalation (don't ask for name again)
+        await self._escalate_to_support(user_id, selections, ask_name=False)
+    
     async def _offer_first_discount(self, user_id: str, selections: Dict) -> None:
         """Offer first discount code with pricing (shows WORSE discount first)"""
         # Validate that we have required selections for this product
@@ -454,8 +491,8 @@ Use discount code: *{discount_code}* for your bulk order on our website.
 Ready to proceed?"""
         
         buttons = [
-            {"id": "discount_accept", "title": "Yes, I'll use it"},
-            {"id": "discount_reject", "title": "Need better price"}
+            {"id": "discount_accept", "title": "Start creating"},
+            {"id": "discount_reject", "title": "No thanks"}
         ]
         
         await self.whatsapp_api.send_interactive_buttons(
@@ -511,9 +548,9 @@ Apply the code at checkout. Happy to help with anything else!"""
         """Handle text responses when user is in discount offering state"""
         text_lower = text.lower().strip()
         
-        # Check for rejection words
-        rejection_words = ['no', 'not happy', 'not satisfied', 'need better', 'better price', 'too high', 'expensive', 'cant afford', 'decline', 'reject', 'pass', 'skip']
-        acceptance_words = ['yes', 'accept', 'ok', 'okay', 'sure', 'proceed', 'continue', 'use it', 'i\'ll use', 'take it']
+        # Check for rejection words - including "too expensive"
+        rejection_words = ['no', 'not happy', 'not satisfied', 'need better', 'better price', 'too high', 'too expensive', 'expensive', 'cant afford', 'decline', 'reject', 'pass', 'skip', 'no thanks']
+        acceptance_words = ['yes', 'accept', 'ok', 'okay', 'sure', 'proceed', 'continue', 'use it', 'i\'ll use', 'take it', 'start creating', 'start']
         
         if any(word in text_lower for word in rejection_words):
             # User is rejecting - treat as button click on "discount_reject"
@@ -527,49 +564,106 @@ Apply the code at checkout. Happy to help with anything else!"""
             # Unclear response - ask them to use buttons
             await self.whatsapp_api.send_message(
                 user_id,
-                "Please use the buttons above to respond. Or type 'No' if you need a better price, or 'Yes' if you'll use the code."
+                "Please use the buttons above to respond. Or type 'No thanks' if you don't want to proceed, or 'Start creating' if you're ready."
+            )
+    
+    async def handle_decline_reason_text_response(self, user_id: str, text: str) -> None:
+        """Handle text responses when user is in decline reason state"""
+        text_lower = text.lower().strip()
+        
+        # Check for "not ready" responses
+        not_ready_words = ['not ready', 'not ready yet', 'later', 'maybe later', 'not now', 'wait', 'waiting']
+        too_expensive_words = ['too expensive', 'too high', 'expensive', 'cant afford', 'price', 'cost']
+        
+        if any(word in text_lower for word in not_ready_words):
+            logger.info(f"User said not ready via text: {text}")
+            await self._handle_decline_not_ready(user_id)
+        elif any(word in text_lower for word in too_expensive_words):
+            logger.info(f"User said too expensive via text: {text}")
+            await self._handle_decline_too_expensive(user_id)
+        else:
+            # Unclear response - ask them to use buttons
+            await self.whatsapp_api.send_message(
+                user_id,
+                "Please use the buttons above to respond. Or type 'Not ready yet' or 'Too expensive'."
             )
     
     async def _handle_discount_rejection(self, user_id: str, current_state: str) -> None:
-        """Handle when user rejects discount"""
+        """Handle when user rejects discount - show follow-up question"""
         state_data = self.redis_store.get_bulk_order_state(user_id)
         selections = state_data.get("selections", {})
+        offers = state_data.get("discount_offers", [])
         
+        # Store which quote level was shown for later reference
         if current_state == "offering_first_discount":
-            # User asked for better price - show the BETTER discount (first_offer = price point D)
-            quantity = selections.get("quantity", 0)
-            
-            # Get the better discount (first_offer = price point D)
-            better_price_info = bulk_pricing_service.get_bulk_price_info(
-                selections=selections,
-                quantity=quantity,
-                offer_type="first_offer"
-            )
-            
-            # Get the worse discount (second_offer = price point B) for comparison logging
-            worse_price_info = bulk_pricing_service.get_bulk_price_info(
-                selections=selections,
-                quantity=quantity,
-                offer_type="second_offer"
-            )
-            
-            better_discount = better_price_info.get("discount_percent", 0) or 0
-            worse_discount = worse_price_info.get("discount_percent", 0) or 0
-            
-            # Log what we found for debugging
-            logger.info(f"💰 Discount comparison for user {user_id}: Worse (shown first)={worse_discount:.1f}%, Better (offering now)={better_discount:.1f}%")
-            
-            # Always show the better discount when they ask for better price
-            if better_discount > worse_discount:
-                logger.info(f"✅ Showing better discount ({better_discount:.1f}%) - was showing {worse_discount:.1f}% before")
-                await self._offer_second_discount(user_id, selections)
-            else:
-                # This shouldn't happen, but handle gracefully
-                logger.warning(f"⚠️ Better discount ({better_discount:.1f}%) is not better than worse ({worse_discount:.1f}%) - showing anyway")
-                await self._offer_second_discount(user_id, selections)
-        elif current_state == "offering_second_discount" or current_state == "offering_best_available":
-            # Handoff to human agent
-            await self._handoff_to_agent(user_id, selections)
+            quote_level = "second_offer"  # Worse discount shown first
+        elif current_state == "offering_second_discount":
+            quote_level = "first_offer"  # Better discount shown second
+        else:
+            quote_level = "unknown"
+        
+        # Store quote level in state for escalation
+        state_data["last_quote_level"] = quote_level
+        state_data["last_quote_state"] = current_state
+        
+        # Show follow-up question asking for reason
+        await self._ask_decline_reason(user_id, selections, state_data)
+    
+    async def _ask_decline_reason(self, user_id: str, selections: Dict, state_data: Dict) -> None:
+        """Ask user for reason they don't want to proceed"""
+        # Update state to asking for decline reason
+        self.redis_store.set_bulk_order_state(
+            user_id,
+            "asking_decline_reason",
+            state_data
+        )
+        
+        message = "Is there a reason you don't want to proceed?"
+        
+        buttons = [
+            {"id": "decline_not_ready", "title": "Not ready yet"},
+            {"id": "decline_too_expensive", "title": "Too expensive"}
+        ]
+        
+        await self.whatsapp_api.send_interactive_buttons(
+            to=user_id,
+            body_text=message,
+            buttons=buttons
+        )
+    
+    async def _handle_decline_not_ready(self, user_id: str) -> None:
+        """Handle when user says 'Not ready yet'"""
+        message = """No problem! Your quote is valid for 14 days, so you can use it at your convenience.
+
+When you're ready, just use the discount code we provided on our website.
+
+Feel free to reach out if you have any questions! 😊"""
+        
+        await self.whatsapp_api.send_message(user_id, message)
+        
+        # Clear bulk ordering state
+        self.redis_store.clear_bulk_order_state(user_id)
+    
+    async def _handle_decline_too_expensive(self, user_id: str) -> None:
+        """Handle when user says 'Too expensive' - escalate to support"""
+        state_data = self.redis_store.get_bulk_order_state(user_id)
+        selections = state_data.get("selections", {})
+        quote_level = state_data.get("last_quote_level", "unknown")
+        quote_state = state_data.get("last_quote_state", "unknown")
+        
+        # Store quote level in selections for escalation
+        selections["escalation_quote_level"] = quote_level
+        selections["escalation_quote_state"] = quote_state
+        
+        logger.info(f"User {user_id} said too expensive after quote level: {quote_level} (state: {quote_state})")
+        
+        # Check if we should show better offer or escalate
+        if quote_state == "offering_first_discount":
+            # User rejected first (worse) offer - show better offer
+            await self._offer_second_discount(user_id, selections)
+        else:
+            # User rejected best offer - escalate to support
+            await self._escalate_to_support(user_id, selections)
     
     async def _offer_second_discount(self, user_id: str, selections: Dict) -> None:
         """Offer better discount code (first_offer = price point D) when user asks for better price"""
@@ -645,8 +739,8 @@ Use discount code: *{discount_code}* for your bulk order on our website.
 Want me to update your pay link?"""
 
         buttons = [
-            {"id": "discount_accept", "title": "Yes, I'll use it"},
-            {"id": "discount_reject", "title": "Still too high"}
+            {"id": "discount_accept", "title": "Start creating"},
+            {"id": "discount_reject", "title": "No thanks"}
         ]
         
         await self.whatsapp_api.send_interactive_buttons(
@@ -655,8 +749,22 @@ Want me to update your pay link?"""
             buttons=buttons
         )
     
-    async def _handoff_to_agent(self, user_id: str, selections: Dict) -> None:
-        """Handoff to human agent (Talib)"""
+    async def _escalate_to_support(self, user_id: str, selections: Dict, ask_name: bool = True) -> None:
+        """Escalate to support via Freshdesk ticket when user says too expensive after best offer"""
+        # Check if we should ask for name first
+        if ask_name and not selections.get("name"):
+            # Ask for name (optional - don't block if not provided)
+            state_data = self.redis_store.get_bulk_order_state(user_id)
+            state_data["selections"] = selections
+            state_data["pending_escalation"] = True
+            self.redis_store.set_bulk_order_state(user_id, "asking_name_for_escalation", state_data)
+            
+            await self.whatsapp_api.send_message(
+                user_id,
+                "Before I forward your request, may I have your name? (This is optional - you can type 'skip' to continue without it.)"
+            )
+            return
+        
         # Get product name (handle Other products)
         product = selections.get("product", "")
         if product in OTHER_PRODUCTS:
@@ -667,34 +775,121 @@ Want me to update your pay link?"""
             product_name = product.title()
         
         quantity = selections.get("quantity", 0)
-        email = selections.get("email", "Not provided")
-        postcode = selections.get("postcode", "Not provided")
+        email = selections.get("email", "b2b@printerpix.co.uk")  # Default email if not provided
+        postcode = selections.get("postcode", "")
+        user_name = selections.get("name", "")  # Optional name
         
-        # Create summary for agent
-        summary = f"""BULK ORDER LEAD - {user_id}
-
-Product: {product_name}
-Quantity: {quantity}
-Email: {email}
-Postcode: {postcode}
-Selections: {selections}
-
-Please contact customer for best rate."""
+        # Get quote details from state
+        state_data = self.redis_store.get_bulk_order_state(user_id)
+        offers = state_data.get("discount_offers", [])
         
-        # Send message to user
-        await self.whatsapp_api.send_message(
-            user_id,
-            "I understand. Let me connect you with our specialist (Talib) who can provide the best rate for your bulk order. They'll reach out to you shortly."
+        # Get the best quote that was offered
+        best_price_info = bulk_pricing_service.get_bulk_price_info(
+            selections=selections,
+            quantity=quantity,
+            offer_type="first_offer"  # Best offer
         )
         
-        # Log handoff (you can send to database or notification system here)
-        logger.info(f"HANDOFF TO AGENT: {summary}")
+        # Determine region from postcode (default to UK)
+        region = "UK"  # Default
+        if postcode:
+            region = self.region_lookup_service.get_region_from_postcode(postcode)
         
-        # Tag in database for Talib (you can implement this with postgres_store)
-        # postgres_store.save_analytics_event("bulk_order_handoff", user_id, {"selections": selections})
+        # Get product_id and group_id from Supabase
+        product_id, group_id = self.region_lookup_service.get_region_ids(region)
+        
+        # Build email description (HTML format, no Unix/Windows newlines)
+        description_parts = []
+        
+        if user_name:
+            description_parts.append(f"<p><strong>Customer Name:</strong> {user_name}</p>")
+        
+        description_parts.append(f"<p><strong>Email Address:</strong> {email}</p>")
+        description_parts.append(f"<p><strong>Product:</strong> {product_name}</p>")
+        description_parts.append(f"<p><strong>Quantity:</strong> {quantity} units</p>")
+        
+        # Add selections details
+        selections_text = []
+        if selections.get("fabric"):
+            selections_text.append(f"Fabric: {selections.get('fabric')}")
+        if selections.get("cover"):
+            selections_text.append(f"Cover: {selections.get('cover')}")
+        if selections.get("type"):
+            selections_text.append(f"Type: {selections.get('type')}")
+        if selections.get("size"):
+            selections_text.append(f"Size: {selections.get('size')}")
+        if selections.get("pages"):
+            selections_text.append(f"Pages: {selections.get('pages')}")
+        
+        if selections_text:
+            description_parts.append(f"<p><strong>Selections:</strong> {', '.join(selections_text)}</p>")
+        
+        # Add quote details
+        if best_price_info.get("discount_percent"):
+            discount = best_price_info.get("discount_percent", 0)
+            description_parts.append(f"<p><strong>Discount Offered:</strong> {discount:.1f}%</p>")
+        
+        if best_price_info.get("formatted_unit_price"):
+            description_parts.append(f"<p><strong>Unit Price:</strong> {best_price_info.get('formatted_unit_price')}</p>")
+        
+        if best_price_info.get("formatted_total_price"):
+            description_parts.append(f"<p><strong>Total Price:</strong> {best_price_info.get('formatted_total_price')}</p>")
+        
+        if postcode:
+            description_parts.append(f"<p><strong>Postcode:</strong> {postcode}</p>")
+        
+        description_parts.append(f"<p><strong>Region:</strong> {region}</p>")
+        
+        # Add context about offers shown
+        if offers:
+            offers_shown = ", ".join(offers)
+            description_parts.append(f"<p><strong>Offers Shown:</strong> {offers_shown}</p>")
+        
+        # Add which quote level was shown when they said too expensive
+        quote_level = selections.get("escalation_quote_level", "unknown")
+        quote_state = selections.get("escalation_quote_state", "unknown")
+        if quote_level != "unknown":
+            quote_level_name = "First Quote (Worse Discount)" if quote_level == "second_offer" else "Second Quote (Better Discount)" if quote_level == "first_offer" else quote_level
+            description_parts.append(f"<p><strong>Quote Level When Declined:</strong> {quote_level_name}</p>")
+        
+        description_parts.append("<p><strong>Customer Request:</strong> Requested better pricing after being shown quote.</p>")
+        
+        description = "".join(description_parts)
+        
+        # Create Freshdesk ticket
+        ticket_result = self.freshdesk_service.create_ticket(
+            email=email,
+            subject="Bulk order quote request",
+            description=description,
+            product_id=product_id,
+            group_id=group_id
+        )
+        
+        if ticket_result.get("success"):
+            ticket_id = ticket_result.get("ticket_id")
+            logger.info(f"✅ Freshdesk ticket created successfully: ID {ticket_id} for user {user_id}")
+            
+            # Send confirmation message to user (without mentioning specific name)
+            await self.whatsapp_api.send_message(
+                user_id,
+                "I understand. I've forwarded your request to our specialist team who can provide the best rate for your bulk order. They'll reach out to you shortly via email."
+            )
+        else:
+            error = ticket_result.get("error", "Unknown error")
+            logger.error(f"❌ Failed to create Freshdesk ticket for user {user_id}: {error}")
+            
+            # Still send a message to user even if ticket creation failed
+            await self.whatsapp_api.send_message(
+                user_id,
+                "I understand. I've noted your request and our specialist team will reach out to you shortly via email to provide the best rate for your bulk order."
+            )
         
         # Clear bulk ordering state
         self.redis_store.clear_bulk_order_state(user_id)
+    
+    async def _handoff_to_agent(self, user_id: str, selections: Dict) -> None:
+        """Legacy handoff method - now redirects to escalation"""
+        await self._escalate_to_support(user_id, selections)
     
     async def _handle_delivery_time_question(self, user_id: str) -> None:
         """Handle delivery time question using RAG"""

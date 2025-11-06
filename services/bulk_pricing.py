@@ -145,40 +145,47 @@ class BulkPricingService:
             logger.error(f"Error querying Supabase for base price: {e}")
             return None
     
-    def get_base_price_from_api(self, product_selections: Dict, product_page_id: Optional[str] = None) -> Optional[float]:
+    def get_base_price_from_api(self, product_selections: Dict, product_page_id: Optional[str] = None, product_reference_code: Optional[str] = None) -> Optional[float]:
         """
         Get base price from pricing API
         
         Args:
             product_selections: Product selections dictionary
             product_page_id: Optional productPageId (if not provided, will use placeholder)
+            product_reference_code: Optional ProductReferenceCode to match in API response
             
         Returns:
             Base price in GBP or None if unavailable
         """
-        # TODO: Need proper productPageId mapping
-        # For now, use placeholder or skip if not provided
         if not product_page_id:
             logger.warning("productPageId not provided, cannot get base price from API")
             return None
         
         try:
-            # Build JSON body (API expects productPageId in body, not params)
-            body_data = {
+            # Build query parameters (API expects parameters in query string)
+            params = {
                 "productPageId": product_page_id,
+                "couponCode": "",
+                "couponProductId": "",
+                "vc": "",
+                "affCoupon": "",
                 "photoW": 0,
                 "photoH": 0,
-                "defaultSorting": False
+                "defaultSorting": "false",
+                "preselectedRefId": ""
             }
             
-            # Make POST request with JSON body
+            # Make POST request with empty JSON body and params in query string
             headers = {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             }
+            
+            # Send empty JSON body as required by API
             response = requests.post(
                 self.pricing_api_url,
-                json=body_data,
+                params=params,
+                json={},  # Empty JSON body as required
                 headers=headers,
                 timeout=10
             )
@@ -186,58 +193,74 @@ class BulkPricingService:
             
             data = response.json()
             
-            # Extract price from response
-            # API response structure may vary - check common patterns
-            # Common fields: price, Price, unitPrice, basePrice, etc.
-            price = None
+            # Parse the API response structure
+            # Response has: data.tierPricings[] with platinumProductReferenceId and prices[]
+            base_price = None
             
-            # Try various price field names
-            price_fields = ["price", "Price", "unitPrice", "basePrice", "BasePrice", "UnitPrice", "productPrice"]
-            for field in price_fields:
-                if field in data:
-                    price = float(data[field])
-                    break
+            if isinstance(data, dict) and "data" in data:
+                tier_pricings = data.get("data", {}).get("tierPricings", [])
+                
+                if tier_pricings and isinstance(tier_pricings, list):
+                    # If product_reference_code is provided, try to match it
+                    if product_reference_code:
+                        # Try to find matching tier pricing by platinumProductReferenceId
+                        for tier in tier_pricings:
+                            platinum_id = tier.get("platinumProductReferenceId", "")
+                            # Case-insensitive comparison
+                            if platinum_id and platinum_id.lower() == product_reference_code.lower():
+                                # Found matching tier, get price for QTY=1
+                                prices = tier.get("prices", [])
+                                for price_entry in prices:
+                                    if price_entry.get("quantity") == 1:
+                                        base_price = float(price_entry.get("price", 0))
+                                        logger.info(f"Found base price from API for {product_reference_code}: £{base_price}")
+                                        return base_price
+                    
+                    # If no match found or no product_reference_code, use first tier's QTY=1 price
+                    if base_price is None and len(tier_pricings) > 0:
+                        first_tier = tier_pricings[0]
+                        prices = first_tier.get("prices", [])
+                        for price_entry in prices:
+                            if price_entry.get("quantity") == 1:
+                                base_price = float(price_entry.get("price", 0))
+                                platinum_id = first_tier.get("platinumProductReferenceId", "unknown")
+                                logger.info(f"Using first tier pricing from API ({platinum_id}): £{base_price}")
+                                return base_price
             
-            # If price is in a nested structure, try common patterns
-            if price is None:
-                # Check if there's a products array or items array
-                if isinstance(data, dict):
-                    # Try nested structures
-                    if "products" in data and isinstance(data["products"], list) and len(data["products"]) > 0:
-                        first_product = data["products"][0]
-                        for field in price_fields:
-                            if field in first_product:
-                                price = float(first_product[field])
-                                break
-                    elif "items" in data and isinstance(data["items"], list) and len(data["items"]) > 0:
-                        first_item = data["items"][0]
-                        for field in price_fields:
-                            if field in first_item:
-                                price = float(first_item[field])
-                                break
+            # Fallback: try to get price from products array
+            if base_price is None and isinstance(data, dict) and "data" in data:
+                products = data.get("data", {}).get("products", [])
+                if products and isinstance(products, list) and len(products) > 0:
+                    first_product = products[0]
+                    # Try common price fields
+                    price_fields = ["price", "Price", "unitPrice", "basePrice"]
+                    for field in price_fields:
+                        if field in first_product:
+                            base_price = float(first_product[field])
+                            logger.info(f"Found base price from products array: £{base_price}")
+                            return base_price
             
-            if price is not None:
-                logger.info(f"Retrieved base price from API: £{price}")
-                return price
-            else:
+            if base_price is None:
                 logger.warning(f"Price not found in API response. Available keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
-                # Log full response for debugging (first 1000 chars)
-                logger.warning(f"API response preview: {str(data)[:1000]}")
-                # Try to log more details about the response structure
-                if isinstance(data, dict):
-                    logger.warning(f"Response type: dict with {len(data)} keys")
-                    if "products" in data:
-                        logger.info(f"Found 'products' array with {len(data['products'])} items")
-                        if len(data['products']) > 0:
-                            logger.info(f"First product keys: {list(data['products'][0].keys()) if isinstance(data['products'][0], dict) else 'Not a dict'}")
+                if isinstance(data, dict) and "data" in data:
+                    logger.warning(f"Data keys: {list(data['data'].keys())}")
+                    if "tierPricings" in data["data"]:
+                        logger.warning(f"Found {len(data['data']['tierPricings'])} tier pricings")
                 return None
+            else:
+                logger.info(f"Retrieved base price from API: £{base_price}")
+                return base_price
                 
         except requests.exceptions.HTTPError as e:
-            if e.response and e.response.status_code == 400:
-                error_data = e.response.json() if e.response.content else {}
-                logger.error(f"Pricing API returned 400 Bad Request: {error_data}")
-                logger.error(f"Request body sent: {body_data}")
-                logger.warning("Pricing API may require different format or authentication")
+            if e.response:
+                if e.response.status_code == 415:
+                    logger.error(f"Pricing API returned 415 Unsupported Media Type")
+                    logger.error("API requires Content-Type: application/json and empty JSON body")
+                elif e.response.status_code == 400:
+                    error_data = e.response.json() if e.response.content else {}
+                    logger.error(f"Pricing API returned 400 Bad Request: {error_data}")
+                else:
+                    logger.error(f"Pricing API returned {e.response.status_code}: {e.response.text[:200]}")
             else:
                 logger.error(f"HTTP error calling pricing API: {e}")
             return None
@@ -246,6 +269,8 @@ class BulkPricingService:
             return None
         except Exception as e:
             logger.error(f"Error parsing pricing API response: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
     
     def calculate_bulk_price(self, base_price: float, discount_percent: float, quantity: int) -> float:
@@ -357,29 +382,56 @@ class BulkPricingService:
             
             # Try to get a default base price for the product type
             product = selections.get("product")
+            fabric_or_type = selections.get("fabric") or selections.get("cover") or selections.get("type")
+            
             if product:
-                # Use first available ProductReferenceCode for this product as fallback
-                # This allows us to show pricing even without specific fabric/size
-                default_base_price = self._get_default_base_price_for_product(product)
-                if default_base_price:
-                    logger.info(f"Using default base price for product {product}: £{default_base_price}")
-                    # Continue with discount lookup using a default ProductReferenceCode
-                    # For blankets, use a common one like Sherpa Baby
-                    if product == "blankets":
-                        product_reference_code = "BlanketSherpafleece_25x20"
-                    elif product == "canvas":
-                        product_reference_code = "Canvas_F18_10x10"
-                    elif product == "photobooks":
-                        product_reference_code = "PB_CailuxCover_8x6_Black_20pp"
-                    elif product == "mugs":
-                        product_reference_code = "Mug_Basic_White_PackOf2"
+                # If fabric/type is selected but size is missing, use default size for that fabric/type
+                if fabric_or_type and product == "blankets":
+                    # Use medium size (30x40) as default for the selected fabric
+                    default_size_for_fabric = {
+                        "fabric_fleece": "size_med_30x40",  # BlanketFlannelfleece_30x40
+                        "fabric_mink_touch": "size_med_30x40",  # BlanketPolarfleece_30x40
+                        "fabric_sherpa": "size_med_30x40",  # BlanketSherpafleece_30x40
+                        "fabric_double_sided": "size_med_30x40",  # DoubleSideBlanketFlannel_30x40
+                    }
                     
-                    if product_reference_code:
-                        result["product_reference_code"] = product_reference_code
-                        logger.info(f"Using default ProductReferenceCode: {product_reference_code} for pricing estimate")
-                else:
-                    result["error_message"] = "Product reference code not found (missing fabric/size selections?)"
-                    return result
+                    if fabric_or_type in default_size_for_fabric:
+                        # Try to get ProductReferenceCode with default size
+                        selections_with_default_size = selections.copy()
+                        selections_with_default_size["size"] = default_size_for_fabric[fabric_or_type]
+                        product_reference_code = self.get_product_reference_code(selections_with_default_size)
+                        
+                        if product_reference_code:
+                            logger.info(f"Using default size ({default_size_for_fabric[fabric_or_type]}) for fabric {fabric_or_type}")
+                            logger.info(f"ProductReferenceCode with default size: {product_reference_code}")
+                            result["product_reference_code"] = product_reference_code
+                        else:
+                            logger.warning(f"Could not get ProductReferenceCode even with default size for {fabric_or_type}")
+                
+                # If still no ProductReferenceCode, use generic product default
+                if not product_reference_code:
+                    # Use first available ProductReferenceCode for this product as fallback
+                    # This allows us to show pricing even without specific fabric/size
+                    default_base_price = self._get_default_base_price_for_product(product)
+                    if default_base_price:
+                        logger.info(f"Using default base price for product {product}: £{default_base_price}")
+                        # Continue with discount lookup using a default ProductReferenceCode
+                        # For blankets, use a common one like Sherpa Baby
+                        if product == "blankets":
+                            product_reference_code = "BlanketSherpafleece_25x20"
+                        elif product == "canvas":
+                            product_reference_code = "Canvas_F18_10x10"
+                        elif product == "photobooks":
+                            product_reference_code = "PB_CailuxCover_8x6_Black_20pp"
+                        elif product == "mugs":
+                            product_reference_code = "Mug_Basic_White_PackOf2"
+                        
+                        if product_reference_code:
+                            result["product_reference_code"] = product_reference_code
+                            logger.info(f"Using default ProductReferenceCode: {product_reference_code} for pricing estimate")
+                    else:
+                        result["error_message"] = "Product reference code not found (missing fabric/size selections?)"
+                        return result
             else:
                 result["error_message"] = "Product reference code not found (missing fabric/size selections?)"
                 return result
@@ -408,45 +460,50 @@ class BulkPricingService:
             logger.info(f"Using default discount: {discount_percent}% for pricing calculation")
         
         # Get base price - try multiple sources in order:
-        # 1. Supabase (preferred if column exists)
-        # 2. Local mapping file (fallback)
-        # 3. External API (last resort)
-        base_price = self.get_base_price_from_supabase(product_reference_code)
+        # 1. External API (PRIMARY - constantly updated)
+        # 2. Local mapping file (fallback - static prices)
+        # 3. Supabase (fallback - if column exists)
+        base_price = None
         
-        # Fallback to local mapping if Supabase doesn't have it
+        # PRIMARY: Try API first (most up-to-date prices)
+        if not product_page_id:
+            product_page_id = get_product_page_id(selections)
+            if not product_page_id:
+                logger.warning(f"Could not get productPageId from selections: {selections}")
+                logger.info(f"Missing required fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
+        
+        if product_page_id:
+            logger.info(f"🔄 Attempting to get base price from API (PRIMARY) with productPageId: {product_page_id}")
+            base_price = self.get_base_price_from_api(selections, product_page_id, product_reference_code)
+            if base_price is not None:
+                logger.info(f"✅ Retrieved base price from API: £{base_price}")
+            else:
+                logger.warning("⚠️ API did not return base price, trying fallbacks...")
+        else:
+            logger.warning("⚠️ Cannot get base price from API - productPageId not available, trying fallbacks...")
+        
+        # FALLBACK 1: Local mapping file if API didn't work
         if base_price is None:
             if get_base_price_from_mapping is None:
                 logger.error("❌ bulk_base_prices module not imported - file may be missing on Railway")
-                base_price = None
             else:
                 try:
                     base_price = get_base_price_from_mapping(product_reference_code)
                     if base_price is not None:
-                        logger.info(f"✅ Found base price from local mapping for {product_reference_code}: £{base_price}")
+                        logger.info(f"✅ Found base price from local mapping (fallback) for {product_reference_code}: £{base_price}")
                     else:
                         logger.warning(f"❌ No base price found in mapping for {product_reference_code}")
-                        logger.warning(f"Available mappings: Check config/bulk_base_prices.py")
                 except Exception as e:
                     logger.error(f"❌ Error getting base price from mapping: {e}")
                     import traceback
                     logger.error(traceback.format_exc())
-                    base_price = None
         
-        # Fallback to API if neither Supabase nor mapping have it
+        # FALLBACK 2: Supabase if neither API nor mapping worked
         if base_price is None:
-            # Get productPageId from mapping if not provided
-            if not product_page_id:
-                product_page_id = get_product_page_id(selections)
-                if not product_page_id:
-                    logger.warning(f"Could not get productPageId from selections: {selections}")
-                    logger.info(f"Missing required fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
-            
-            # Try API as last resort (optional - can proceed without it)
-            if product_page_id:
-                logger.info(f"Attempting to get base price from API with productPageId: {product_page_id}")
-                base_price = self.get_base_price_from_api(selections, product_page_id)
-            else:
-                logger.warning("Cannot get base price - productPageId not available (missing fabric/size selections?)")
+            logger.info("🔄 Attempting to get base price from Supabase (fallback)")
+            base_price = self.get_base_price_from_supabase(product_reference_code)
+            if base_price is not None:
+                logger.info(f"✅ Found base price from Supabase (fallback): £{base_price}")
         
         result["base_price"] = base_price
         
