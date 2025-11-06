@@ -147,6 +147,20 @@ class BulkOrderingService:
         # Handle decline reason follow-up
         elif current_state == "asking_decline_reason":
             if button_id == "decline_not_ready":
+                logger.info(f"User {user_id} clicked 'Not ready yet' button")
+                await self._handle_decline_not_ready(user_id)
+                return "decline_not_ready"
+            elif button_id == "decline_too_expensive":
+                logger.info(f"User {user_id} clicked 'Too expensive' button")
+                await self._handle_decline_too_expensive(user_id)
+                return "decline_too_expensive"
+            else:
+                logger.warning(f"Unknown button_id {button_id} in asking_decline_reason state for user {user_id}")
+        
+        # Also handle decline buttons even if state doesn't match (fallback)
+        elif button_id in ["decline_not_ready", "decline_too_expensive"]:
+            logger.info(f"Handling decline button {button_id} for user {user_id} (fallback - state: {current_state})")
+            if button_id == "decline_not_ready":
                 await self._handle_decline_not_ready(user_id)
                 return "decline_not_ready"
             elif button_id == "decline_too_expensive":
