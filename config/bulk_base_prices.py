@@ -11,60 +11,49 @@ from typing import Optional
 # Base price mapping: ProductReferenceCode -> base price in GBP
 # Prices should be the regular retail price before any bulk discounts
 BASE_PRICE_MAPPING = {
+    # Blankets - Prices from Excel files
     # Blankets - Fleece
-    "BlanketFlannelfleece_25x20": 19.99,  # Baby size
-    "BlanketFlannelfleece_30x40": 29.99,  # Medium size
-    "BlanketFlannelfleece_50x60": 39.99,  # Throw size
-    "BlanketFlannelfleece_60x80": 49.99,  # Queen size
-    
+    "BlanketFlannelfleece_25x20": 39.90,
+    "BlanketFlannelfleece_30x40": 79.90,
+    "BlanketFlannelfleece_50x60": 89.90,
+    "BlanketFlannelfleece_60x80": 109.90,
     # Blankets - Polar/Mink Touch
-    "BlanketPolarfleece_25x20": 24.99,
-    "BlanketPolarfleece_30x40": 34.99,
-    "BlanketPolarfleece_50x60": 44.99,
-    "BlanketPolarfleece_60x80": 54.99,
-    
+    "BlanketPolarfleece_25x20": 34.90,
+    "BlanketPolarfleece_30x40": 74.90,
+    "BlanketPolarfleece_50x60": 84.90,
+    "BlanketPolarfleece_60x80": 104.90,
     # Blankets - Sherpa
-    "BlanketSherpafleece_25x20": 24.99,
-    "BlanketSherpafleece_30x40": 34.99,
-    "BlanketSherpafleece_50x60": 44.99,
-    "BlanketSherpafleece_60x80": 54.99,
-    
-    # Blankets - Double Sided
-    "DoubleSideBlanketFlannel_25x20": 29.99,
-    "DoubleSideBlanketFlannel_30x40": 39.99,
-    "DoubleSideBlanketFlannel_50x60": 49.99,
-    "DoubleSideBlanketFlannel_60x80": 59.99,
-    
-    # Canvas
-    "Canvas_F18_10x10": 19.99,
-    "Canvas_F18_12x12": 24.99,
-    "Canvas_F18_16x20": 34.99,
-    "Canvas_F18_30x40": 69.99,
-    
-    # Photo Books - Hard Cover
-    "PB_CailuxCover_8x6_Black_20pp": 19.99,
-    "PB_CailuxCover_8x8_Black_20pp": 24.99,
-    "PB_CailuxCover_11x11_Black_20pp": 34.99,
-    "PB_PhotoHardCover_12x8_50pp": 49.99,
-    
-    # Photo Books - Leather Cover
-    "PB_LeatherCover_8x6_60pp": 39.99,
-    "PB_LeatherCover_8x8_100pp": 59.99,
-    "PB_LeatherCover_12x8_50pp": 54.99,
-    "PB_LeatherCover_11x11_100pp": 69.99,
-    
-    # Mugs
-    "Mug_Basic_White_PackOf2": 24.99,
-    "Mug_Basic20oz_White_PackOf2": 29.99,
-    
-    # Other Products
-    "Cal_WallSS_12x17": 14.99,
-    "Frame_Wooden_12x8_Oak_PackOf3": 39.99,
-    "BoxedPuzzle_Board_15x11": 19.99,
-    "Slate_Rect_12x12": 29.99,
-    "MouseMat": 12.99,
-    "CushionPolyester_18x12": 24.99,
-    "MetalPrint_12x12": 49.99,
+    "BlanketSherpafleece_25x20": 79.90,
+    "BlanketSherpafleece_30x40": 119.90,
+    "BlanketSherpafleece_50x60": 129.90,
+    "BlanketSherpafleece_60x80": 159.90,
+    # Photo Books - Hard Cover (Photo Hardcover)
+    "PB_CailuxCover_8x6_Black_20pp": 29.95,  # A5 21x15cm
+    "PB_CailuxCover_8x8_Black_20pp": 69.95,  # Square 27x27
+    "PB_CailuxCover_11x11_Black_20pp": 69.95,  # Square 27x27
+    "PB_PhotoHardCover_12x8_50pp": 44.95,  # A4
+    # Photo Books - Soft Cover
+    "PB_SoftCover_12x8_20pp": 35.95,
+    "PB_SoftCover_8x12_20pp": 35.95,
+    "PB_SoftCover_8x6_20pp": 19.95,
+    "PB_SoftCover_8x8_20pp": 29.95,
+    # Photo Books - Leather Cover (Luxury layflat)
+    "PB_LeatherCover_8x6_60pp": 269.95,  # Luxury layflat square
+    "PB_LeatherCover_8x8_100pp": 269.95,  # Luxury layflat square
+    "PB_LeatherCover_12x8_50pp": 319.95,  # Luxury layflat A4
+    "PB_LeatherCover_11x11_100pp": 369.95,  # Luxury layflat bigger square
+    # Calendars
+    "Cal_Double_12x8": 34.26,
+    "Cal_Double_17x12": 51.40,
+    "Cal_Double_8x6": 28.54,
+    "Cal_Kitchen_5x12": 19.97,
+    "Cal_Kitchen_5x17": 31.40,
+    "Cal_WallSS_12x17": 49.95,
+    "Cal_WallSS_6x8": 19.95,
+    "Cal_WallSS_8x12": 29.95,
+    "Cal_Wall_12x17": 39.97,
+    "Cal_Wall_6x8": 15.95,
+    "Cal_Wall_9x12": 23.30,
 }
 
 
