@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(python:*)",
+      "Bash(for file in bot/*.py database/*.py middleware/*.py utils/*.py)",
+      "Bash(do)",
+      "Bash(if [ $? -eq 0 ])",
+      "Bash(then)",
+      "Bash(echo:*)",
+      "Bash(else)",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(docker-compose config:*)",
+      "Bash(/Users/tejas/whatsapp/validate.sh:*)",
+      "Bash(cat:*)",
+      "Bash(docker-compose:*)",
+      "Bash(for dir in api bot config rag)",
+      "Bash(if [ -d \"$dir\" ])",
+      "Bash([ ! -f \"$dir/__init__.py\" ])",
+      "Bash(tree:*)",
+      "Bash(curl:*)",
+      "Bash(lsof:*)",
+      "Bash(python3:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

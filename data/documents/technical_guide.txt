@@ -1,0 +1,351 @@
+PrinterPix Technical Documentation and Troubleshooting Guide
+
+PHOTO SPECIFICATIONS
+
+Optimal Photo Requirements:
+- Resolution: Minimum 300 DPI (dots per inch)
+- File Size: 2MB - 25MB per photo
+- Format: JPG, JPEG, PNG preferred
+- Color Mode: RGB (not CMYK)
+- Aspect Ratio: Matches product dimensions
+
+Photo Size Guide for Products:
+- 4x6 print: Minimum 1200x1800 pixels
+- 8x10 print: Minimum 2400x3000 pixels
+- 16x20 print: Minimum 4800x6000 pixels
+- Canvas 24x36: Minimum 7200x10800 pixels
+- Phone wallpaper quality: Minimum 1080x1920 pixels
+
+Understanding DPI:
+- 72 DPI: Good for screen viewing only
+- 150 DPI: Acceptable for small prints
+- 300 DPI: Professional quality (recommended)
+- 600 DPI: Premium quality (better than needed)
+
+Common Photo Issues and Fixes:
+
+Blurry Photos:
+- Cause: Low resolution, camera shake, or out of focus
+- Fix: Use higher quality original, use sharpen tool, or choose smaller product size
+- Prevention: Use good lighting, steady camera, tap to focus on phone
+
+Pixelated Photos:
+- Cause: Image stretched too large for product size
+- Fix: Choose smaller product or use higher resolution photo
+- Our system warns you: Yellow = marginal, Red = poor quality
+
+Dark Photos:
+- Cause: Underexposure, poor lighting
+- Fix: Use brightness adjustment tool, increase exposure
+- Note: Can't recover detail from very dark areas
+
+Washed Out/Too Bright:
+- Cause: Overexposure
+- Fix: Reduce brightness, adjust contrast
+- Note: Can't recover detail from blown-out highlights
+
+Color Issues:
+- Cause: Screen calibration differences, color profile
+- Fix: Prints are calibrated to industry standards
+- Note: Phone screens often appear brighter than prints
+
+DESIGN TOOL TROUBLESHOOTING
+
+Tool Won't Load:
+1. Check internet connection
+2. Clear browser cache: Ctrl+Shift+Delete (PC) or Cmd+Shift+Delete (Mac)
+3. Try different browser (Chrome recommended)
+4. Disable browser extensions temporarily
+5. Contact support if issue persists
+
+Photos Won't Upload:
+- Check file size (max 25MB per photo)
+- Verify file format (JPG, PNG, HEIC supported)
+- Try uploading fewer photos at once
+- Compress large files using photo compression tools
+- Check internet speed (minimum 2 Mbps recommended)
+
+Slow Performance:
+- Close other browser tabs
+- Clear browser cache
+- Check internet speed
+- Try uploading fewer photos
+- Use recommended browsers: Chrome, Firefox, Safari, Edge
+
+Can't Crop Photos:
+- Make sure you're in edit mode
+- Click the crop icon
+- Drag corners to adjust
+- Click "Apply" to save changes
+- If not working, refresh page
+
+Text Won't Add:
+- Ensure you're using a product that supports text
+- Click "Add Text" button
+- Type your text in the box
+- Select font, size, color
+- Drag text to position
+- If frozen, refresh and try again
+
+Changes Not Saving:
+- Wait for loading indicator to complete
+- Don't close browser during save
+- Check internet connection
+- Try again or contact support
+
+BROWSER COMPATIBILITY
+
+Recommended Browsers:
+- Google Chrome (latest version)
+- Mozilla Firefox (latest version)
+- Safari (latest version)
+- Microsoft Edge (latest version)
+
+Not Supported:
+- Internet Explorer (outdated)
+- Very old browser versions
+
+Browser Settings Required:
+- JavaScript: Must be enabled
+- Cookies: Must be enabled
+- Pop-ups: Allow for our domain
+- Third-party cookies: Enabled for payment processing
+
+MOBILE DEVICE GUIDANCE
+
+Phone Photo Quality:
+Modern smartphones (iPhone 8+, Samsung S8+) take sufficient quality photos for most products.
+
+Tips for Better Phone Photos:
+- Clean your lens before shooting
+- Use good lighting (natural light is best)
+- Tap to focus on main subject
+- Hold phone steady or use timer
+- Don't use digital zoom (reduces quality)
+- Use highest quality setting in camera app
+
+Uploading from Phone:
+- Use mobile browser (not social media apps)
+- Photos from Instagram/Facebook are compressed (lower quality)
+- Transfer original photos from Camera Roll
+- WhatsApp can compress photos - send as "Document" not "Photo"
+
+Photo Storage Recommendations:
+- iCloud Photos: Download full resolution before uploading
+- Google Photos: Download original, not optimized version
+- Dropbox/OneDrive: Use original files
+- Social Media: Don't download from social media (low quality)
+
+FILE TRANSFER METHODS
+
+Best Ways to Send Us Photos:
+
+Method 1: Website Upload (Best)
+- Highest quality preservation
+- Batch upload supported
+- Progress tracking
+- Automatic quality check
+
+Method 2: Email
+- For small batches (under 10 photos)
+- Email to: photos@printerpix.com
+- Include order number in subject
+- Max 25MB per email
+
+Method 3: Cloud Services
+- Share Google Drive or Dropbox link
+- Set permissions to "Anyone with link can view"
+- Include order number
+
+Method 4: WhatsApp
+- Send as "Document" not "Photo" to preserve quality
+- Max 16MB per file on WhatsApp
+- Good for quick consultations
+
+Avoid:
+- Facebook Messenger (compresses heavily)
+- Instagram DM (compresses heavily)
+- SMS/MMS (very low quality)
+
+COLOR ACCURACY
+
+Understanding Color Differences:
+- Screens emit light (RGB color)
+- Prints reflect light (CMYK color)
+- Screens appear brighter than prints (normal)
+- Different screens show different colors
+
+Our Color Process:
+- Industry-standard color profiles
+- Calibrated printers
+- Consistent color across products
+- Professional color matching
+
+If Colors Are Very Different:
+- Check your screen brightness (should be ~50%)
+- View print in natural daylight (not fluorescent light)
+- If still significantly off, contact us for reprint
+
+Color Management Tips:
+- Don't over-edit on phone (often makes it worse)
+- Avoid filters that dramatically change colors
+- Natural photos usually print best
+- Bright screens = prints may seem darker than expected
+
+PRINT FINISHING OPTIONS
+
+Glossy vs Matte:
+
+Glossy:
+- Shiny finish
+- Vibrant colors
+- Shows fingerprints easily
+- Best for photos with bright colors
+
+Matte:
+- No glare
+- Subtle, professional look
+- Doesn't show fingerprints
+- Best for framing behind glass
+
+Border Options:
+- Borderless: Photo extends to edge
+- White border: Classic photo look
+- Custom border: Available on some products
+
+QUALITY CONTROL
+
+Our Quality Process:
+1. Automated quality check during upload
+2. Manual review of flagged orders
+3. Print quality inspection
+4. Final packaging inspection
+
+What We Check:
+- Photo resolution and clarity
+- Color accuracy
+- Alignment and centering
+- Print defects (spots, lines, fading)
+- Product defects (scratches, damage)
+
+Quality Guarantee:
+- If we make an error, we reprint free
+- If photo quality is poor due to original photo, we contact you first
+- All products inspected before shipping
+
+ACCOUNT TECHNICAL ISSUES
+
+Can't Log In:
+1. Verify email address (check for typos)
+2. Try "Forgot Password"
+3. Check spam folder for reset email
+4. Try different browser
+5. Clear cookies and cache
+6. Contact support if still stuck
+
+Order Not Showing:
+- Check "All Orders" not just "Recent"
+- Verify you're logged into correct account
+- Check confirmation email for order number
+- Guest orders: Check email for tracking link
+- Contact support with order number
+
+Payment Processing Issues:
+- Verify card details (number, CVV, expiration, zip code)
+- Check with bank (some banks block online purchases)
+- Try PayPal as alternative
+- Try different card
+- Clear browser cache and try again
+
+Error Messages:
+
+"Session Expired":
+- You were inactive too long
+- Save your work and log in again
+- Increase browser timeout settings
+
+"Upload Failed":
+- Check file size and format
+- Check internet connection
+- Try uploading one photo at a time
+- Try different browser
+
+"Payment Declined":
+- Contact your bank
+- Verify card details
+- Try different payment method
+- Check for international transaction blocks
+
+"Invalid Promo Code":
+- Check spelling and spaces
+- Verify expiration date
+- Check if code applies to your product
+- Read code restrictions
+
+SYSTEM REQUIREMENTS
+
+Minimum Requirements:
+- Operating System: Windows 10, macOS 10.13, iOS 12, Android 8.0 or newer
+- RAM: 4GB
+- Internet: 2 Mbps broadband
+- Browser: Latest version of Chrome, Firefox, Safari, or Edge
+- Screen: 1024x768 resolution minimum
+
+Recommended:
+- RAM: 8GB or more
+- Internet: 10 Mbps or faster
+- Screen: 1920x1080 or higher
+- Modern device (less than 5 years old)
+
+ACCESSIBILITY FEATURES
+
+We Support:
+- Screen readers (WCAG 2.1 AA compliant)
+- Keyboard navigation
+- High contrast mode
+- Text size adjustment
+- Alternative text for images
+
+Need Help?
+- Contact accessibility@printerpix.com
+- We can assist with orders via phone
+- Alternative format documents available
+
+SECURITY AND PRIVACY
+
+Your Photos Are Safe:
+- 256-bit SSL encryption during upload
+- Secure storage on encrypted servers
+- Never shared, sold, or used for any other purpose
+- Auto-deleted after 90 days
+- PCI-DSS compliant payment processing
+
+Account Security:
+- Use strong, unique password
+- Enable two-factor authentication (in account settings)
+- Don't share login credentials
+- Log out on shared devices
+- Report suspicious activity immediately
+
+DATA EXPORT
+
+Download Your Data:
+- Order history: Export from account dashboard
+- Photos: Download from "My Projects" within 90 days
+- After 90 days, photos are permanently deleted
+- Account data: Request via privacy@printerpix.com
+
+ADVANCED TROUBLESHOOTING
+
+If All Else Fails:
+1. Screenshot the error message
+2. Note: browser, device, operating system
+3. Note: what you were trying to do
+4. Contact support with all details
+5. Include order number if applicable
+
+Emergency Support:
+- WhatsApp: Fastest response (24/7)
+- Phone: For urgent issues during business hours
+- Email: For detailed technical issues
+- We typically resolve 90% of issues within 24 hours
