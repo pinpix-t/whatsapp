@@ -206,6 +206,21 @@ class BulkPricingService:
                         # Normalize our ProductReferenceCode for comparison (remove underscores, lowercase)
                         our_code_normalized = product_reference_code.lower().replace("_", "").replace("-", "")
                         
+                        # Extract dimensions from our ProductReferenceCode for unit conversion
+                        # Format: BlanketSherpafleece_30x40 -> extract 30x40
+                        import re
+                        dimension_match = re.search(r'(\d+)x(\d+)', product_reference_code)
+                        our_dimensions_inches = None
+                        our_dimensions_cm = None
+                        if dimension_match:
+                            width_inches = int(dimension_match.group(1))
+                            height_inches = int(dimension_match.group(2))
+                            our_dimensions_inches = f"{width_inches}x{height_inches}"
+                            # Convert to cm (1 inch = 2.54 cm, round to nearest integer)
+                            width_cm = round(width_inches * 2.54)
+                            height_cm = round(height_inches * 2.54)
+                            our_dimensions_cm = f"{width_cm}x{height_cm}"
+                        
                         # Try to find matching tier pricing by platinumProductReferenceId
                         for tier in tier_pricings:
                             platinum_id = tier.get("platinumProductReferenceId", "")
@@ -232,6 +247,26 @@ class BulkPricingService:
                                         base_price = float(price_entry.get("price", 0))
                                         logger.info(f"✅ Found normalized match: API returned base price for {product_reference_code} (matched {platinum_id}): £{base_price}")
                                         return base_price
+                            
+                            # Try unit conversion match (inches vs cm)
+                            if our_dimensions_inches and our_dimensions_cm:
+                                # Check if API code contains our dimensions in inches
+                                if our_dimensions_inches in platinum_id or our_dimensions_inches.replace("x", "X") in platinum_id:
+                                    prices = tier.get("prices", [])
+                                    for price_entry in prices:
+                                        if price_entry.get("quantity") == 1:
+                                            base_price = float(price_entry.get("price", 0))
+                                            logger.info(f"✅ Found dimension match (inches): API returned base price for {product_reference_code} (matched {platinum_id}): £{base_price}")
+                                            return base_price
+                                
+                                # Check if API code contains our dimensions in cm
+                                if our_dimensions_cm in platinum_id or our_dimensions_cm.replace("x", "X") in platinum_id:
+                                    prices = tier.get("prices", [])
+                                    for price_entry in prices:
+                                        if price_entry.get("quantity") == 1:
+                                            base_price = float(price_entry.get("price", 0))
+                                            logger.info(f"✅ Found dimension match (cm): API returned base price for {product_reference_code} (matched {platinum_id}): £{base_price}")
+                                            return base_price
                         
                         # No match found - log available options for debugging
                         available_ids = [tier.get("platinumProductReferenceId", "unknown") for tier in tier_pricings if tier.get("platinumProductReferenceId")]
