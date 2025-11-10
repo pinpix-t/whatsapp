@@ -44,7 +44,7 @@ class FreshdeskService:
         description: str,
         product_id: Optional[int] = None,
         group_id: Optional[int] = None,
-        source: int = 13,
+        source: int = 10,  # Changed from 13 to 10 (Outbound Email) - valid values: 1,2,3,5,6,7,9,11,100,10
         tags: Optional[list] = None,
         status: int = 5,
         priority: int = 3,
