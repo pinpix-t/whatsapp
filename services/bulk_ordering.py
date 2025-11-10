@@ -320,11 +320,11 @@ class BulkOrderingService:
     
     async def _ask_for_email(self, user_id: str) -> None:
         """Ask user for their email address"""
-        message = """To send your discount code, we just need one more step: your email address. 👇️
+        message = """Awesome, we're almost done!
 
-Simply send it as a message in this chat.
+Just send your email address so we can send your discount code.
 
-_Please avoid quotation marks, emojis and the like - just the email. 🙏_"""
+(Please type only the email itself — no emojis or punctuation marks.)"""
         
         await self.whatsapp_api.send_message(user_id, message)
     

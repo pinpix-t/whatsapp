@@ -29,7 +29,7 @@ class SQLServerStore:
                 f"mssql+pyodbc://{SQL_USER}:{encoded_password}@{SQL_SERVER}/{SQL_DATABASE}"
                 "?driver=ODBC+Driver+18+for+SQL+Server"
                 "&Encrypt=yes&TrustServerCertificate=yes"
-                "&Connection+Timeout=15"
+                "&Connection+Timeout=5"
             )
             
             # Production-grade connection pool (similar to PostgresStore)

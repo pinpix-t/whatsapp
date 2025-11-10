@@ -11,7 +11,6 @@ from typing import Dict, Optional, Tuple, Any
 from supabase import create_client, Client
 from config.settings import SUPABASE_URL, SUPABASE_KEY, CSV_DATA_PATH
 from config.bulk_product_mapping import get_product_reference_code
-from config.bulk_product_page_ids import get_product_page_id
 from config.bulk_products import PRICE_POINT_MAPPING
 
 logger = logging.getLogger(__name__)
@@ -208,13 +207,8 @@ class BulkPricingService:
         """
         # Get productPageId if not provided
         if not product_page_id:
-            if selections:
-                # Try to get from our existing mappings
-                product_page_id = get_product_page_id(selections)
-            
-            # If still not found, try to get from Supabase
-            if not product_page_id:
-                product_page_id = self.get_product_page_id_from_supabase(product_reference_code)
+            # Get from Supabase (Guid column in pricing_b_d table)
+            product_page_id = self.get_product_page_id_from_supabase(product_reference_code)
         
         if not product_page_id:
             logger.warning("productPageId not available for CSV-based API call")
@@ -735,12 +729,10 @@ class BulkPricingService:
             if not product_page_id:
                 product_page_id = self.get_product_page_id_from_supabase(product_reference_code)
             
-            # Fallback to hardcoded mapping if Supabase doesn't have it
+            # If Supabase doesn't have it, we can't get productPageId
             if not product_page_id:
-                product_page_id = get_product_page_id(selections)
-                if not product_page_id:
-                    logger.warning(f"Could not get productPageId from Supabase or hardcoded mapping for selections: {selections}")
-                    logger.info(f"Missing required fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
+                logger.warning(f"Could not get productPageId from Supabase for selections: {selections}")
+                logger.info(f"Missing required fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
             
             if product_page_id:
                 logger.info(f"🔄 Attempting to get base price from API (fallback) with productPageId: {product_page_id}")
