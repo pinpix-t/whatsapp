@@ -517,11 +517,16 @@ class BulkPricingService:
                             if our_dimensions_inches and our_dimensions_cm:
                                 # Check if API code contains our dimensions in inches
                                 if our_dimensions_inches in platinum_id or our_dimensions_inches.replace("x", "X") in platinum_id:
-                                    # For photobooks, prefer hard cover over soft cover if we're looking for hard cover
-                                    if product_reference_code and "hardcover" in product_reference_code.lower() or "hard" in product_reference_code.lower():
-                                        # If this is soft cover, skip it and continue looking for hard cover
-                                        if "softcover" in platinum_id.lower() or "soft" in platinum_id.lower():
-                                            continue
+                                    # For photobooks, prefer exact match (layflat vs regular, hard vs soft)
+                                    if product_reference_code:
+                                        # If looking for layflat, skip non-layflat products
+                                        if "layflat" in product_reference_code.lower():
+                                            if "layflat" not in platinum_id.lower():
+                                                continue
+                                        # If looking for hard cover, skip soft cover
+                                        elif "hardcover" in product_reference_code.lower() or "hard" in product_reference_code.lower():
+                                            if "softcover" in platinum_id.lower() or "soft" in platinum_id.lower():
+                                                continue
                                     
                                     prices = tier.get("prices", [])
                                     for price_entry in prices:

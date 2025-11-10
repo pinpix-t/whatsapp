@@ -52,18 +52,33 @@ PRODUCT_REFERENCE_MAPPING = {
             "size_8x8": "PB_PhotoHardCover_8x8_20pp",
             "size_11x8_5": "PB_PhotoHardCover_12x8_20pp",  # Using closest match (11x8.5 not in CSV)
             "size_11x11": "PB_PhotoHardCover_11x11_20pp",
-            # Add cm sizes - 21x15cm ≈ 8.27 x 5.9 inches → maps to 8x6
-            "size_21x15cm": "PB_PhotoHardCover_8x6_20pp",  # 21x15cm = 8.27 x 5.9 inches → 8x6
-            "21x15cm": "PB_PhotoHardCover_8x6_20pp",  # Alternative format
         },
         "cover_leather_cover": {
             "size_8x6": "PB_LeatherCover_8x6_60pp",
             "size_8x8": "PB_LeatherCover_8x8_100pp",
             "size_11x8_5": "PB_LeatherCover_12x8_50pp",  # Using closest match (11x8.5 not in CSV)
             "size_11x11": "PB_LeatherCover_11x11_100pp",
-            # Add cm sizes - 21x15cm ≈ 8.27 x 5.9 inches → maps to 8x6
-            "size_21x15cm": "PB_LeatherCover_8x6_60pp",  # 21x15cm = 8.27 x 5.9 inches → 8x6
-            "21x15cm": "PB_LeatherCover_8x6_60pp",  # Alternative format
+        },
+        "cover_layflat": {
+            # Luxury layflat photobooks
+            "size_8x6": "PBLayFlat_PhotoHardCover_8x6_20pp",  # If exists, otherwise use 8x8
+            "size_8x8": "PBLayFlat_PhotoHardCover_8x8_20pp",
+            "size_11x8_5": "PBLayFlat_PhotoHardCover_12x8_20pp",  # Using closest match
+            "size_11x11": "PBLayFlat_PhotoHardCover_11x11_20pp",  # If exists, otherwise use 8x8
+        },
+        "cover_luxury_layflat": {
+            # Alias for layflat
+            "size_8x6": "PBLayFlat_PhotoHardCover_8x6_20pp",
+            "size_8x8": "PBLayFlat_PhotoHardCover_8x8_20pp",
+            "size_11x8_5": "PBLayFlat_PhotoHardCover_12x8_20pp",
+            "size_11x11": "PBLayFlat_PhotoHardCover_11x11_20pp",
+        },
+        "cover_soft_cover": {
+            # Softcover photobooks
+            "size_8x6": "PB_SoftCover_8x6_20pp",
+            "size_8x8": "PB_SoftCover_8x8_20pp",
+            "size_11x8_5": "PB_SoftCover_12x8_20pp",  # 30x21cm ≈ 12x8 inches
+            "size_11x11": "PB_SoftCover_11x11_20pp",
         },
     },
     "mugs": {
@@ -137,14 +152,38 @@ def get_product_reference_code(selections: dict) -> str:
         size_mapping = product_mapping[fabric_or_type]
         size = selections.get("size") or selections.get("type")
         
-        # Handle cm sizes for photobooks - convert to inches
+        # Handle cm sizes for photobooks - convert to inches dynamically
         if size and product == "photobooks" and "cm" in str(size).lower():
             # Normalize size string (remove spaces, lowercase)
             size_normalized = str(size).lower().replace(" ", "").replace("_", "")
-            # Convert cm to inches and find closest match
-            # 21x15cm = 8.27 x 5.9 inches → maps to 8x6
-            if "21x15" in size_normalized:
-                size = "size_8x6"  # Map 21x15cm to 8x6 inches
+            # Extract dimensions from cm string (e.g., "30x21cm" -> 30, 21)
+            import re
+            cm_match = re.search(r'(\d+)x(\d+)', size_normalized)
+            if cm_match:
+                width_cm = float(cm_match.group(1))
+                height_cm = float(cm_match.group(2))
+                # Convert cm to inches
+                width_inches = width_cm / 2.54
+                height_inches = height_cm / 2.54
+                # Round to nearest standard size
+                # Standard sizes: 8x6, 8x8, 11x8.5, 11x11, 12x8
+                standard_sizes = [
+                    (8, 6, "size_8x6"),
+                    (8, 8, "size_8x8"),
+                    (11, 8.5, "size_11x8_5"),
+                    (11, 11, "size_11x11"),
+                    (12, 8, "size_11x8_5"),  # 12x8 maps to 11x8.5
+                ]
+                # Find closest match
+                min_distance = float('inf')
+                closest_size = None
+                for std_w, std_h, size_key in standard_sizes:
+                    distance = abs(width_inches - std_w) + abs(height_inches - std_h)
+                    if distance < min_distance:
+                        min_distance = distance
+                        closest_size = size_key
+                if closest_size:
+                    size = closest_size
         
         if size and size in size_mapping:
             return size_mapping[size]
