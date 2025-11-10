@@ -1,6 +1,6 @@
 """
 Bulk Pricing Service
-Handles price calculation for bulk orders using Supabase lookup table and pricing API
+Handles price calculation for bulk orders using SQL Server for base prices and Supabase for discounts
 """
 
 import logging
@@ -21,6 +21,14 @@ except ImportError as e:
     logger.warning(f"⚠️ Cannot import bulk_base_prices module: {e}")
     logger.warning("Base prices will not be available from mapping file")
     get_base_price_from_mapping = None
+
+# Import SQL Server store for base prices
+try:
+    from database.sql_server_store import sql_server_store
+except ImportError as e:
+    logger.warning(f"⚠️ Cannot import sql_server_store: {e}")
+    logger.warning("SQL Server base prices will not be available")
+    sql_server_store = None
 
 
 class BulkPricingService:
@@ -95,6 +103,97 @@ class BulkPricingService:
             
         except Exception as e:
             logger.error(f"Error querying Supabase for discount: {e}")
+            return None
+    
+    def get_product_page_id_from_supabase(self, product_reference_code: str) -> Optional[str]:
+        """
+        Get productPageId (Guid) from Supabase pricing_b_d table
+        
+        Args:
+            product_reference_code: ProductReferenceCode (e.g., "BlanketSherpafleece_25x20")
+            
+        Returns:
+            productPageId (Guid) string or None if not found
+        """
+        if not self.supabase:
+            logger.warning("Supabase not available, cannot get productPageId")
+            return None
+        
+        if not product_reference_code:
+            logger.warning(f"Missing product_reference_code for productPageId lookup")
+            return None
+        
+        try:
+            # Query Supabase table to get Guid (productPageId)
+            response = self.supabase.table("pricing_b_d").select("Guid").eq(
+                "ProductReferenceCode", product_reference_code
+            ).limit(1).execute()
+            
+            if response.data and len(response.data) > 0:
+                guid = response.data[0].get("Guid")
+                if guid:
+                    logger.info(f"✅ Found productPageId (Guid) for {product_reference_code}: {guid}")
+                    return guid
+                else:
+                    logger.warning(f"Guid column is null for {product_reference_code}")
+            else:
+                logger.warning(f"No data found for {product_reference_code} in pricing_b_d table")
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error querying Supabase for productPageId: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+    
+    def get_base_price_from_sql_server(self, product_reference_code: str) -> Optional[float]:
+        """
+        Get base price from SQL Server PlatinumProduct table
+        
+        Args:
+            product_reference_code: ProductReferenceCode (e.g., "BlanketSherpafleece_25x20")
+            
+        Returns:
+            Base price in GBP or None if not found
+        """
+        if not sql_server_store or not sql_server_store.engine:
+            logger.warning("SQL Server not available, cannot get base price")
+            return None
+        
+        if not product_reference_code:
+            logger.warning(f"Missing product_reference_code for SQL Server base price lookup")
+            return None
+        
+        try:
+            # Query SQL Server PlatinumProduct table
+            sql = """
+                SELECT TOP (1) price, currency
+                FROM [dbo].[SynComs.Products.PlatinumProducts.PlatinumProduct]
+                WHERE platinumProductReferenceId = :ref_code
+                AND price IS NOT NULL;
+            """
+            
+            df = sql_server_store.query_to_dataframe(sql, params={"ref_code": product_reference_code})
+            
+            if not df.empty and len(df) > 0:
+                price = float(df.iloc[0]['price'])
+                currency = df.iloc[0].get('currency', 1)  # 1 = GBP typically
+                
+                # Convert to GBP if needed (currency 1 = GBP)
+                if currency != 1:
+                    logger.warning(f"Price in currency {currency}, may need conversion")
+                
+                logger.info(f"✅ Found base price from SQL Server for {product_reference_code}: £{price}")
+                return price
+            
+            logger.warning(f"No base price found in SQL Server for {product_reference_code}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error querying SQL Server for base price: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
     
     def get_base_price_from_supabase(self, product_reference_code: str) -> Optional[float]:
@@ -189,9 +288,23 @@ class BulkPricingService:
                 headers=headers,
                 timeout=10
             )
-            response.raise_for_status()
+            
+            # Check if response is successful
+            if response.status_code != 200:
+                logger.warning(f"API returned status {response.status_code} for productPageId {product_page_id}")
+                return None
             
             data = response.json()
+            
+            # Check if API returned an error
+            if isinstance(data, dict):
+                status = data.get("Status", "").upper()
+                if status == "ERROR":
+                    error_msg = data.get("Message", "Unknown error")
+                    error_code = data.get("ErrorCode", "")
+                    logger.warning(f"API returned error for productPageId {product_page_id}: {error_code} - {error_msg}")
+                    logger.warning(f"This is a server-side API bug. Falling back to local mapping file.")
+                    return None
             
             # Parse the API response structure
             # Response has: data.tierPricings[] with platinumProductReferenceId and prices[]
@@ -514,29 +627,44 @@ class BulkPricingService:
             logger.info(f"Using default discount: {discount_percent}% for pricing calculation")
         
         # Get base price - try multiple sources in order:
-        # 1. External API (PRIMARY - constantly updated)
-        # 2. Local mapping file (fallback - static prices)
-        # 3. Supabase (fallback - if column exists)
+        # 1. SQL Server (PRIMARY - most reliable, direct from database)
+        # 2. External API (fallback - constantly updated)
+        # 3. Local mapping file (fallback - static prices)
+        # 4. Supabase (fallback - if column exists)
         base_price = None
         
-        # PRIMARY: Try API first (most up-to-date prices)
-        if not product_page_id:
-            product_page_id = get_product_page_id(selections)
-            if not product_page_id:
-                logger.warning(f"Could not get productPageId from selections: {selections}")
-                logger.info(f"Missing required fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
-        
-        if product_page_id:
-            logger.info(f"🔄 Attempting to get base price from API (PRIMARY) with productPageId: {product_page_id}")
-            base_price = self.get_base_price_from_api(selections, product_page_id, product_reference_code)
-            if base_price is not None:
-                logger.info(f"✅ Retrieved base price from API: £{base_price}")
-            else:
-                logger.warning("⚠️ API did not return base price, trying fallbacks...")
+        # PRIMARY: Try SQL Server first (most reliable source)
+        logger.info(f"🔄 Attempting to get base price from SQL Server (PRIMARY) for {product_reference_code}")
+        base_price = self.get_base_price_from_sql_server(product_reference_code)
+        if base_price is not None:
+            logger.info(f"✅ Retrieved base price from SQL Server: £{base_price}")
         else:
-            logger.warning("⚠️ Cannot get base price from API - productPageId not available, trying fallbacks...")
+            logger.warning("⚠️ SQL Server did not return base price, trying fallbacks...")
         
-        # FALLBACK 1: Local mapping file if API didn't work
+        # FALLBACK 1: External API if SQL Server didn't work
+        if base_price is None:
+            # First try to get productPageId from Supabase (using Guid column)
+            if not product_page_id:
+                product_page_id = self.get_product_page_id_from_supabase(product_reference_code)
+            
+            # Fallback to hardcoded mapping if Supabase doesn't have it
+            if not product_page_id:
+                product_page_id = get_product_page_id(selections)
+                if not product_page_id:
+                    logger.warning(f"Could not get productPageId from Supabase or hardcoded mapping for selections: {selections}")
+                    logger.info(f"Missing required fields - product: {selections.get('product')}, fabric: {selections.get('fabric')}, size: {selections.get('size')}")
+            
+            if product_page_id:
+                logger.info(f"🔄 Attempting to get base price from API (fallback) with productPageId: {product_page_id}")
+                base_price = self.get_base_price_from_api(selections, product_page_id, product_reference_code)
+                if base_price is not None:
+                    logger.info(f"✅ Retrieved base price from API: £{base_price}")
+                else:
+                    logger.warning("⚠️ API did not return base price, trying more fallbacks...")
+            else:
+                logger.warning("⚠️ Cannot get base price from API - productPageId not available, trying more fallbacks...")
+        
+        # FALLBACK 2: Local mapping file if SQL Server and API didn't work
         if base_price is None:
             if get_base_price_from_mapping is None:
                 logger.error("❌ bulk_base_prices module not imported - file may be missing on Railway")
@@ -552,7 +680,7 @@ class BulkPricingService:
                     import traceback
                     logger.error(traceback.format_exc())
         
-        # FALLBACK 2: Supabase if neither API nor mapping worked
+        # FALLBACK 3: Supabase if SQL Server, API, and mapping didn't work
         if base_price is None:
             logger.info("🔄 Attempting to get base price from Supabase (fallback)")
             base_price = self.get_base_price_from_supabase(product_reference_code)

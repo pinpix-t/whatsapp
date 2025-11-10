@@ -38,3 +38,9 @@ ENABLE_WEBHOOK_VERIFICATION = os.getenv("ENABLE_WEBHOOK_VERIFICATION", "true").l
 # Supabase Settings
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+# SQL Server Settings (Azure SQL Database)
+SQL_SERVER = os.getenv("SQL_SERVER", "YOUR_SERVER_HOST,1433")
+SQL_DATABASE = os.getenv("SQL_DATABASE", "printerpix_gb")
+SQL_USER = os.getenv("SQL_USER", "readonly_user")
+SQL_PASSWORD = os.getenv("SQL_PASSWORD")

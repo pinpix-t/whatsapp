@@ -32,3 +32,9 @@ ENABLE_WEBHOOK_VERIFICATION=true
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-supabase-anon-key
 
+# SQL Server Configuration (Azure SQL Database)
+SQL_SERVER=YOUR_SERVER_HOST,1433
+SQL_DATABASE=printerpix_gb
+SQL_USER=readonly_user
+SQL_PASSWORD=your_password_here
+

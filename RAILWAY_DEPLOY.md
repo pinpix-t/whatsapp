@@ -52,6 +52,16 @@ ENVIRONMENT=production
 DEBUG=false
 APP_SECRET=printerpix_secret_key_2025
 CHROMA_DB_PATH=/app/chroma_db
+
+# Supabase Configuration (for bulk pricing discounts)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-supabase-anon-key
+
+# SQL Server Configuration (for bulk pricing base prices)
+SQL_SERVER=10.20.2.6,1433
+SQL_DATABASE=printerpix_gb
+SQL_USER=readonly_user
+SQL_PASSWORD=Pr!nterp!x@123
 ```
 
 5. **Connect Databases to App:**

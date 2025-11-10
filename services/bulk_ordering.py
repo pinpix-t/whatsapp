@@ -461,13 +461,19 @@ Send your postcode, or type 'skip' to continue without it."""
         
         # Build message with pricing
         if price_info["success"] and price_info["total_price"] is not None:
-            # Full pricing available
+            # Full pricing available - show base price (crossed out) and discounted price
+            base_price = price_info.get("base_price", 0)
+            unit_price = price_info.get("unit_price", 0)
+            formatted_base = f"£{base_price:.2f}"
+            formatted_unit = f"£{unit_price:.2f}"
+            
             message = f"""Great! Here's your quick quote:
 
 Product: {product_name}
 Quantity: {quantity} units
-Unit Price: {price_info["formatted_unit_price"]}
-Total Price: {price_info["formatted_total_price"]}
+
+Per unit: -{formatted_base}- {formatted_unit}
+Total: {price_info["formatted_total_price"]}
 Discount: {price_info["discount_percent"]:.1f}% off
 
 Use discount code: *{discount_code}* for your bulk order on our website.
@@ -738,13 +744,19 @@ Feel free to reach out if you have any questions! 😊"""
         
         # Build message with pricing
         if price_info["success"] and price_info["total_price"] is not None:
-            # Full pricing available
+            # Full pricing available - show base price (crossed out) and discounted price
+            base_price = price_info.get("base_price", 0)
+            unit_price = price_info.get("unit_price", 0)
+            formatted_base = f"£{base_price:.2f}"
+            formatted_unit = f"£{unit_price:.2f}"
+            
             message = f"""I can extend a better bulk incentive today:
 
 Product: {product_name}
 Quantity: {quantity} units
-Unit Price: {price_info["formatted_unit_price"]}
-Total Price: {price_info["formatted_total_price"]}
+
+Per unit: -{formatted_base}- {formatted_unit}
+Total: {price_info["formatted_total_price"]}
 Discount: {price_info["discount_percent"]:.1f}% off
 
 Use discount code: *{discount_code}* for your bulk order on our website.

@@ -3,10 +3,18 @@ FROM python:3.11-slim as builder
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including ODBC drivers for SQL Server
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    unixodbc \
+    unixodbc-dev \
+    curl \
+    gnupg \
+    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
@@ -17,6 +25,17 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 FROM python:3.11-slim
 
 WORKDIR /app
+
+# Install ODBC drivers for SQL Server (needed for pyodbc)
+RUN apt-get update && apt-get install -y \
+    unixodbc \
+    curl \
+    gnupg \
+    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
+    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && \
