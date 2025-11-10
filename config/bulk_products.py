@@ -13,8 +13,8 @@ BULK_PRODUCTS = {
                 "component": "list",
                 "options": [
                     {"id": "fabric_fleece", "title": "Fleece"},
-                    {"id": "fabric_mink_touch", "title": "Mink Touch"},
-                    {"id": "fabric_sherpa", "title": "Sherpa"}
+                    {"id": "fabric_cosy_fleece", "title": "Cosy Fleece"},
+                    {"id": "fabric_sherpa", "title": "Sherpa Fleece"}
                 ]
             },
             {

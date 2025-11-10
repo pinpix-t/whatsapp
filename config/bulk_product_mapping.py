@@ -13,8 +13,8 @@ PRODUCT_REFERENCE_MAPPING = {
             "size_throw_50x60": "BlanketFlannelfleece_50x60",
             "size_queen_60x80": "BlanketFlannelfleece_60x80",
         },
-        "fabric_mink_touch": {
-            # Using Polar fleece as closest match (Mink Touch may not exist in CSV)
+        "fabric_cosy_fleece": {
+            # Cosy Fleece = Polar fleece
             "size_baby_20x25": "BlanketPolarfleece_25x20",
             "size_med_30x40": "BlanketPolarfleece_30x40",
             "size_throw_50x60": "BlanketPolarfleece_50x60",
