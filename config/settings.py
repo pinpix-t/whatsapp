@@ -44,3 +44,7 @@ SQL_SERVER = os.getenv("SQL_SERVER", "YOUR_SERVER_HOST,1433")
 SQL_DATABASE = os.getenv("SQL_DATABASE", "printerpix_gb")
 SQL_USER = os.getenv("SQL_USER", "readonly_user")
 SQL_PASSWORD = os.getenv("SQL_PASSWORD")
+
+# Freshdesk Settings
+FRESHDESK_API_URL = os.getenv("FRESHDESK_API_URL", "https://printerpix-support.freshdesk.com/api/v2/tickets")
+FRESHDESK_API_KEY = os.getenv("FRESHDESK_API_KEY")

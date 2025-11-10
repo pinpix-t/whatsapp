@@ -5,7 +5,9 @@ Handles ticket creation in Freshdesk for bulk order escalations
 
 import logging
 import requests
+import base64
 from typing import Dict, Optional, Any
+from config.settings import FRESHDESK_API_URL, FRESHDESK_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +17,21 @@ class FreshdeskService:
     
     def __init__(self):
         """Initialize Freshdesk service"""
-        self.api_url = "https://printerpix-support.freshdesk.com/api/v2/tickets"
-        self.auth_header = "Basic RmZLSDR4Q0xMb1FTREtMZmFYenU6WA=="
+        # Use environment variables or fallback to hardcoded values
+        self.api_url = FRESHDESK_API_URL or "https://printerpix-support.freshdesk.com/api/v2/tickets"
+        
+        # Build auth header from API key
+        if FRESHDESK_API_KEY:
+            # Freshdesk uses API key as username with password "X" (or empty)
+            auth_string = f"{FRESHDESK_API_KEY}:X"
+            auth_bytes = auth_string.encode('ascii')
+            auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
+            self.auth_header = f"Basic {auth_b64}"
+        else:
+            # Fallback to hardcoded (for backward compatibility)
+            logger.warning("⚠️ FRESHDESK_API_KEY not set, using fallback credentials")
+            self.auth_header = "Basic RmZLSDR4Q0xMb1FTREtMZmFYenU6WA=="
+        
         self.headers = {
             "Authorization": self.auth_header,
             "Content-Type": "application/json"

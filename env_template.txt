@@ -38,3 +38,7 @@ SQL_DATABASE=printerpix_gb
 SQL_USER=readonly_user
 SQL_PASSWORD=your_password_here
 
+# Freshdesk Configuration (for bulk order escalations)
+FRESHDESK_API_URL=https://printerpix-support.freshdesk.com/api/v2/tickets
+FRESHDESK_API_KEY=your-freshdesk-api-key
+

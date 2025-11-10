@@ -4,18 +4,33 @@ FROM python:3.11-slim as builder
 WORKDIR /app
 
 # Install system dependencies including ODBC drivers for SQL Server
+# Check Debian version (for debugging)
+RUN cat /etc/os-release || true
+
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
-    unixodbc \
-    unixodbc-dev \
     curl \
     gnupg \
-    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-    && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
+    ca-certificates \
+    apt-transport-https \
+    unixodbc \
+    unixodbc-dev
+
+# Add Microsoft repository using keyring (not deprecated apt-key)
+RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+    | gpg --dearmor > /usr/share/keyrings/microsoft-prod.gpg
+
+# Use Debian 12 (bookworm) - adjust if base image is Debian 11
+RUN echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.gpg] \
+    https://packages.microsoft.com/debian/12/prod bookworm main" \
+    > /etc/apt/sources.list.d/microsoft-prod.list
+
+# Install Microsoft ODBC Driver 18
+RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18 \
     && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="$PATH:/opt/mssql-tools18/bin"
 
 # Copy requirements and install dependencies
 COPY requirements.txt .
@@ -27,15 +42,28 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install ODBC drivers for SQL Server (needed for pyodbc)
+# Add Microsoft repository using keyring (not deprecated apt-key)
 RUN apt-get update && apt-get install -y \
-    unixodbc \
     curl \
     gnupg \
-    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-    && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
+    ca-certificates \
+    apt-transport-https \
+    unixodbc
+
+# Add Microsoft GPG key to keyring
+RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+    | gpg --dearmor > /usr/share/keyrings/microsoft-prod.gpg
+
+# Use Debian 12 (bookworm) - adjust if base image is Debian 11
+RUN echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.gpg] \
+    https://packages.microsoft.com/debian/12/prod bookworm main" \
+    > /etc/apt/sources.list.d/microsoft-prod.list
+
+# Install Microsoft ODBC Driver 18
+RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18 \
     && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="$PATH:/opt/mssql-tools18/bin"
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && \
