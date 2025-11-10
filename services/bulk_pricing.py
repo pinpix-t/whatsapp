@@ -194,38 +194,82 @@ class BulkPricingService:
         Get base price using CSV to get productPageId, then call API
         
         The ProductPage CSV contains canonicalProductPageId (GUID) which we use
-        to call the pricing API. We use the productPageId from our mappings or
-        look it up from the CSV, then call the API.
+        to call the pricing API. We find a valid productPageId from CSV based on
+        product type, then call the API.
         
         Args:
             product_reference_code: ProductReferenceCode (e.g., "BlanketSherpafleece_25x20")
-            product_page_id: Optional productPageId (GUID) - if not provided, will try to get from CSV or mappings
-            selections: Optional product selections dictionary (needed to get productPageId from mappings)
+            product_page_id: Optional productPageId (GUID) - ignored, we always find from CSV
+            selections: Product selections dictionary (needed to determine product type)
             
         Returns:
             Base price in GBP or None if not found
         """
-        # Get productPageId if not provided
-        if not product_page_id:
-            # Get from Supabase (Guid column in pricing_b_d table)
-            product_page_id = self.get_product_page_id_from_supabase(product_reference_code)
-        
-        if not product_page_id:
-            logger.warning("productPageId not available for CSV-based API call")
+        # Find valid productPageId from CSV based on product type
+        if self.csv_product_pages.empty:
+            logger.warning("CSV not loaded, cannot find productPageId from CSV")
             return None
         
-        # Verify productPageId exists in CSV (optional validation)
-        if not self.csv_product_pages.empty:
-            csv_guids = self.csv_product_pages['canonicalProductPageId'].astype(str).str.lower()
-            if product_page_id.lower() not in csv_guids.values:
-                logger.warning(f"productPageId {product_page_id} not found in CSV, but will still try API")
+        if not selections:
+            logger.warning("Selections not provided, cannot determine product type")
+            return None
         
-        # Call the API with the productPageId from CSV/mappings
-        logger.info(f"🔄 Using productPageId from CSV/mappings to call API: {product_page_id}")
-        base_price = self.get_base_price_from_api(selections or {}, product_page_id, product_reference_code)
+        product = selections.get("product", "")
+        product_page_id = None
+        
+        # Find valid productPageId from CSV based on product type
+        if product == "blankets":
+            # Find blanket products in CSV
+            blanket_rows = self.csv_product_pages[
+                self.csv_product_pages['friendlyUrl'].str.contains('blanket', case=False, na=False)
+            ]
+            if len(blanket_rows) > 0:
+                # Use first blanket productPageId from CSV
+                product_page_id = str(blanket_rows.iloc[0]['canonicalProductPageId'])
+                logger.info(f"✅ Found valid blanket productPageId from CSV: {product_page_id}")
+        elif product == "canvas":
+            # Find canvas products in CSV
+            canvas_rows = self.csv_product_pages[
+                self.csv_product_pages['friendlyUrl'].str.contains('canvas', case=False, na=False)
+            ]
+            if len(canvas_rows) > 0:
+                product_page_id = str(canvas_rows.iloc[0]['canonicalProductPageId'])
+                logger.info(f"✅ Found valid canvas productPageId from CSV: {product_page_id}")
+        elif product == "photobooks":
+            # Find photobook products in CSV
+            photobook_rows = self.csv_product_pages[
+                self.csv_product_pages['friendlyUrl'].str.contains('photobook|photo-book|book', case=False, na=False)
+            ]
+            if len(photobook_rows) > 0:
+                product_page_id = str(photobook_rows.iloc[0]['canonicalProductPageId'])
+                logger.info(f"✅ Found valid photobook productPageId from CSV: {product_page_id}")
+        elif product == "mugs":
+            # Find mug products in CSV
+            mug_rows = self.csv_product_pages[
+                self.csv_product_pages['friendlyUrl'].str.contains('mug', case=False, na=False)
+            ]
+            if len(mug_rows) > 0:
+                product_page_id = str(mug_rows.iloc[0]['canonicalProductPageId'])
+                logger.info(f"✅ Found valid mug productPageId from CSV: {product_page_id}")
+        else:
+            # For other products, try to find by friendlyUrl containing product name
+            product_rows = self.csv_product_pages[
+                self.csv_product_pages['friendlyUrl'].str.contains(product, case=False, na=False)
+            ]
+            if len(product_rows) > 0:
+                product_page_id = str(product_rows.iloc[0]['canonicalProductPageId'])
+                logger.info(f"✅ Found valid {product} productPageId from CSV: {product_page_id}")
+        
+        if not product_page_id:
+            logger.warning(f"Could not find valid productPageId from CSV for product: {product}")
+            return None
+        
+        # Call the API with the productPageId from CSV
+        logger.info(f"🔄 Using productPageId from CSV to call API: {product_page_id}")
+        base_price = self.get_base_price_from_api(selections, product_page_id, product_reference_code)
         
         if base_price is not None:
-            logger.info(f"✅ Retrieved base price from API (using CSV productPageId): £{base_price}")
+            logger.info(f"✅ Retrieved base price from API: £{base_price}")
         
         return base_price
     
@@ -385,7 +429,33 @@ class BulkPricingService:
                     error_msg = data.get("Message", "Unknown error")
                     error_code = data.get("ErrorCode", "")
                     logger.warning(f"API returned error for productPageId {product_page_id}: {error_code} - {error_msg}")
-                    logger.warning(f"This is a server-side API bug. Falling back to local mapping file.")
+                    
+                    # If productPageId doesn't exist in API (NullReferenceException), try a valid one from CSV
+                    if error_code == "-1" and "NullReferenceException" in str(data.get("Ex", "")):
+                        logger.warning(f"productPageId {product_page_id} doesn't exist in API. Trying valid one from CSV...")
+                        # Try to find a valid productPageId from CSV based on product type
+                        if not self.csv_product_pages.empty and product_selections:
+                            product = product_selections.get("product", "")
+                            if product == "blankets":
+                                blanket_rows = self.csv_product_pages[
+                                    self.csv_product_pages['friendlyUrl'].str.contains('blanket', case=False, na=False)
+                                ]
+                                if len(blanket_rows) > 0:
+                                    # Try first blanket productPageId from CSV
+                                    new_product_page_id = str(blanket_rows.iloc[0]['canonicalProductPageId'])
+                                    if new_product_page_id != product_page_id:
+                                        logger.info(f"🔄 Retrying API with valid productPageId from CSV: {new_product_page_id}")
+                                        # Recursively try with new productPageId (but only once to avoid infinite loop)
+                                        # Add a flag to prevent infinite recursion
+                                        if not hasattr(self, '_retry_count'):
+                                            self._retry_count = 0
+                                        if self._retry_count < 1:
+                                            self._retry_count += 1
+                                            result = self.get_base_price_from_api(product_selections, new_product_page_id, product_reference_code)
+                                            self._retry_count = 0  # Reset
+                                            return result
+                    
+                    logger.warning(f"Falling back to local mapping file.")
                     return None
             
             # Parse the API response structure
@@ -447,6 +517,12 @@ class BulkPricingService:
                             if our_dimensions_inches and our_dimensions_cm:
                                 # Check if API code contains our dimensions in inches
                                 if our_dimensions_inches in platinum_id or our_dimensions_inches.replace("x", "X") in platinum_id:
+                                    # For photobooks, prefer hard cover over soft cover if we're looking for hard cover
+                                    if product_reference_code and "hardcover" in product_reference_code.lower() or "hard" in product_reference_code.lower():
+                                        # If this is soft cover, skip it and continue looking for hard cover
+                                        if "softcover" in platinum_id.lower() or "soft" in platinum_id.lower():
+                                            continue
+                                    
                                     prices = tier.get("prices", [])
                                     for price_entry in prices:
                                         if price_entry.get("quantity") == 1:

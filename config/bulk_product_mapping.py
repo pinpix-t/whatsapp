@@ -47,17 +47,23 @@ PRODUCT_REFERENCE_MAPPING = {
     },
     "photobooks": {
         "cover_hard_cover": {
-            # Using CailuxCover as hard cover match
-            "size_8x6": "PB_CailuxCover_8x6_Black_20pp",
-            "size_8x8": "PB_CailuxCover_8x8_Black_20pp",
-            "size_11x8_5": "PB_PhotoHardCover_12x8_50pp",  # Using closest match (11x8.5 not in CSV)
-            "size_11x11": "PB_CailuxCover_11x11_Black_20pp",
+            # Using PhotoHardCover (actual API product name)
+            "size_8x6": "PB_PhotoHardCover_8x6_20pp",
+            "size_8x8": "PB_PhotoHardCover_8x8_20pp",
+            "size_11x8_5": "PB_PhotoHardCover_12x8_20pp",  # Using closest match (11x8.5 not in CSV)
+            "size_11x11": "PB_PhotoHardCover_11x11_20pp",
+            # Add cm sizes - 21x15cm ≈ 8.27 x 5.9 inches → maps to 8x6
+            "size_21x15cm": "PB_PhotoHardCover_8x6_20pp",  # 21x15cm = 8.27 x 5.9 inches → 8x6
+            "21x15cm": "PB_PhotoHardCover_8x6_20pp",  # Alternative format
         },
         "cover_leather_cover": {
             "size_8x6": "PB_LeatherCover_8x6_60pp",
             "size_8x8": "PB_LeatherCover_8x8_100pp",
             "size_11x8_5": "PB_LeatherCover_12x8_50pp",  # Using closest match (11x8.5 not in CSV)
             "size_11x11": "PB_LeatherCover_11x11_100pp",
+            # Add cm sizes - 21x15cm ≈ 8.27 x 5.9 inches → maps to 8x6
+            "size_21x15cm": "PB_LeatherCover_8x6_60pp",  # 21x15cm = 8.27 x 5.9 inches → 8x6
+            "21x15cm": "PB_LeatherCover_8x6_60pp",  # Alternative format
         },
     },
     "mugs": {
@@ -130,8 +136,28 @@ def get_product_reference_code(selections: dict) -> str:
         # Product has fabric/type selection
         size_mapping = product_mapping[fabric_or_type]
         size = selections.get("size") or selections.get("type")
+        
+        # Handle cm sizes for photobooks - convert to inches
+        if size and product == "photobooks" and "cm" in str(size).lower():
+            # Normalize size string (remove spaces, lowercase)
+            size_normalized = str(size).lower().replace(" ", "").replace("_", "")
+            # Convert cm to inches and find closest match
+            # 21x15cm = 8.27 x 5.9 inches → maps to 8x6
+            if "21x15" in size_normalized:
+                size = "size_8x6"  # Map 21x15cm to 8x6 inches
+        
         if size and size in size_mapping:
             return size_mapping[size]
+        # Try alternative formats
+        if size:
+            # Try with "size_" prefix
+            size_with_prefix = f"size_{size}" if not size.startswith("size_") else size
+            if size_with_prefix in size_mapping:
+                return size_mapping[size_with_prefix]
+            # Try without prefix
+            size_without_prefix = size.replace("size_", "")
+            if size_without_prefix in size_mapping:
+                return size_mapping[size_without_prefix]
     elif "default" in product_mapping:
         # Product uses default mapping (canvas, mugs, other products)
         default_mapping = product_mapping["default"]
