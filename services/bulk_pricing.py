@@ -1,13 +1,15 @@
 """
 Bulk Pricing Service
-Handles price calculation for bulk orders using SQL Server for base prices and Supabase for discounts
+Handles price calculation for bulk orders using CSV file for base prices and Supabase for discounts
 """
 
 import logging
+import os
 import requests
+import pandas as pd
 from typing import Dict, Optional, Tuple, Any
 from supabase import create_client, Client
-from config.settings import SUPABASE_URL, SUPABASE_KEY
+from config.settings import SUPABASE_URL, SUPABASE_KEY, CSV_DATA_PATH
 from config.bulk_product_mapping import get_product_reference_code
 from config.bulk_product_page_ids import get_product_page_id
 from config.bulk_products import PRICE_POINT_MAPPING
@@ -35,7 +37,7 @@ class BulkPricingService:
     """Service for calculating bulk order prices"""
     
     def __init__(self):
-        """Initialize Supabase client"""
+        """Initialize Supabase client and load CSV data"""
         self.supabase: Optional[Client] = None
         if SUPABASE_URL and SUPABASE_KEY:
             try:
@@ -51,6 +53,55 @@ class BulkPricingService:
         # NOTE: This API may require authentication or a different request format
         # Currently returns 400 Bad Request - base price lookup is disabled until API access is configured
         self.pricing_api_url = "https://qt-api.printerpix.co.uk/artwrap/GetProductsAndTierPricingV2/"
+        
+        # Load CSV data for base prices
+        self.csv_price_lookup: Dict[str, float] = {}
+        self._load_csv_data()
+    
+    def _load_csv_data(self) -> None:
+        """
+        Load CSV file and create price lookup dictionary
+        
+        Loads the CSV file containing product data and creates an in-memory
+        lookup dictionary mapping platinumProductReferenceId to price.
+        """
+        try:
+            csv_path = CSV_DATA_PATH
+            if not os.path.exists(csv_path):
+                logger.warning(f"CSV file not found at {csv_path}, CSV price lookup will be unavailable")
+                return
+            
+            # Load CSV file
+            df = pd.read_csv(csv_path)
+            
+            # Check required columns exist
+            if 'platinumProductReferenceId' not in df.columns or 'price' not in df.columns:
+                logger.error(f"CSV file missing required columns. Found: {list(df.columns)}")
+                return
+            
+            # Filter out rows with null/empty prices
+            df_filtered = df[df['price'].notna() & (df['price'] != '')]
+            
+            # Create lookup dictionary: {platinumProductReferenceId: price}
+            for _, row in df_filtered.iterrows():
+                ref_id = str(row['platinumProductReferenceId']).strip()
+                price = row['price']
+                
+                # Skip if price is not numeric
+                try:
+                    price_float = float(price)
+                    if price_float > 0:  # Only store positive prices
+                        self.csv_price_lookup[ref_id] = price_float
+                except (ValueError, TypeError):
+                    continue
+            
+            logger.info(f"✓ Loaded {len(self.csv_price_lookup)} product prices from CSV file: {csv_path}")
+            
+        except Exception as e:
+            logger.error(f"Error loading CSV data: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            self.csv_price_lookup = {}
     
     def get_product_reference_code(self, selections: Dict) -> Optional[str]:
         """
@@ -147,9 +198,44 @@ class BulkPricingService:
             logger.error(traceback.format_exc())
             return None
     
+    def get_base_price_from_csv(self, product_reference_code: str) -> Optional[float]:
+        """
+        Get base price from CSV data (loaded from ProductPage table)
+        
+        Args:
+            product_reference_code: ProductReferenceCode (e.g., "BlanketSherpafleece_25x20")
+            
+        Returns:
+            Base price in GBP or None if not found
+        """
+        if not product_reference_code:
+            logger.warning(f"Missing product_reference_code for CSV base price lookup")
+            return None
+        
+        if not self.csv_price_lookup:
+            logger.warning("CSV price lookup not available (CSV not loaded)")
+            return None
+        
+        try:
+            # Look up price by platinumProductReferenceId
+            price = self.csv_price_lookup.get(product_reference_code)
+            
+            if price is not None:
+                logger.info(f"✅ Found base price from CSV for {product_reference_code}: £{price}")
+                return float(price)
+            
+            logger.warning(f"No base price found in CSV for {product_reference_code}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error looking up price in CSV: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+    
     def get_base_price_from_sql_server(self, product_reference_code: str) -> Optional[float]:
         """
-        Get base price from SQL Server PlatinumProduct table
+        Get base price from SQL Server PlatinumProduct table (DEPRECATED - use CSV instead)
         
         Args:
             product_reference_code: ProductReferenceCode (e.g., "BlanketSherpafleece_25x20")
@@ -627,21 +713,21 @@ class BulkPricingService:
             logger.info(f"Using default discount: {discount_percent}% for pricing calculation")
         
         # Get base price - try multiple sources in order:
-        # 1. SQL Server (PRIMARY - most reliable, direct from database)
+        # 1. CSV file (PRIMARY - loaded from ProductPage table, no network needed)
         # 2. External API (fallback - constantly updated)
         # 3. Local mapping file (fallback - static prices)
         # 4. Supabase (fallback - if column exists)
         base_price = None
         
-        # PRIMARY: Try SQL Server first (most reliable source)
-        logger.info(f"🔄 Attempting to get base price from SQL Server (PRIMARY) for {product_reference_code}")
-        base_price = self.get_base_price_from_sql_server(product_reference_code)
+        # PRIMARY: Try CSV first (most reliable source, no network connection needed)
+        logger.info(f"🔄 Attempting to get base price from CSV (PRIMARY) for {product_reference_code}")
+        base_price = self.get_base_price_from_csv(product_reference_code)
         if base_price is not None:
-            logger.info(f"✅ Retrieved base price from SQL Server: £{base_price}")
+            logger.info(f"✅ Retrieved base price from CSV: £{base_price}")
         else:
-            logger.warning("⚠️ SQL Server did not return base price, trying fallbacks...")
+            logger.warning("⚠️ CSV did not return base price, trying fallbacks...")
         
-        # FALLBACK 1: External API if SQL Server didn't work
+        # FALLBACK 1: External API if CSV didn't work
         if base_price is None:
             # First try to get productPageId from Supabase (using Guid column)
             if not product_page_id:
