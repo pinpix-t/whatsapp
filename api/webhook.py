@@ -281,23 +281,52 @@ async def process_message(message_data: dict):
                 redis_store.clear_conversation(from_number)
                 logger.info(f"🔄 User {from_number} cleared conversation history")
                 
-                # Send appropriate goodbye message
-                if bulk_ended:
-                    await whatsapp_api.send_message(
-                        from_number,
-                        "Got it! I've reset your bulk ordering and cleared our conversation. Feel free to start fresh anytime. 👋"
-                    )
-                else:
-                    await whatsapp_api.send_message(
-                        from_number,
-                        "Goodbye! I've cleared our conversation. Feel free to reach out anytime if you need help. 👋"
-                    )
+                # Immediately show welcome buttons for instant restart
+                buttons = [
+                    {"id": "btn_faq", "title": "General FAQ"},
+                    {"id": "btn_order", "title": "Order Questions"},
+                    {"id": "btn_bulk", "title": "Bulk Ordering"}
+                ]
+                await whatsapp_api.send_interactive_buttons(
+                    to=from_number,
+                    body_text="Got it! I've reset everything. How can I help you today? 👋",
+                    buttons=buttons
+                )
                 return
+            
+            # Check for bulk order keywords (before checking if already in flow)
+            bulk_order_keywords = ['bulk order', 'new quote', 'get quote', 'start bulk', 'bulk ordering', 'bulk quote']
+            is_bulk_request = any(keyword in text_lower for keyword in bulk_order_keywords)
             
             # Check if user is in bulk ordering flow
             bulk_state = redis_store.get_bulk_order_state(from_number)
             
             if bulk_state:
+                # Check if this is a request to start a new bulk order
+                if is_bulk_request:
+                    logger.info(f"🔄 User {from_number} requested new bulk order while already in flow")
+                    await whatsapp_api.send_message(
+                        from_number,
+                        "You're already in a bulk ordering flow. You can finish this one or reply 'restart' to start a new quote."
+                    )
+                    return
+                
+                # Check if this is an order tracking or FAQ request - allow it
+                is_order_tracking = llm_handler._is_order_tracking_request(text_lower)
+                is_faq_request = any(keyword in text_lower for keyword in ['faq', 'help', 'question', 'what', 'how', 'when', 'where', 'why', 'tell me', 'explain'])
+                
+                if is_order_tracking or is_faq_request:
+                    # Allow order tracking and FAQs during bulk flow
+                    logger.info(f"✅ Allowing {('order tracking' if is_order_tracking else 'FAQ')} request during bulk flow")
+                    await whatsapp_api.send_typing_indicator(from_number)
+                    response = await llm_handler.generate_response(
+                        user_id=from_number,
+                        message=text
+                    )
+                    if response:
+                        await whatsapp_api.send_message(from_number, response)
+                    return
+                
                 current_state = bulk_state.get("state")
                 
                 if current_state == "asking_quantity":
@@ -329,9 +358,15 @@ async def process_message(message_data: dict):
                     logger.info("⚠️ User in bulk flow sent text - asking to continue")
                     await whatsapp_api.send_message(
                         from_number,
-                        "Please use the buttons or select from the list to continue with your bulk order. If you need to start over, type 'restart'."
+                        "Please use the buttons or select from the list to continue with your bulk order. If you need to start over, type 'restart'.\n\n💡 You can also ask me questions about orders, FAQs, or other topics anytime!"
                     )
             else:
+                # Not in bulk flow - check if this is a bulk order request
+                if is_bulk_request:
+                    logger.info(f"🛒 User {from_number} requested bulk ordering via text")
+                    await bulk_ordering_service.start_bulk_ordering(from_number)
+                    return
+                
                 # Normal text message - process with LLM
                 # Send typing indicator immediately for user feedback
                 await whatsapp_api.send_typing_indicator(from_number)

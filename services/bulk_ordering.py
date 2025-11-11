@@ -44,7 +44,7 @@ class BulkOrderingService:
         sections = [{"rows": PRODUCT_SELECTION_LIST}]
         await self.whatsapp_api.send_list_message(
             to=user_id,
-            body_text="Welcome to Bulk Ordering 👋 I'll get you a quick quote.\n\nWhich product are you interested in?",
+            body_text="Welcome to Bulk Ordering 👋 I'll get you a quick quote.\n\nWhich product are you interested in?\n\n💡 Tip: Reply 'restart' to start over anytime",
             button_text="Choose Product",
             sections=sections
         )
@@ -281,7 +281,7 @@ class BulkOrderingService:
         
         await self.whatsapp_api.send_message(
             user_id,
-            "How many units would you like to order?"
+            "How many units would you like to order?\n\n💡 Tip: Reply 'restart' to start a new quote"
         )
     
     async def handle_quantity(self, user_id: str, quantity_text: str) -> None:
@@ -324,7 +324,9 @@ class BulkOrderingService:
 
 Just send your email address so we can send your discount code.
 
-(Please type only the email itself — no emojis or punctuation marks.)"""
+(Please type only the email itself — no emojis or punctuation marks.)
+
+💡 Tip: Reply 'restart' to start a new quote"""
         
         await self.whatsapp_api.send_message(user_id, message)
     
@@ -472,13 +474,15 @@ Send your postcode, or type 'skip' to continue without it."""
 Product: {product_name}
 Quantity: {quantity} units
 
-Per unit: -{formatted_base}- {formatted_unit}
+Per unit: (was {formatted_base}) - {formatted_unit} each
 Total: {price_info["formatted_total_price"]}
 Discount: {price_info["discount_percent"]:.1f}% off
 
 Use discount code: *{discount_code}* for your bulk order on our website.
 
-Ready to proceed?"""
+Ready to proceed?
+
+💡 Tip: Reply 'restart' to start a new quote"""
         elif price_info["success"] and price_info["discount_percent"] is not None:
             # Discount available but no base price
             message = f"""Great! Here's your quick quote:
@@ -491,7 +495,9 @@ Discount: {price_info["discount_percent"]:.1f}% off
 
 Use discount code: *{discount_code}* for your bulk order on our website.
 
-Ready to proceed?"""
+Ready to proceed?
+
+💡 Tip: Reply 'restart' to start a new quote"""
         else:
             # Pricing unavailable
             message = f"""Great! Here's your quick quote:
@@ -755,13 +761,15 @@ Feel free to reach out if you have any questions! 😊"""
 Product: {product_name}
 Quantity: {quantity} units
 
-Per unit: -{formatted_base}- {formatted_unit}
+Per unit: (was {formatted_base}) - {formatted_unit} each
 Total: {price_info["formatted_total_price"]}
 Discount: {price_info["discount_percent"]:.1f}% off
 
 Use discount code: *{discount_code}* for your bulk order on our website.
 
-Want me to update your pay link?"""
+Want me to update your pay link?
+
+💡 Tip: Reply 'restart' to start a new quote"""
         elif price_info["success"] and price_info["discount_percent"] is not None:
             # Discount available but no base price
             message = f"""I can extend a better bulk incentive today:
@@ -774,7 +782,9 @@ Discount: {price_info["discount_percent"]:.1f}% off
 
 Use discount code: *{discount_code}* for your bulk order on our website.
 
-Want me to update your pay link?"""
+Want me to update your pay link?
+
+💡 Tip: Reply 'restart' to start a new quote"""
         else:
             # Pricing unavailable
             message = f"""I can extend a better bulk incentive today:
