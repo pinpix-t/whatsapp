@@ -55,33 +55,13 @@ class FreshdeskService:
         Returns:
             Dictionary with success status and response data
         """
-        if tags is None:
-            tags = ["WhatsAppBulk"]
-        
-        # Build ticket payload
+        # Only send description field to n8n (simplified payload)
         ticket_data = {
-            "email": email,
-            "source": source,
-            "tags": tags,
-            "status": status,
-            "priority": priority,
-            "responder_id": responder_id,
-            "custom_fields": {
-                "cf_exclude_from_automations": True,
-                "cf_noapi": True
-            },
-            "subject": subject,
             "description": description
         }
         
-        # Add product_id and group_id if provided
-        if product_id is not None:
-            ticket_data["product_id"] = product_id
-        if group_id is not None:
-            ticket_data["group_id"] = group_id
-        
         try:
-            logger.info(f"Sending support ticket request to n8n webhook for {email}")
+            logger.info(f"Sending support ticket request to n8n webhook")
             logger.debug(f"Ticket data: {ticket_data}")
             
             response = requests.post(
