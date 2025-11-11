@@ -8,27 +8,28 @@ used in Supabase lookup table (e.g., "BlanketSherpafleece_25x20")
 PRODUCT_REFERENCE_MAPPING = {
     "blankets": {
         "fabric_fleece": {
-            "size_baby_20x25": "BlanketFlannelfleece_25x20",
-            "size_med_30x40": "BlanketFlannelfleece_30x40",
-            "size_throw_50x60": "BlanketFlannelfleece_50x60",
-            "size_queen_60x80": "BlanketFlannelfleece_60x80",
-        },
-        "fabric_cosy_fleece": {
-            # Cosy Fleece = Polar fleece
-            "size_baby_20x25": "BlanketPolarfleece_25x20",
+            # Fleece = Polar fleece (cheaper)
+            "size_baby_20x25": "BlanketPolarfleece_20x25",
             "size_med_30x40": "BlanketPolarfleece_30x40",
             "size_throw_50x60": "BlanketPolarfleece_50x60",
             "size_queen_60x80": "BlanketPolarfleece_60x80",
         },
+        "fabric_cosy_fleece": {
+            # Cosy Fleece = Flannel fleece (more expensive)
+            "size_baby_20x25": "BlanketFlannelfleece_20x25",
+            "size_med_30x40": "BlanketFlannelfleece_30x40",
+            "size_throw_50x60": "BlanketFlannelfleece_50x60",
+            "size_queen_60x80": "BlanketFlannelfleece_60x80",
+        },
         "fabric_sherpa": {
-            "size_baby_20x25": "BlanketSherpafleece_25x20",
+            "size_baby_20x25": "BlanketSherpafleece_20x25",
             "size_med_30x40": "BlanketSherpafleece_30x40",
             "size_throw_50x60": "BlanketSherpafleece_50x60",
             "size_queen_60x80": "BlanketSherpafleece_60x80",
         },
         "fabric_double_sided": {
             # Using DoubleSideBlanketFlannel (could also use DoubleSideBlanketPolar)
-            "size_baby_20x25": "DoubleSideBlanketFlannel_25x20",
+            "size_baby_20x25": "DoubleSideBlanketFlannel_20x25",
             "size_med_30x40": "DoubleSideBlanketFlannel_30x40",
             "size_throw_50x60": "DoubleSideBlanketFlannel_50x60",
             "size_queen_60x80": "DoubleSideBlanketFlannel_60x80",
@@ -61,24 +62,26 @@ PRODUCT_REFERENCE_MAPPING = {
         },
         "cover_layflat": {
             # Luxury layflat photobooks
-            "size_8x6": "PBLayFlat_PhotoHardCover_8x6_20pp",  # If exists, otherwise use 8x8
+            # Removed 8x6 and 11x11 (not available in API)
             "size_8x8": "PBLayFlat_PhotoHardCover_8x8_20pp",
             "size_11x8_5": "PBLayFlat_PhotoHardCover_12x8_20pp",  # Using closest match
-            "size_11x11": "PBLayFlat_PhotoHardCover_11x11_20pp",  # If exists, otherwise use 8x8
+            "size_8_5x11": "PBLayFlat_PhotoHardCover_12x8_20pp",  # Same price as 11x8.5
         },
         "cover_luxury_layflat": {
-            # Alias for layflat
-            "size_8x6": "PBLayFlat_PhotoHardCover_8x6_20pp",
-            "size_8x8": "PBLayFlat_PhotoHardCover_8x8_20pp",
-            "size_11x8_5": "PBLayFlat_PhotoHardCover_12x8_20pp",
-            "size_11x11": "PBLayFlat_PhotoHardCover_11x11_20pp",
+            # Luxury layflat - uses Layflat Cailux Cover ProductReferenceCodes directly
+            # Maps to closest Layflat Cailux Cover sizes for both prices and discounts
+            "size_20x20": "PBLayFlat_CailuxCover_12x12_Beige_20pp",  # Square -> 12x12
+            "size_30x20": "PBLayFlat_CailuxCover_12x8_Beige_20pp",   # 30x20 -> 12x8
+            "size_30x30": "PBLayFlat_CailuxCover_12x12_Beige_20pp",  # Square -> 12x12
+            "size_40x30": "PBLayFlat_CailuxCover_16x12_Beige_20pp",  # 40x30 -> 16x12
         },
         "cover_soft_cover": {
             # Softcover photobooks
+            # Removed 11x11 (not available in API)
             "size_8x6": "PB_SoftCover_8x6_20pp",
             "size_8x8": "PB_SoftCover_8x8_20pp",
             "size_11x8_5": "PB_SoftCover_12x8_20pp",  # 30x21cm ≈ 12x8 inches
-            "size_11x11": "PB_SoftCover_11x11_20pp",
+            "size_8_5x11": "PB_SoftCover_12x8_20pp",  # Same price as 11x8.5
         },
     },
     "mugs": {
