@@ -48,6 +48,5 @@ SQL_PASSWORD = os.getenv("SQL_PASSWORD")
 # CSV Data Settings (for base prices - alternative to SQL Server)
 CSV_DATA_PATH = os.getenv("CSV_DATA_PATH", "SynComs.Products.ProductPage.csv")
 
-# Freshdesk Settings
-FRESHDESK_API_URL = os.getenv("FRESHDESK_API_URL", "https://printerpix-support.freshdesk.com/api/v2/tickets")
-FRESHDESK_API_KEY = os.getenv("FRESHDESK_API_KEY")
+# n8n Webhook Settings (for bulk order escalations)
+N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL", "https://n8n.printerpix.co.uk/webhook/c5e4c210-c4f1-429e-ae42-94211d648422")

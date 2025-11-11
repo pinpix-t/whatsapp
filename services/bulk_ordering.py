@@ -712,7 +712,7 @@ Feel free to reach out if you have any questions! 😊"""
             return
         
         selections = state_data.get("selections", {})
-        logger.info(f"User {user_id} said too expensive after second discount - creating Freshdesk ticket")
+        logger.info(f"User {user_id} said too expensive after second discount - sending to n8n webhook")
         await self._escalate_to_support(user_id, selections, ask_name=False)
     
     async def _offer_second_discount(self, user_id: str, selections: Dict) -> None:
@@ -922,8 +922,8 @@ Want me to update your pay link?"""
         
         description = "".join(description_parts)
         
-        # Create Freshdesk ticket
-        # email field must be b2b@printerpix.co.uk so Freshdesk sends emails there
+        # Send request to n8n webhook
+        # email field must be b2b@printerpix.co.uk so emails go there
         # Customer's actual email is in the description field
         ticket_result = self.freshdesk_service.create_ticket(
             email=freshdesk_email,  # Always use b2b@printerpix.co.uk for email field
@@ -934,8 +934,7 @@ Want me to update your pay link?"""
         )
         
         if ticket_result.get("success"):
-            ticket_id = ticket_result.get("ticket_id")
-            logger.info(f"✅ Freshdesk ticket created successfully: ID {ticket_id} for user {user_id}")
+            logger.info(f"✅ Support ticket request sent successfully to n8n webhook for user {user_id}")
             
             # Send confirmation message to user (without mentioning specific name)
             await self.whatsapp_api.send_message(
@@ -944,7 +943,7 @@ Want me to update your pay link?"""
             )
         else:
             error = ticket_result.get("error", "Unknown error")
-            logger.error(f"❌ Failed to create Freshdesk ticket for user {user_id}: {error}")
+            logger.error(f"❌ Failed to send request to n8n webhook for user {user_id}: {error}")
             
             # Still send a message to user even if ticket creation failed
             await self.whatsapp_api.send_message(
