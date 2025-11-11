@@ -825,7 +825,9 @@ Want me to update your pay link?"""
             product_name = product.title()
         
         quantity = selections.get("quantity", 0)
-        email = selections.get("email", "b2b@printerpix.co.uk")  # Default email if not provided
+        customer_email = selections.get("email", "")  # Customer's actual email
+        # Freshdesk email field must be b2b@printerpix.co.uk so emails go there
+        freshdesk_email = "b2b@printerpix.co.uk"
         postcode = selections.get("postcode", "")
         user_name = selections.get("name", "")  # Optional name
         
@@ -854,7 +856,11 @@ Want me to update your pay link?"""
         if user_name:
             description_parts.append(f"<p><strong>Customer Name:</strong> {user_name}</p>")
         
-        description_parts.append(f"<p><strong>Email Address:</strong> {email}</p>")
+        # Customer's actual email goes in description (body)
+        if customer_email:
+            description_parts.append(f"<p><strong>Customer Email Address:</strong> {customer_email}</p>")
+        else:
+            description_parts.append(f"<p><strong>Customer Email Address:</strong> Not provided</p>")
         description_parts.append(f"<p><strong>Product:</strong> {product_name}</p>")
         description_parts.append(f"<p><strong>Quantity:</strong> {quantity} units</p>")
         
@@ -907,10 +913,12 @@ Want me to update your pay link?"""
         description = "".join(description_parts)
         
         # Create Freshdesk ticket
+        # email field must be b2b@printerpix.co.uk so Freshdesk sends emails there
+        # Customer's actual email is in the description field
         ticket_result = self.freshdesk_service.create_ticket(
-            email=email,
+            email=freshdesk_email,  # Always use b2b@printerpix.co.uk for email field
             subject="Bulk order quote request",
-            description=description,
+            description=description,  # Customer email is in description
             product_id=product_id,
             group_id=group_id
         )

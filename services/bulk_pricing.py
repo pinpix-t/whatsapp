@@ -486,7 +486,47 @@ class BulkPricingService:
                             height_cm = round(height_inches * 2.54)
                             our_dimensions_cm = f"{width_cm}x{height_cm}"
                         
-                        # Try to find matching tier pricing by platinumProductReferenceId
+                        # Helper function to check if fabric type matches
+                        def fabric_type_matches(our_code: str, api_code: str) -> bool:
+                            """Check if fabric type matches between our code and API code"""
+                            our_lower = our_code.lower()
+                            api_lower = api_code.lower()
+                            
+                            # For blankets, check fabric type
+                            if "blanket" in our_lower:
+                                # Check for sherpa (must be exact - sherpafleece)
+                                if "sherpa" in our_lower:
+                                    # Must have "sherpa" in API code (sherpafleece)
+                                    return "sherpa" in api_lower
+                                
+                                # Check for polar/cosy (must be exact - polarfleece)
+                                if "polar" in our_lower or "cosy" in our_lower:
+                                    # Must have "polar" in API code (polarfleece), NOT sherpa
+                                    return "polar" in api_lower and "sherpa" not in api_lower
+                                
+                                # Check for flannel/fleece (must be exact - flannelfleece, not sherpafleece or polarfleece)
+                                if "flannel" in our_lower or ("fleece" in our_lower and "sherpa" not in our_lower and "polar" not in our_lower and "cosy" not in our_lower):
+                                    # Must have "flannel" in API code, NOT sherpa or polar
+                                    return "flannel" in api_lower and "sherpa" not in api_lower and "polar" not in api_lower
+                            
+                            # For photobooks, check cover type
+                            if "photobook" in our_lower or "pb" in our_lower:
+                                # Check for layflat
+                                if "layflat" in our_lower:
+                                    return "layflat" in api_lower
+                                
+                                # Check for hard cover
+                                if "hardcover" in our_lower or ("hard" in our_lower and "soft" not in our_lower):
+                                    return ("hardcover" in api_lower or "hard" in api_lower) and "soft" not in api_lower
+                                
+                                # Check for soft cover
+                                if "softcover" in our_lower or "soft" in our_lower:
+                                    return "softcover" in api_lower or "soft" in api_lower
+                            
+                            # For other products, no fabric/type check needed
+                            return True
+                        
+                        # First pass: exact matches only
                         for tier in tier_pricings:
                             platinum_id = tier.get("platinumProductReferenceId", "")
                             if not platinum_id:
@@ -502,47 +542,57 @@ class BulkPricingService:
                                         logger.info(f"✅ Found exact match: API returned base price for {product_reference_code}: £{base_price}")
                                         return base_price
                             
-                            # Try normalized comparison (ignore underscores/dashes)
+                            # Try normalized comparison (ignore underscores/dashes) - but verify fabric type matches
                             api_code_normalized = platinum_id.lower().replace("_", "").replace("-", "")
                             if api_code_normalized == our_code_normalized:
-                                # Found normalized match, get price for QTY=1
-                                prices = tier.get("prices", [])
-                                for price_entry in prices:
-                                    if price_entry.get("quantity") == 1:
-                                        base_price = float(price_entry.get("price", 0))
-                                        logger.info(f"✅ Found normalized match: API returned base price for {product_reference_code} (matched {platinum_id}): £{base_price}")
-                                        return base_price
-                            
-                            # Try unit conversion match (inches vs cm)
-                            if our_dimensions_inches and our_dimensions_cm:
-                                # Check if API code contains our dimensions in inches
-                                if our_dimensions_inches in platinum_id or our_dimensions_inches.replace("x", "X") in platinum_id:
-                                    # For photobooks, prefer exact match (layflat vs regular, hard vs soft)
-                                    if product_reference_code:
-                                        # If looking for layflat, skip non-layflat products
-                                        if "layflat" in product_reference_code.lower():
-                                            if "layflat" not in platinum_id.lower():
-                                                continue
-                                        # If looking for hard cover, skip soft cover
-                                        elif "hardcover" in product_reference_code.lower() or "hard" in product_reference_code.lower():
-                                            if "softcover" in platinum_id.lower() or "soft" in platinum_id.lower():
-                                                continue
-                                    
+                                # Verify fabric type matches before returning
+                                if fabric_type_matches(product_reference_code, platinum_id):
+                                    # Found normalized match with correct fabric type, get price for QTY=1
                                     prices = tier.get("prices", [])
                                     for price_entry in prices:
                                         if price_entry.get("quantity") == 1:
                                             base_price = float(price_entry.get("price", 0))
-                                            logger.info(f"✅ Found dimension match (inches): API returned base price for {product_reference_code} (matched {platinum_id}): £{base_price}")
+                                            logger.info(f"✅ Found normalized match: API returned base price for {product_reference_code} (matched {platinum_id}): £{base_price}")
                                             return base_price
+                        
+                        # Second pass: dimension match with product type preference
+                        # Collect all dimension matches first, then prefer exact fabric matches
+                        dimension_matches = []
+                        if our_dimensions_inches and our_dimensions_cm:
+                            for tier in tier_pricings:
+                                platinum_id = tier.get("platinumProductReferenceId", "")
+                                if not platinum_id:
+                                    continue
                                 
-                                # Check if API code contains our dimensions in cm
-                                if our_dimensions_cm in platinum_id or our_dimensions_cm.replace("x", "X") in platinum_id:
-                                    prices = tier.get("prices", [])
-                                    for price_entry in prices:
-                                        if price_entry.get("quantity") == 1:
-                                            base_price = float(price_entry.get("price", 0))
-                                            logger.info(f"✅ Found dimension match (cm): API returned base price for {product_reference_code} (matched {platinum_id}): £{base_price}")
-                                            return base_price
+                                # Check if API code contains our dimensions in inches or cm
+                                dimension_match = False
+                                if our_dimensions_inches in platinum_id or our_dimensions_inches.replace("x", "X") in platinum_id:
+                                    dimension_match = True
+                                elif our_dimensions_cm in platinum_id or our_dimensions_cm.replace("x", "X") in platinum_id:
+                                    dimension_match = True
+                                
+                                if dimension_match:
+                                    # Check if fabric type matches
+                                    if fabric_type_matches(product_reference_code, platinum_id):
+                                        # Get price for QTY=1
+                                        prices = tier.get("prices", [])
+                                        for price_entry in prices:
+                                            if price_entry.get("quantity") == 1:
+                                                base_price = float(price_entry.get("price", 0))
+                                                dimension_matches.append({
+                                                    "platinum_id": platinum_id,
+                                                    "base_price": base_price,
+                                                    "exact_fabric_match": platinum_id.lower() == product_reference_code.lower()
+                                                })
+                                                break
+                            
+                            # Prefer exact fabric match, then any fabric match
+                            if dimension_matches:
+                                # Sort: exact matches first, then by price (lower first as tiebreaker)
+                                dimension_matches.sort(key=lambda x: (not x["exact_fabric_match"], x["base_price"]))
+                                best_match = dimension_matches[0]
+                                logger.info(f"✅ Found dimension match: API returned base price for {product_reference_code} (matched {best_match['platinum_id']}): £{best_match['base_price']}")
+                                return best_match["base_price"]
                         
                         # No match found - log available options for debugging
                         available_ids = [tier.get("platinumProductReferenceId", "unknown") for tier in tier_pricings if tier.get("platinumProductReferenceId")]
