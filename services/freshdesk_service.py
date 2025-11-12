@@ -35,10 +35,28 @@ class FreshdeskService:
         tags: Optional[list] = None,
         status: int = 5,
         priority: int = 3,
-        responder_id: int = 103141023779
+        responder_id: int = 103141023779,
+        # Individual data fields for database storage
+        customer_name: Optional[str] = None,
+        customer_email: Optional[str] = None,
+        product_name: Optional[str] = None,
+        quantity: Optional[int] = None,
+        postcode: Optional[str] = None,
+        region: Optional[str] = None,
+        fabric: Optional[str] = None,
+        cover: Optional[str] = None,
+        type: Optional[str] = None,
+        size: Optional[str] = None,
+        pages: Optional[str] = None,
+        discount_percent: Optional[float] = None,
+        unit_price: Optional[str] = None,
+        total_price: Optional[str] = None,
+        offers_shown: Optional[str] = None,
+        quote_level: Optional[str] = None,
+        quote_state: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Create a ticket via n8n webhook (sends same JSON payload as before)
+        Create a ticket via n8n webhook with individual data fields for database storage
         
         Args:
             email: Customer email address
@@ -51,14 +69,71 @@ class FreshdeskService:
             status: Status ID (default: 5)
             priority: Priority ID (default: 3)
             responder_id: Responder ID (default: 103141023779)
+            customer_name: Customer name (optional)
+            customer_email: Customer email address (optional)
+            product_name: Product name (optional)
+            quantity: Order quantity (optional)
+            postcode: Customer postcode (optional)
+            region: Region (optional)
+            fabric: Fabric selection (optional)
+            cover: Cover selection (optional)
+            type: Type selection (optional)
+            size: Size selection (optional)
+            pages: Pages selection (optional)
+            discount_percent: Discount percentage offered (optional)
+            unit_price: Unit price formatted string (optional)
+            total_price: Total price formatted string (optional)
+            offers_shown: Comma-separated list of offers shown (optional)
+            quote_level: Quote level when declined (optional)
+            quote_state: Quote state (optional)
             
         Returns:
             Dictionary with success status and response data
         """
-        # Only send description field to n8n (simplified payload)
+        # Build ticket data with description for backward compatibility and individual fields for database storage
         ticket_data = {
             "description": description
         }
+        
+        # Add individual fields if provided (only include non-None values)
+        if customer_name is not None:
+            ticket_data["customer_name"] = customer_name
+        if customer_email is not None:
+            ticket_data["customer_email"] = customer_email
+        if product_name is not None:
+            ticket_data["product_name"] = product_name
+        if quantity is not None:
+            ticket_data["quantity"] = quantity
+        if postcode is not None:
+            ticket_data["postcode"] = postcode
+        if region is not None:
+            ticket_data["region"] = region
+        if fabric is not None:
+            ticket_data["fabric"] = fabric
+        if cover is not None:
+            ticket_data["cover"] = cover
+        if type is not None:
+            ticket_data["type"] = type
+        if size is not None:
+            ticket_data["size"] = size
+        if pages is not None:
+            ticket_data["pages"] = pages
+        if discount_percent is not None:
+            ticket_data["discount_percent"] = discount_percent
+        if unit_price is not None:
+            ticket_data["unit_price"] = unit_price
+        if total_price is not None:
+            ticket_data["total_price"] = total_price
+        if offers_shown is not None:
+            ticket_data["offers_shown"] = offers_shown
+        if quote_level is not None:
+            ticket_data["quote_level"] = quote_level
+        if quote_state is not None:
+            ticket_data["quote_state"] = quote_state
+        if product_id is not None:
+            ticket_data["product_id"] = product_id
+        if group_id is not None:
+            ticket_data["group_id"] = group_id
         
         try:
             logger.info(f"Sending support ticket request to n8n webhook")

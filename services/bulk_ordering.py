@@ -922,15 +922,41 @@ Want me to update your pay link?"""
         
         description = "".join(description_parts)
         
+        # Extract individual data fields for database storage
+        discount_percent = best_price_info.get("discount_percent")
+        unit_price = best_price_info.get("formatted_unit_price")
+        total_price = best_price_info.get("formatted_total_price")
+        offers_shown_str = ", ".join(offers) if offers else None
+        quote_level = selections.get("escalation_quote_level")
+        quote_state = selections.get("escalation_quote_state")
+        
         # Send request to n8n webhook
         # email field must be b2b@printerpix.co.uk so emails go there
-        # Customer's actual email is in the description field
+        # Customer's actual email is in the description field and as separate field
         ticket_result = self.freshdesk_service.create_ticket(
             email=freshdesk_email,  # Always use b2b@printerpix.co.uk for email field
             subject="Bulk order quote request",
             description=description,  # Customer email is in description
             product_id=product_id,
-            group_id=group_id
+            group_id=group_id,
+            # Individual data fields for database storage
+            customer_name=user_name if user_name else None,
+            customer_email=customer_email if customer_email else None,
+            product_name=product_name,
+            quantity=quantity,
+            postcode=postcode if postcode else None,
+            region=region,
+            fabric=selections.get("fabric"),
+            cover=selections.get("cover"),
+            type=selections.get("type"),
+            size=selections.get("size"),
+            pages=selections.get("pages"),
+            discount_percent=discount_percent,
+            unit_price=unit_price,
+            total_price=total_price,
+            offers_shown=offers_shown_str,
+            quote_level=quote_level,
+            quote_state=quote_state
         )
         
         if ticket_result.get("success"):
