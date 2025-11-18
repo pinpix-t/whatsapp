@@ -211,7 +211,14 @@ class ImageCreationService:
     
     async def _process_all_products(self, user_id: str, image_url: str, s3key: str, region: str) -> None:
         """Process image through all target products"""
+        logger.info(f"🔥 _process_all_products CALLED for user {user_id}")
+        logger.info(f"🔥 Image URL: {image_url[:100] if image_url else 'None'}...")
+        logger.info(f"🔥 S3Key: {s3key[:50] if s3key else 'None'}...")
+        logger.info(f"🔥 Region: {region}")
+        logger.info(f"🔥 Target products: {self.target_products is not None}, Count: {len(self.target_products) if self.target_products is not None else 0}")
+        
         if self.target_products is None or len(self.target_products) == 0:
+            logger.error(f"❌ No target products available!")
             await self.whatsapp_api.send_message(
                 user_id,
                 "❌ No products available. Please contact support."
