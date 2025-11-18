@@ -273,13 +273,19 @@ class ImageCreationService:
                     logger.error(f"Error preparing product {row.get('refcode', 'unknown')}: {e}")
                     errors += 1
             
-            # Process batch in parallel
+            # Process batch in parallel with timeout
             try:
-                batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+                logger.info(f"Processing batch {batch_start//batch_size + 1}: {[r.get('refcode', 'unknown') for r in batch]}")
+                
+                # Add timeout to entire batch (30 seconds max per batch)
+                batch_results = await asyncio.wait_for(
+                    asyncio.gather(*batch_tasks, return_exceptions=True),
+                    timeout=30.0
+                )
                 
                 for i, result in enumerate(batch_results):
                     if isinstance(result, Exception):
-                        logger.error(f"Error in batch processing: {result}")
+                        logger.error(f"Error in batch processing for {batch[i].get('refcode', 'unknown')}: {result}")
                         errors += 1
                     elif result:
                         row = batch[i]
@@ -296,6 +302,9 @@ class ImageCreationService:
                                 "refcode": refcode,
                                 "response": result.get('response')
                             })
+                    else:
+                        logger.warning(f"No result for {batch[i].get('refcode', 'unknown')}")
+                        errors += 1
                 
                 processed += len(batch)
                 
@@ -304,14 +313,30 @@ class ImageCreationService:
                     user_id,
                     f"⏳ Processing... {processed}/{total_products} products done"
                 )
-                logger.info(f"Processed batch: {processed}/{total_products} products")
+                logger.info(f"✅ Processed batch: {processed}/{total_products} products (errors: {errors})")
                 
+            except asyncio.TimeoutError:
+                logger.error(f"Batch timeout after 30s for batch starting at {batch_start}")
+                await self.whatsapp_api.send_message(
+                    user_id,
+                    f"⚠️ Some products timed out. Continuing with others... ({processed}/{total_products} done)"
+                )
+                errors += len(batch)
+                processed += len(batch)  # Count them as processed even if failed
             except Exception as e:
                 logger.error(f"Error processing batch: {e}", exc_info=True)
                 errors += len(batch)
+                processed += len(batch)  # Count them as processed even if failed
         
         # Format and send results
-        await self._send_results(user_id, results, processed, errors)
+        logger.info(f"Finished processing: {processed} products, {errors} errors")
+        if processed > 0:
+            await self._send_results(user_id, results, processed, errors)
+        else:
+            await self.whatsapp_api.send_message(
+                user_id,
+                "❌ Could not process any products. The API may be unavailable. Please try again later."
+            )
         
         # Clear state
         self.redis_store.set_image_creation_state(
@@ -338,21 +363,27 @@ class ImageCreationService:
     async def _call_product_api(self, payload: dict) -> Optional[dict]:
         """Call the product API"""
         url = f"{self.API_BASE_URL}/api/v1/product/wa/detail"
+        refcode = payload.get('refcode', 'unknown')
         
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:  # Reduced timeout to 10s
+            logger.info(f"Calling API for {refcode}")
+            async with httpx.AsyncClient(timeout=8.0) as client:  # Reduced timeout to 8s
                 response = await client.post(url, json=payload)
                 response.raise_for_status()
                 data = response.json()
+                logger.info(f"✅ API success for {refcode}")
                 return {"success": True, "data": data}
         except httpx.TimeoutException:
-            logger.error(f"API timeout for {payload.get('refcode', 'unknown')}")
+            logger.warning(f"⏱️ API timeout for {refcode} (8s)")
             return {"success": False, "error": "timeout"}
+        except httpx.ConnectError as e:
+            logger.error(f"🔌 Connection error for {refcode}: {e}")
+            return {"success": False, "error": "connection_error"}
         except httpx.HTTPStatusError as e:
-            logger.error(f"API error for {payload.get('refcode', 'unknown')}: {e.response.status_code}")
+            logger.error(f"❌ API HTTP error for {refcode}: {e.response.status_code} - {e.response.text[:200]}")
             return {"success": False, "error": f"http_{e.response.status_code}"}
         except Exception as e:
-            logger.error(f"API exception for {payload.get('refcode', 'unknown')}: {e}")
+            logger.error(f"❌ API exception for {refcode}: {e}")
             return {"success": False, "error": str(e)}
     
     async def _send_results(self, user_id: str, results: dict, processed: int, errors: int) -> None:
