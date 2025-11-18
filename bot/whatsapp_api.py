@@ -132,16 +132,25 @@ class WhatsAppAPI:
     async def get_media_url(self, media_id: str):
         """Get the download URL for a media file (async)"""
         url = f"{self.BASE_URL}/{media_id}"
+        logger.info(f"🔗 Getting media URL from: {url}")
 
         try:
-            response = await self.client.get(url, headers=self.headers)
+            response = await self.client.get(url, headers=self.headers, timeout=10.0)
             response.raise_for_status()
 
             data = response.json()
-            return data.get("url")
+            media_url = data.get("url")
+            logger.info(f"✅ Got media URL: {media_url[:100] if media_url else 'None'}...")
+            return media_url
 
+        except httpx.TimeoutException as e:
+            logger.error(f"⏱️ Timeout getting media URL: {e}")
+            return None
         except httpx.RequestError as e:
             logger.error(f"❌ Error getting media URL: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"❌ Unexpected error getting media URL: {e}")
             return None
 
     async def download_media(self, media_url: str):

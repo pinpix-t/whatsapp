@@ -163,6 +163,7 @@ class ImageCreationService:
     
     async def handle_image(self, user_id: str, media_id: str) -> None:
         """Handle incoming image - download and process"""
+        logger.info(f"🖼️ handle_image called for user {user_id}, media_id: {media_id}")
         try:
             # Update state to processing
             self.redis_store.set_image_creation_state(
@@ -170,33 +171,41 @@ class ImageCreationService:
                 "processing",
                 {"media_id": media_id}
             )
+            logger.info(f"✅ State set to processing for user {user_id}")
             
             # Send processing message
             await self.whatsapp_api.send_message(
                 user_id,
                 "⏳ Processing your image... This may take a moment."
             )
+            logger.info(f"✅ Processing message sent to user {user_id}")
             
             # Get media URL from WhatsApp
+            logger.info(f"📥 Getting media URL from WhatsApp for media_id: {media_id}")
             media_url = await self.whatsapp_api.get_media_url(media_id)
+            logger.info(f"📥 Media URL received: {media_url[:100] if media_url else 'None'}...")
+            
             if not media_url:
                 raise Exception("Failed to get media URL from WhatsApp")
             
             # Extract s3key (try to extract from URL, fallback to placeholder)
             s3key = self._extract_s3key_from_url(media_url)
+            logger.info(f"🔑 Extracted s3key: {s3key[:50]}...")
             
             # Get region from user's phone number
             region = self.get_region_from_phone_number(user_id)
-            logger.info(f"Detected region: {region} for user {user_id}")
+            logger.info(f"🌍 Detected region: {region} for user {user_id}")
             
             # Process all target products
+            logger.info(f"🚀 Starting to process all products for user {user_id}")
             await self._process_all_products(user_id, media_url, s3key, region)
+            logger.info(f"✅ Finished processing all products for user {user_id}")
             
         except Exception as e:
-            logger.error(f"Error handling image for user {user_id}: {e}", exc_info=True)
+            logger.error(f"❌ Error handling image for user {user_id}: {e}", exc_info=True)
             await self.whatsapp_api.send_message(
                 user_id,
-                "❌ Sorry, I encountered an error processing your image. Please try again or contact support."
+                f"❌ Sorry, I encountered an error processing your image: {str(e)[:100]}. Please try again or contact support."
             )
             self.redis_store.clear_image_creation_state(user_id)
     
