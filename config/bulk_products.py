@@ -69,6 +69,7 @@ BULK_PRODUCTS = {
                     {"id": "size_8x6", "title": "8x6 inches"},
                     {"id": "size_8x8", "title": "8x8 inches"},
                     {"id": "size_11x8_5", "title": "11x8.5 inches"},
+                    {"id": "size_8_5x11", "title": "8.5x11 inches"},
                     {"id": "size_11x11", "title": "11x11 inches"}
                 ]
             },
