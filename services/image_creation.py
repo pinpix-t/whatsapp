@@ -229,8 +229,8 @@ class ImageCreationService:
         total_products = len(self.target_products)
         logger.info(f"Processing {total_products} products for user {user_id}")
         
-        # Limit to first 20 products for initial testing (can be increased later)
-        max_products = 20
+        # Limit to first 10 products for initial testing to avoid long waits
+        max_products = 10
         if total_products > max_products:
             logger.info(f"Limiting to first {max_products} products for testing")
             product_list = self.target_products.head(max_products).to_dict('records')
@@ -239,10 +239,12 @@ class ImageCreationService:
             product_list = self.target_products.to_dict('records')
         
         # Send initial progress
+        logger.info(f"Sending initial progress message to user {user_id}")
         await self.whatsapp_api.send_message(
             user_id,
             f"📊 Found {total_products} products. Processing now..."
         )
+        logger.info(f"Initial progress message sent")
         
         processed = 0
         errors = 0
