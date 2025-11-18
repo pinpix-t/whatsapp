@@ -272,16 +272,21 @@ async def process_message(message_data: dict):
         # Handle image messages
         elif message_data.get("media_id"):
             media_id = message_data["media_id"]
+            logger.info(f"🖼️ Image message detected for {from_number}, media_id: {media_id}")
+            
             from services.image_creation import get_image_creation_service
             image_creation_service = get_image_creation_service(whatsapp_api)
             
             # Check if user is in image creation flow
             creation_state = redis_store.get_image_creation_state(from_number)
+            logger.info(f"🔍 Image creation state for {from_number}: {creation_state}")
+            
             if creation_state:
                 logger.info(f"📷 Processing image for user {from_number}")
                 await image_creation_service.handle_image(from_number, media_id)
             else:
                 # Not in creation flow, prompt to start
+                logger.info(f"⚠️ User {from_number} not in image creation state, prompting to start")
                 await whatsapp_api.send_message(
                     from_number,
                     "Please click 'Start Creating!' first to begin! 🎨"
