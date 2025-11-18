@@ -98,7 +98,7 @@ Your response:"""
                         logger.info("✓ Sent text fallback for first message")
                         self.redis_store.append_to_conversation(user_id, "assistant", response)
                 else:
-                    response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ General FAQ Questions\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                    response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
                     self.redis_store.append_to_conversation(user_id, "assistant", response)
                 
                 return response
@@ -149,7 +149,7 @@ Your response:"""
                 if self.whatsapp_api:
                     try:
                         buttons = [
-                            {"id": "btn_faq", "title": "General FAQ"},
+                            {"id": "btn_create", "title": "Start Creating!"},
                             {"id": "btn_order", "title": "Order Questions"},
                             {"id": "btn_bulk", "title": "Bulk Ordering"}
                         ]
@@ -175,7 +175,7 @@ Your response:"""
                 if self.whatsapp_api:
                     try:
                         buttons = [
-                            {"id": "btn_faq", "title": "General FAQ"},
+                            {"id": "btn_create", "title": "Start Creating!"},
                             {"id": "btn_order", "title": "Order Questions"},
                             {"id": "btn_bulk", "title": "Bulk Ordering"}
                         ]
@@ -190,7 +190,7 @@ Your response:"""
                         logger.warning(f"⚠️ Failed to send interactive buttons: {e}. Falling back to text.")
                         response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
                 else:
-                    response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ General FAQ Questions\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                    response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
 
             # ORDER TRACKING: Handle order tracking requests
             elif self._is_order_tracking_request(message_lower):
