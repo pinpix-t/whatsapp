@@ -8,6 +8,7 @@ import pandas as pd
 import httpx
 import re
 import time
+import asyncio
 from typing import Dict, List, Optional
 from pathlib import Path
 from database.redis_store import redis_store
@@ -217,58 +218,97 @@ class ImageCreationService:
         }
         
         total_products = len(self.target_products)
+        logger.info(f"Processing {total_products} products for user {user_id}")
+        
+        # Limit to first 20 products for initial testing (can be increased later)
+        max_products = 20
+        if total_products > max_products:
+            logger.info(f"Limiting to first {max_products} products for testing")
+            product_list = self.target_products.head(max_products).to_dict('records')
+            total_products = max_products
+        else:
+            product_list = self.target_products.to_dict('records')
+        
+        # Send initial progress
+        await self.whatsapp_api.send_message(
+            user_id,
+            f"📊 Found {total_products} products. Processing now..."
+        )
+        
         processed = 0
         errors = 0
         
-        # Process each product
-        for idx, row in self.target_products.iterrows():
-            try:
-                product_type = self._get_product_type_from_refcode(row['refcode'])
-                
-                # Prepare API payload
-                payload = {
-                    "productType": product_type,
-                    "refcode": row['refcode'],
-                    "width": int(row['width']),
-                    "height": int(row['height']),
-                    "thickness": int(row['thickness']),
-                    "images": [
-                        {
-                            "url": image_url,
-                            "s3key": s3key
-                        }
-                    ],
-                    "region": region
-                }
-                
-                # Call API
-                response = await self._call_product_api(payload)
-                
-                if response and response.get("success", False):
-                    # Categorize result
-                    if 'FloatFrame' in row['refcode']:
-                        results["framed_canvas"].append({
-                            "refcode": row['refcode'],
-                            "response": response
-                        })
-                    else:
-                        results[product_type].append({
-                            "refcode": row['refcode'],
-                            "response": response
-                        })
-                
-                processed += 1
-                
-                # Progress update every 10 products
-                if processed % 10 == 0:
-                    await self.whatsapp_api.send_message(
-                        user_id,
-                        f"⏳ Processing... {processed}/{total_products} products done"
-                    )
+        # Process products in batches to avoid overwhelming the API
+        batch_size = 5
+        
+        for batch_start in range(0, len(product_list), batch_size):
+            batch = product_list[batch_start:batch_start + batch_size]
+            batch_tasks = []
+            
+            for row in batch:
+                try:
+                    product_type = self._get_product_type_from_refcode(row['refcode'])
                     
+                    # Prepare API payload
+                    payload = {
+                        "productType": product_type,
+                        "refcode": row['refcode'],
+                        "width": int(row['width']),
+                        "height": int(row['height']),
+                        "thickness": int(row['thickness']),
+                        "images": [
+                            {
+                                "url": image_url,
+                                "s3key": s3key
+                            }
+                        ],
+                        "region": region
+                    }
+                    
+                    # Create task for this product
+                    task = self._process_single_product(payload, row)
+                    batch_tasks.append(task)
+                    
+                except Exception as e:
+                    logger.error(f"Error preparing product {row.get('refcode', 'unknown')}: {e}")
+                    errors += 1
+            
+            # Process batch in parallel
+            try:
+                batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+                
+                for i, result in enumerate(batch_results):
+                    if isinstance(result, Exception):
+                        logger.error(f"Error in batch processing: {result}")
+                        errors += 1
+                    elif result:
+                        row = batch[i]
+                        refcode = row.get('refcode', 'unknown')
+                        product_type = result.get('product_type')
+                        
+                        if 'FloatFrame' in refcode:
+                            results["framed_canvas"].append({
+                                "refcode": refcode,
+                                "response": result.get('response')
+                            })
+                        elif product_type in results:
+                            results[product_type].append({
+                                "refcode": refcode,
+                                "response": result.get('response')
+                            })
+                
+                processed += len(batch)
+                
+                # Progress update after each batch
+                await self.whatsapp_api.send_message(
+                    user_id,
+                    f"⏳ Processing... {processed}/{total_products} products done"
+                )
+                logger.info(f"Processed batch: {processed}/{total_products} products")
+                
             except Exception as e:
-                logger.error(f"Error processing product {row['refcode']}: {e}")
-                errors += 1
+                logger.error(f"Error processing batch: {e}", exc_info=True)
+                errors += len(batch)
         
         # Format and send results
         await self._send_results(user_id, results, processed, errors)
@@ -280,24 +320,39 @@ class ImageCreationService:
             {"processed": processed, "errors": errors}
         )
     
+    async def _process_single_product(self, payload: dict, row: dict) -> Optional[dict]:
+        """Process a single product and return result"""
+        try:
+            response = await self._call_product_api(payload)
+            if response and response.get("success", False):
+                product_type = self._get_product_type_from_refcode(payload['refcode'])
+                return {
+                    "product_type": product_type,
+                    "response": response
+                }
+            return None
+        except Exception as e:
+            logger.error(f"Error processing product {payload.get('refcode', 'unknown')}: {e}")
+            return None
+    
     async def _call_product_api(self, payload: dict) -> Optional[dict]:
         """Call the product API"""
         url = f"{self.API_BASE_URL}/api/v1/product/wa/detail"
         
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:  # Reduced timeout to 10s
                 response = await client.post(url, json=payload)
                 response.raise_for_status()
                 data = response.json()
                 return {"success": True, "data": data}
         except httpx.TimeoutException:
-            logger.error(f"API timeout for {payload['refcode']}")
+            logger.error(f"API timeout for {payload.get('refcode', 'unknown')}")
             return {"success": False, "error": "timeout"}
         except httpx.HTTPStatusError as e:
-            logger.error(f"API error for {payload['refcode']}: {e.response.status_code}")
+            logger.error(f"API error for {payload.get('refcode', 'unknown')}: {e.response.status_code}")
             return {"success": False, "error": f"http_{e.response.status_code}"}
         except Exception as e:
-            logger.error(f"API exception for {payload['refcode']}: {e}")
+            logger.error(f"API exception for {payload.get('refcode', 'unknown')}: {e}")
             return {"success": False, "error": str(e)}
     
     async def _send_results(self, user_id: str, results: dict, processed: int, errors: int) -> None:
