@@ -274,6 +274,75 @@ class RedisStore:
         except Exception as e:
             logger.error(f"Error clearing conversation history: {e}")
 
+    @retry_db_operation()
+    def set_image_creation_state(self, user_id: str, state: str, data: dict = None, ttl: int = 3600):
+        """
+        Store image creation state for a user
+
+        Args:
+            user_id: User identifier
+            state: Current state in the image creation flow
+            data: State data
+            ttl: Time to live in seconds (default 1 hour)
+        """
+        if not self.client:
+            logger.warning("Redis not available, skipping image creation state storage")
+            return
+
+        try:
+            key = f"image_creation:{user_id}"
+            state_data = {
+                "state": state,
+                **(data or {})
+            }
+            self.client.setex(
+                key,
+                ttl,
+                json.dumps(state_data)
+            )
+            logger.debug(f"Stored image creation state for {user_id}: {state}")
+        except Exception as e:
+            logger.error(f"Error storing image creation state: {e}")
+            raise
+
+    @retry_db_operation()
+    def get_image_creation_state(self, user_id: str) -> Optional[dict]:
+        """
+        Retrieve image creation state for a user
+
+        Args:
+            user_id: User identifier
+
+        Returns:
+            State data dictionary or None
+        """
+        if not self.client:
+            logger.warning("Redis not available, returning None for image creation state")
+            return None
+
+        try:
+            key = f"image_creation:{user_id}"
+            data = self.client.get(key)
+            if data:
+                return json.loads(data)
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving image creation state: {e}")
+            return None
+
+    @retry_db_operation()
+    def clear_image_creation_state(self, user_id: str):
+        """Clear image creation state for a user"""
+        if not self.client:
+            return
+
+        try:
+            key = f"image_creation:{user_id}"
+            self.client.delete(key)
+            logger.debug(f"Cleared image creation state for {user_id}")
+        except Exception as e:
+            logger.error(f"Error clearing image creation state: {e}")
+
     def close(self):
         """Close Redis connection"""
         if self.client:

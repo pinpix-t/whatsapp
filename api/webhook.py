@@ -192,6 +192,15 @@ async def receive_webhook(request: Request):
                     # Process interactive message asynchronously
                     asyncio.create_task(process_message(message_data))
 
+            # Handle image messages
+            elif message_data["type"] == "image":
+                image_data = message.get("image", {})
+                message_data["media_id"] = image_data.get("id")
+                message_data["mime_type"] = image_data.get("mime_type")
+                logger.info(f"📷 Image received: media_id={message_data['media_id']}")
+                # Process image message asynchronously
+                asyncio.create_task(process_message(message_data))
+
             else:
                 logger.info(f"ℹ️ Unsupported message type: {message_data['type']}")
 
@@ -237,18 +246,17 @@ async def process_message(message_data: dict):
             selection_id = button_id or list_id
             
             # Check if it's a welcome menu button
-            if selection_id in ["btn_faq", "btn_order", "btn_bulk"]:
+            if selection_id in ["btn_create", "btn_order", "btn_bulk"]:
                 if selection_id == "btn_bulk":
                     # Start bulk ordering flow
                     logger.info("🛒 Starting bulk ordering flow")
                     await bulk_ordering_service.start_bulk_ordering(from_number)
-                elif selection_id == "btn_faq":
-                    # General FAQ - continue normal flow
-                    logger.info("❓ FAQ selected - continuing normal flow")
-                    await whatsapp_api.send_message(
-                        from_number,
-                        "I'm here to help with any questions! Ask me anything about our products, policies, or services. 😊"
-                    )
+                elif selection_id == "btn_create":
+                    # Start image creation flow
+                    logger.info("🎨 Starting image creation flow")
+                    from services.image_creation import get_image_creation_service
+                    image_creation_service = get_image_creation_service(whatsapp_api)
+                    await image_creation_service.start_image_creation(from_number)
                 elif selection_id == "btn_order":
                     # Order questions
                     logger.info("📦 Order questions selected")
@@ -260,6 +268,24 @@ async def process_message(message_data: dict):
                 # Handle bulk ordering interactive responses
                 logger.info(f"🛒 Processing bulk ordering selection: {selection_id}")
                 await bulk_ordering_service.handle_interactive_response(from_number, selection_id, list_id)
+        
+        # Handle image messages
+        elif message_data.get("media_id"):
+            media_id = message_data["media_id"]
+            from services.image_creation import get_image_creation_service
+            image_creation_service = get_image_creation_service(whatsapp_api)
+            
+            # Check if user is in image creation flow
+            creation_state = redis_store.get_image_creation_state(from_number)
+            if creation_state:
+                logger.info(f"📷 Processing image for user {from_number}")
+                await image_creation_service.handle_image(from_number, media_id)
+            else:
+                # Not in creation flow, prompt to start
+                await whatsapp_api.send_message(
+                    from_number,
+                    "Please click 'Start Creating!' first to begin! 🎨"
+                )
         
         # Handle text messages
         elif text:
@@ -283,7 +309,7 @@ async def process_message(message_data: dict):
                 
                 # Immediately show welcome buttons for instant restart
                 buttons = [
-                    {"id": "btn_faq", "title": "General FAQ"},
+                    {"id": "btn_create", "title": "Start Creating!"},
                     {"id": "btn_order", "title": "Order Questions"},
                     {"id": "btn_bulk", "title": "Bulk Ordering"}
                 ]
