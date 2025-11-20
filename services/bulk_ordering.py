@@ -532,15 +532,16 @@ Send your postcode, or type 'skip' to continue without it."""
                 "offer_type": "first",
                 "selections": {k: v for k, v in selections.items() if k not in ["email", "postcode", "quantity"]}
             }
+            logger.info(f"📊 Attempting to save analytics event for user {user_id}, product {product_name}, quantity {quantity}")
             postgres_store.save_analytics_event(
                 event_type="bulk_quote_generated",
                 user_id=user_id,
                 email=selections.get("email"),
                 data=quote_data
             )
-            logger.info(f"✅ Logged quote event for user {user_id}, product {product_name}, quantity {quantity}")
+            logger.info(f"✅ Quote event logged successfully for user {user_id}, product {product_name}, quantity {quantity}")
         except Exception as e:
-            logger.error(f"❌ Failed to log quote event: {e}")
+            logger.error(f"❌ Failed to log quote event: {e}", exc_info=True)
         
         # Build message with pricing
         if price_info["success"] and price_info["total_price"] is not None:
