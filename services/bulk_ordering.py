@@ -14,6 +14,7 @@ from services.bulk_pricing import bulk_pricing_service
 from services.freshdesk_service import FreshdeskService
 from services.region_lookup import RegionLookupService
 from database.redis_store import redis_store
+from database.postgres_store import postgres_store
 from bot.whatsapp_api import WhatsAppAPI
 
 logger = logging.getLogger(__name__)
@@ -461,6 +462,34 @@ Send your postcode, or type 'skip' to continue without it."""
         # Log price info for debugging
         logger.info(f"Price info result: success={price_info.get('success')}, base_price={price_info.get('base_price')}, total_price={price_info.get('total_price')}, error={price_info.get('error_message')}")
         
+        # Log quote event to analytics
+        try:
+            quote_data = {
+                "whatsapp_number": user_id,
+                "product": product_name,
+                "product_key": product,
+                "quantity": quantity,
+                "discount_code": discount_code,
+                "discount_percent": price_info.get("discount_percent"),
+                "base_price": price_info.get("base_price"),
+                "unit_price": price_info.get("unit_price"),
+                "total_price": price_info.get("total_price"),
+                "formatted_unit_price": price_info.get("formatted_unit_price"),
+                "formatted_total_price": price_info.get("formatted_total_price"),
+                "email": selections.get("email"),
+                "postcode": selections.get("postcode"),
+                "offer_type": "first",
+                "selections": {k: v for k, v in selections.items() if k not in ["email", "postcode", "quantity"]}
+            }
+            postgres_store.save_analytics_event(
+                event_type="bulk_quote_generated",
+                user_id=user_id,
+                data=quote_data
+            )
+            logger.info(f"✅ Logged quote event for user {user_id}, product {product_name}, quantity {quantity}")
+        except Exception as e:
+            logger.error(f"❌ Failed to log quote event: {e}")
+        
         # Build message with pricing
         if price_info["success"] and price_info["total_price"] is not None:
             # Full pricing available - show base price (crossed out) and discounted price
@@ -747,6 +776,34 @@ Feel free to reach out if you have any questions! 😊"""
             quantity=quantity,
             offer_type="first_offer"
         )
+        
+        # Log quote event to analytics
+        try:
+            quote_data = {
+                "whatsapp_number": user_id,
+                "product": product_name,
+                "product_key": product,
+                "quantity": quantity,
+                "discount_code": discount_code,
+                "discount_percent": price_info.get("discount_percent"),
+                "base_price": price_info.get("base_price"),
+                "unit_price": price_info.get("unit_price"),
+                "total_price": price_info.get("total_price"),
+                "formatted_unit_price": price_info.get("formatted_unit_price"),
+                "formatted_total_price": price_info.get("formatted_total_price"),
+                "email": selections.get("email"),
+                "postcode": selections.get("postcode"),
+                "offer_type": "second",
+                "selections": {k: v for k, v in selections.items() if k not in ["email", "postcode", "quantity"]}
+            }
+            postgres_store.save_analytics_event(
+                event_type="bulk_quote_generated",
+                user_id=user_id,
+                data=quote_data
+            )
+            logger.info(f"✅ Logged quote event for user {user_id}, product {product_name}, quantity {quantity}")
+        except Exception as e:
+            logger.error(f"❌ Failed to log quote event: {e}")
         
         # Build message with pricing
         if price_info["success"] and price_info["total_price"] is not None:
