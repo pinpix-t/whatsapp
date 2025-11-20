@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 class ImageCreationService:
     """Service for handling image creation flow"""
     
-    # API endpoint
-    API_BASE_URL = "http://10.20.24.80:9201"
+    # Bearer token for API authentication
+    BEARER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXkiOiJwdWJsaWNBY2Nlc3NUb2tlbiIsInJvbGUiOiJwdWJsaWMiLCJnZW5lcmF0ZWRfYXQiOiIyMDI1LTA4LTI3VDEyOjM5OjEzLjk0OFoiLCJpYXQiOjE3NTYyOTgzNTMsImV4cCI6MjA3MTg3NDM1M30.h-DKZkhoBEgw1qZ4Gg2Lk20d9VP6JAbDUKX21xbMUVs"
     
     def __init__(self, whatsapp_api: WhatsAppAPI):
         self.whatsapp_api = whatsapp_api
@@ -113,16 +113,49 @@ class ImageCreationService:
             # Default to UK
             return "UK"
     
+    def _get_api_domain(self, region: str) -> str:
+        """Map region to API domain"""
+        domain_map = {
+            "UK": "https://services.printerpix.co.uk",
+            "US": "https://services.printerpix.com",
+            "FR": "https://services.printerpix.fr",
+            "ES": "https://services.printerpix.es",
+            "IT": "https://services.printerpix.it",
+            "NL": "https://services.printerpix.nl",
+            "DE": "https://services.printerpix.de",
+            "AE": "https://services.printerpix.ae",
+            "IN": "https://services.printerpix.in"
+        }
+        return domain_map.get(region, "https://services.printerpix.co.uk")  # Default to UK
+    
     def _extract_s3key_from_url(self, url: str) -> str:
         """Extract s3key from URL if possible, otherwise use placeholder"""
         # Try to extract from ucarecdn.com URLs
         # Pattern: https://ucarecdn.com/{s3key}/
+        # s3key can be a path like "4/9bhd/25u2ij/7a855573-7cf3-435c-bc31-94aa85e01a7b"
+        match = re.search(r'ucarecdn\.com/([^/]+(?:/[^/]+)*)/', url)
+        if match:
+            # Return the full path as s3key
+            s3key = match.group(1)
+            # Remove trailing slash if present
+            s3key = s3key.rstrip('/')
+            return s3key
+        
+        # Try simpler pattern if first one didn't match
         match = re.search(r'ucarecdn\.com/([^/]+)/', url)
         if match:
             return match.group(1)
         
-        # If no match, use a placeholder based on URL hash
+        # If no match, try to extract from URL path
         # This is a fallback - API might accept it or might need actual s3key
+        if 'ucarecdn.com' in url:
+            # Extract everything after ucarecdn.com/
+            parts = url.split('ucarecdn.com/')
+            if len(parts) > 1:
+                s3key = parts[1].split('/')[0]  # Get first part
+                return s3key.rstrip('/')
+        
+        # Last resort: use filename or placeholder
         return url.split('/')[-1] if '/' in url else "placeholder_key"
     
     def _get_product_type_from_refcode(self, refcode: str) -> str:
@@ -257,28 +290,47 @@ class ImageCreationService:
         errors = 0
         
         # Process products one at a time with timeout to avoid hanging
-        # Skip API calls for now - just show products that would be processed
         logger.info(f"Processing {len(product_list)} products (API calls may timeout)")
         
-        # Group products by type for display
+        # Process each product through the API
         for row in product_list:
             try:
                 refcode = row.get('refcode', 'unknown')
                 product_type = self._get_product_type_from_refcode(refcode)
                 
-                # Categorize product
-                if 'FloatFrame' in refcode:
-                    results["framed_canvas"].append({
-                        "refcode": refcode,
-                        "response": {"success": True, "data": {"status": "would_process"}}
-                    })
-                elif product_type in results:
-                    results[product_type].append({
-                        "refcode": refcode,
-                        "response": {"success": True, "data": {"status": "would_process"}}
-                    })
+                # Extract dimensions from CSV row
+                width = int(row.get('width', 0)) if pd.notna(row.get('width')) else 0
+                height = int(row.get('height', 0)) if pd.notna(row.get('height')) else 0
+                thickness = int(row.get('thickness', 0)) if pd.notna(row.get('thickness')) else 0
                 
-                processed += 1
+                # Build payload in new API format
+                payload = {
+                    "productType": product_type,
+                    "refcode": refcode,
+                    "width": width,
+                    "height": height,
+                    "thickness": thickness,
+                    "images": [
+                        {
+                            "url": image_url,
+                            "s3key": s3key
+                        }
+                    ]
+                }
+                
+                # Call API for this product
+                result = await self._process_single_product(payload, row, region)
+                
+                if result:
+                    # Categorize product by type
+                    if 'FloatFrame' in refcode:
+                        results["framed_canvas"].append(result)
+                    elif product_type in results:
+                        results[product_type].append(result)
+                    processed += 1
+                else:
+                    errors += 1
+                    logger.warning(f"Failed to process product {refcode}")
                 
                 # Progress update every 5 products
                 if processed % 5 == 0:
@@ -289,7 +341,7 @@ class ImageCreationService:
                     logger.info(f"Progress: {processed}/{total_products}")
                     
             except Exception as e:
-                logger.error(f"Error processing product {row.get('refcode', 'unknown')}: {e}")
+                logger.error(f"Error processing product {row.get('refcode', 'unknown')}: {e}", exc_info=True)
                 errors += 1
             
         
@@ -310,14 +362,15 @@ class ImageCreationService:
             {"processed": processed, "errors": errors}
         )
     
-    async def _process_single_product(self, payload: dict, row: dict) -> Optional[dict]:
+    async def _process_single_product(self, payload: dict, row: dict, region: str) -> Optional[dict]:
         """Process a single product and return result"""
         try:
-            response = await self._call_product_api(payload)
+            response = await self._call_product_api(payload, region)
             if response and response.get("success", False):
                 product_type = self._get_product_type_from_refcode(payload['refcode'])
                 return {
                     "product_type": product_type,
+                    "refcode": payload['refcode'],
                     "response": response
                 }
             return None
@@ -325,15 +378,23 @@ class ImageCreationService:
             logger.error(f"Error processing product {payload.get('refcode', 'unknown')}: {e}")
             return None
     
-    async def _call_product_api(self, payload: dict) -> Optional[dict]:
-        """Call the product API"""
-        url = f"{self.API_BASE_URL}/api/v1/product/wa/detail"
+    async def _call_product_api(self, payload: dict, region: str) -> Optional[dict]:
+        """Call the product API with region-specific domain"""
+        # Get the correct domain for the region
+        api_domain = self._get_api_domain(region)
+        url = f"{api_domain}/api/v1/product/wa/detail"
         refcode = payload.get('refcode', 'unknown')
         
+        # Prepare headers with Bearer token
+        headers = {
+            "Authorization": f"Bearer {self.BEARER_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        
         try:
-            logger.info(f"Calling API for {refcode}")
+            logger.info(f"Calling API for {refcode} on {api_domain}")
             async with httpx.AsyncClient(timeout=8.0) as client:  # Reduced timeout to 8s
-                response = await client.post(url, json=payload)
+                response = await client.post(url, json=payload, headers=headers)
                 response.raise_for_status()
                 data = response.json()
                 logger.info(f"✅ API success for {refcode}")
@@ -355,11 +416,36 @@ class ImageCreationService:
         """Format and send results to user"""
         message_parts = ["🎨 Here are your products with your photo:\n"]
         
+        # Helper function to extract preview URL from API response
+        def get_preview_url(item):
+            """Extract preview image URL from API response if available"""
+            try:
+                response_data = item.get('response', {})
+                if isinstance(response_data, dict):
+                    data = response_data.get('data', {})
+                    # Check for common preview URL fields
+                    if isinstance(data, dict):
+                        # Look for preview, image, url, or previewUrl fields
+                        for key in ['preview', 'previewUrl', 'image', 'url', 'preview_image']:
+                            if key in data and data[key]:
+                                return data[key]
+                        # Check if data has nested structure
+                        if 'preview' in data and isinstance(data['preview'], dict):
+                            return data['preview'].get('url') or data['preview'].get('image')
+            except Exception as e:
+                logger.debug(f"Could not extract preview URL: {e}")
+            return None
+        
         # Canvas Prints
         if results["canvas"]:
             message_parts.append(f"📸 Canvas Prints ({len(results['canvas'])}):")
             for item in results["canvas"][:5]:  # Show first 5
-                message_parts.append(f"• {item['refcode']}")
+                refcode = item.get('refcode', 'unknown')
+                preview_url = get_preview_url(item)
+                if preview_url:
+                    message_parts.append(f"• {refcode} - Preview: {preview_url}")
+                else:
+                    message_parts.append(f"• {refcode}")
             if len(results["canvas"]) > 5:
                 message_parts.append(f"... and {len(results['canvas']) - 5} more")
             message_parts.append("")
@@ -368,7 +454,12 @@ class ImageCreationService:
         if results["cushion"]:
             message_parts.append(f"🛋️ Photo Cushions ({len(results['cushion'])}):")
             for item in results["cushion"][:5]:
-                message_parts.append(f"• {item['refcode']}")
+                refcode = item.get('refcode', 'unknown')
+                preview_url = get_preview_url(item)
+                if preview_url:
+                    message_parts.append(f"• {refcode} - Preview: {preview_url}")
+                else:
+                    message_parts.append(f"• {refcode}")
             if len(results["cushion"]) > 5:
                 message_parts.append(f"... and {len(results['cushion']) - 5} more")
             message_parts.append("")
@@ -377,7 +468,12 @@ class ImageCreationService:
         if results["metal"]:
             message_parts.append(f"🔩 Metal Prints ({len(results['metal'])}):")
             for item in results["metal"][:5]:
-                message_parts.append(f"• {item['refcode']}")
+                refcode = item.get('refcode', 'unknown')
+                preview_url = get_preview_url(item)
+                if preview_url:
+                    message_parts.append(f"• {refcode} - Preview: {preview_url}")
+                else:
+                    message_parts.append(f"• {refcode}")
             if len(results["metal"]) > 5:
                 message_parts.append(f"... and {len(results['metal']) - 5} more")
             message_parts.append("")
@@ -386,7 +482,12 @@ class ImageCreationService:
         if results["poster"]:
             message_parts.append(f"📰 Photo Posters ({len(results['poster'])}):")
             for item in results["poster"][:5]:
-                message_parts.append(f"• {item['refcode']}")
+                refcode = item.get('refcode', 'unknown')
+                preview_url = get_preview_url(item)
+                if preview_url:
+                    message_parts.append(f"• {refcode} - Preview: {preview_url}")
+                else:
+                    message_parts.append(f"• {refcode}")
             if len(results["poster"]) > 5:
                 message_parts.append(f"... and {len(results['poster']) - 5} more")
             message_parts.append("")
@@ -395,7 +496,12 @@ class ImageCreationService:
         if results["framed_canvas"]:
             message_parts.append(f"🖼️ Framed Canvas ({len(results['framed_canvas'])}):")
             for item in results["framed_canvas"][:5]:
-                message_parts.append(f"• {item['refcode']}")
+                refcode = item.get('refcode', 'unknown')
+                preview_url = get_preview_url(item)
+                if preview_url:
+                    message_parts.append(f"• {refcode} - Preview: {preview_url}")
+                else:
+                    message_parts.append(f"• {refcode}")
             if len(results["framed_canvas"]) > 5:
                 message_parts.append(f"... and {len(results['framed_canvas']) - 5} more")
             message_parts.append("")

@@ -78,7 +78,7 @@ Your response:"""
                     try:
                         buttons = [
                             {"id": "btn_create", "title": "Start Creating!"},
-                            {"id": "btn_order", "title": "Order Questions"},
+                            {"id": "btn_order", "title": "Track My Order"},
                             {"id": "btn_bulk", "title": "Bulk Ordering"}
                         ]
                         await self.whatsapp_api.send_interactive_buttons(
@@ -94,7 +94,7 @@ Your response:"""
                     except Exception as e:
                         logger.error(f"❌ Failed to send interactive buttons: {e}", exc_info=True)
                         # Fallback to text message
-                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Track My Order\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
                         logger.info("✓ Sent text fallback for first message")
                         self.redis_store.append_to_conversation(user_id, "assistant", response)
                 else:
@@ -150,7 +150,7 @@ Your response:"""
                     try:
                         buttons = [
                             {"id": "btn_create", "title": "Start Creating!"},
-                            {"id": "btn_order", "title": "Order Questions"},
+                            {"id": "btn_order", "title": "Track My Order"},
                             {"id": "btn_bulk", "title": "Bulk Ordering"}
                         ]
                         await self.whatsapp_api.send_interactive_buttons(
@@ -163,7 +163,7 @@ Your response:"""
                     except Exception as e:
                         logger.warning(f"⚠️ Failed to send interactive buttons: {e}. Falling back to text.")
                         # Fallback to text message if buttons fail
-                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Track My Order\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
                         logger.info("✓ Sent text fallback")
                 else:
                     response = "Hello! Welcome to PrinterPix! How can I help you with your order today?"
@@ -176,7 +176,7 @@ Your response:"""
                     try:
                         buttons = [
                             {"id": "btn_create", "title": "Start Creating!"},
-                            {"id": "btn_order", "title": "Order Questions"},
+                            {"id": "btn_order", "title": "Track My Order"},
                             {"id": "btn_bulk", "title": "Bulk Ordering"}
                         ]
                         await self.whatsapp_api.send_interactive_buttons(
@@ -188,7 +188,7 @@ Your response:"""
                         logger.info("✓ Sent welcome buttons for vague message")
                     except Exception as e:
                         logger.warning(f"⚠️ Failed to send interactive buttons: {e}. Falling back to text.")
-                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Track My Order\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
                 else:
                     response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
 

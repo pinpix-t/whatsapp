@@ -131,7 +131,7 @@ data/documents/
 - **First Message Detection**: Sends interactive buttons on initial contact
 - **Welcome Buttons**:
   1. General FAQ
-  2. Order Questions
+  2. Track My Order
   3. Bulk Ordering
 
 #### B. Bulk Ordering Service (`services/bulk_ordering.py`)

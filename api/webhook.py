@@ -315,7 +315,7 @@ async def process_message(message_data: dict):
                 # Immediately show welcome buttons for instant restart
                 buttons = [
                     {"id": "btn_create", "title": "Start Creating!"},
-                    {"id": "btn_order", "title": "Order Questions"},
+                    {"id": "btn_order", "title": "Track My Order"},
                     {"id": "btn_bulk", "title": "Bulk Ordering"}
                 ]
                 await whatsapp_api.send_interactive_buttons(
