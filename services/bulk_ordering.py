@@ -692,7 +692,7 @@ Feel free to reach out if you have any questions! 😊"""
             logger.error(f"No state data found for user {user_id} when handling too expensive")
             await self.whatsapp_api.send_message(
                 user_id,
-                "I apologize, there was an error processing your request. Please try again or contact support."
+                "I apologize, there was an error processing your request. Please try again."
             )
             return
         
@@ -707,7 +707,7 @@ Feel free to reach out if you have any questions! 😊"""
             logger.error(f"No state data found for user {user_id} when handling too expensive after second")
             await self.whatsapp_api.send_message(
                 user_id,
-                "I apologize, there was an error processing your request. I've forwarded it to our support team who will reach out to you shortly."
+                "I apologize, there was an error processing your request. Please try again."
             )
             return
         

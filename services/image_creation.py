@@ -320,7 +320,7 @@ class ImageCreationService:
             error_message = str(e)[:200] if len(str(e)) > 200 else str(e)
             await self.whatsapp_api.send_message(
                 user_id,
-                f"❌ Sorry, I encountered an error processing your image: {error_message}. Please try again or contact support."
+                f"❌ Sorry, I encountered an error processing your image: {error_message}. Please try again."
             )
             self.redis_store.clear_image_creation_state(user_id)
     
@@ -336,7 +336,7 @@ class ImageCreationService:
             logger.error(f"❌ No target products available!")
             await self.whatsapp_api.send_message(
                 user_id,
-                "❌ No products available. Please contact support."
+                "❌ No products available. Please try again later."
             )
             return
         

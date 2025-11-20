@@ -143,9 +143,9 @@ class OrderTrackingService:
                             response = response_retry
                             website_code = 4
                         else:
-                            raise OrderTrackingError("The tracking system is currently unavailable. Please try again later or contact support.")
+                            raise OrderTrackingError("The tracking system is currently unavailable. Please try again later.")
                     else:
-                        raise OrderTrackingError("The tracking system is currently unavailable. Please try again later or contact support.")
+                        raise OrderTrackingError("The tracking system is currently unavailable. Please try again later.")
                 
                 response.raise_for_status()
                 
