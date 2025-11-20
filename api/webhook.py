@@ -258,11 +258,11 @@ async def process_message(message_data: dict):
                     image_creation_service = get_image_creation_service(whatsapp_api)
                     await image_creation_service.start_image_creation(from_number)
                 elif selection_id == "btn_order":
-                    # Order questions
-                    logger.info("📦 Order questions selected")
+                    # Track My Order button
+                    logger.info("📦 Track My Order button selected")
                     await whatsapp_api.send_message(
                         from_number,
-                        "I can help with order tracking, delivery status, returns, and any order-related questions. What would you like to know? 📦"
+                        "Sure! Just send me your order number and I'll track it for you! 🚚"
                     )
             else:
                 # Handle bulk ordering interactive responses
