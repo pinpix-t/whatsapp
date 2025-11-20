@@ -50,6 +50,7 @@ class Analytics(Base):
     id = Column(Integer, primary_key=True)
     event_type = Column(String(100), nullable=False)
     user_id = Column(String(50))
+    email = Column(String(255), nullable=True)
     data = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -174,7 +175,7 @@ class PostgresStore:
             session.close()
 
     @retry_db_operation()
-    def save_analytics_event(self, event_type: str, user_id: Optional[str], data: Dict[str, Any]):
+    def save_analytics_event(self, event_type: str, user_id: Optional[str], data: Dict[str, Any], email: Optional[str] = None):
         """Save an analytics event"""
         session = self.get_session()
         if not session:
@@ -184,6 +185,7 @@ class PostgresStore:
             event = Analytics(
                 event_type=event_type,
                 user_id=user_id,
+                email=email,
                 data=data
             )
             session.add(event)

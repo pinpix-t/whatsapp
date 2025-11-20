@@ -484,6 +484,7 @@ Send your postcode, or type 'skip' to continue without it."""
             postgres_store.save_analytics_event(
                 event_type="bulk_quote_generated",
                 user_id=user_id,
+                email=selections.get("email"),
                 data=quote_data
             )
             logger.info(f"✅ Logged quote event for user {user_id}, product {product_name}, quantity {quantity}")
@@ -799,6 +800,7 @@ Feel free to reach out if you have any questions! 😊"""
             postgres_store.save_analytics_event(
                 event_type="bulk_quote_generated",
                 user_id=user_id,
+                email=selections.get("email"),
                 data=quote_data
             )
             logger.info(f"✅ Logged quote event for user {user_id}, product {product_name}, quantity {quantity}")

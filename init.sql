@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS analytics (
     id SERIAL PRIMARY KEY,
     event_type VARCHAR(100) NOT NULL,
     user_id VARCHAR(50),
+    email VARCHAR(255),
     data JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -39,6 +40,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
 CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics(event_type);
 CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON analytics(created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_email ON analytics(email);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
