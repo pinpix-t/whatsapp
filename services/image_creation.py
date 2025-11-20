@@ -239,13 +239,8 @@ class ImageCreationService:
             error_text = e.response.text[:500] if e.response.text else "No error details"
             logger.error(f"❌ Uploadcare API error: {e.response.status_code} - {error_text}")
             
-            # Provide more helpful error message
-            if e.response.status_code == 403:
-                raise Exception("Image upload failed: Authentication required. Please configure UPLOADCARE_PUBLIC_KEY in environment variables.")
-            elif e.response.status_code == 400:
-                raise Exception(f"Image upload failed: Invalid request - {error_text}")
-            else:
-                raise Exception(f"Failed to upload image: HTTP {e.response.status_code}")
+            # Provide user-friendly error message
+            raise Exception("Image upload failed. Please try again later.")
         except Exception as e:
             logger.error(f"❌ Error uploading to Uploadcare: {e}", exc_info=True)
             raise Exception(f"Failed to upload image: {str(e)}")
