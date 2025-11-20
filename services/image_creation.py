@@ -9,7 +9,7 @@ import httpx
 import re
 import time
 import asyncio
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 from database.redis_store import redis_store
 from bot.whatsapp_api import WhatsAppAPI
@@ -175,6 +175,58 @@ class ImageCreationService:
         else:
             return "canvas"  # Default fallback
     
+    async def _upload_to_ucarecdn(self, image_bytes: bytes, filename: str = "image.jpg") -> Tuple[str, str]:
+        """
+        Upload image to Uploadcare CDN and get permanent URL
+        
+        Args:
+            image_bytes: Image file bytes
+            filename: Original filename (optional)
+            
+        Returns:
+            Tuple of (public_url, s3key)
+        """
+        try:
+            # Uploadcare public upload endpoint
+            upload_url = "https://upload.uploadcare.com/base/"
+            
+            # Prepare multipart form data
+            files = {
+                'file': (filename, image_bytes, 'image/jpeg')
+            }
+            
+            logger.info(f"📤 Uploading image to Uploadcare ({len(image_bytes)} bytes)...")
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(upload_url, files=files)
+                response.raise_for_status()
+                
+                # Uploadcare returns the file UUID
+                file_uuid = response.text.strip()
+                logger.info(f"✅ Uploaded to Uploadcare, UUID: {file_uuid}")
+                
+                # Construct public URL
+                public_url = f"https://ucarecdn.com/{file_uuid}/"
+                
+                # Extract s3key (for Uploadcare, the UUID is typically the s3key)
+                # But we might need to construct it based on Uploadcare's structure
+                s3key = file_uuid
+                
+                logger.info(f"✅ Got public URL: {public_url}")
+                logger.info(f"✅ Extracted s3key: {s3key}")
+                
+                return public_url, s3key
+                
+        except httpx.TimeoutException:
+            logger.error("⏱️ Timeout uploading to Uploadcare")
+            raise Exception("Image upload timed out. Please try again.")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"❌ Uploadcare API error: {e.response.status_code} - {e.response.text[:200]}")
+            raise Exception(f"Failed to upload image: {e.response.status_code}")
+        except Exception as e:
+            logger.error(f"❌ Error uploading to Uploadcare: {e}", exc_info=True)
+            raise Exception(f"Failed to upload image: {str(e)}")
+    
     async def start_image_creation(self, user_id: str) -> None:
         """Start the image creation flow - prompt user to send image"""
         # Clear any existing state
@@ -221,8 +273,19 @@ class ImageCreationService:
             if not media_url:
                 raise Exception("Failed to get media URL from WhatsApp")
             
-            # Extract s3key (try to extract from URL, fallback to placeholder)
-            s3key = self._extract_s3key_from_url(media_url)
+            # Download image from WhatsApp
+            logger.info(f"📥 Downloading image from WhatsApp...")
+            image_bytes = await self.whatsapp_api.download_media(media_url)
+            
+            if not image_bytes:
+                raise Exception("Failed to download image from WhatsApp")
+            
+            logger.info(f"✅ Downloaded image ({len(image_bytes)} bytes)")
+            
+            # Upload image to Uploadcare CDN to get permanent URL
+            logger.info(f"📤 Uploading image to CDN...")
+            public_url, s3key = await self._upload_to_ucarecdn(image_bytes, "whatsapp_image.jpg")
+            logger.info(f"✅ Image uploaded to CDN: {public_url}")
             logger.info(f"🔑 Extracted s3key: {s3key[:50]}...")
             
             # Get region from user's phone number
@@ -231,14 +294,15 @@ class ImageCreationService:
             
             # Process all target products
             logger.info(f"🚀 Starting to process all products for user {user_id}")
-            await self._process_all_products(user_id, media_url, s3key, region)
+            await self._process_all_products(user_id, public_url, s3key, region)
             logger.info(f"✅ Finished processing all products for user {user_id}")
             
         except Exception as e:
             logger.error(f"❌ Error handling image for user {user_id}: {e}", exc_info=True)
+            error_message = str(e)[:200] if len(str(e)) > 200 else str(e)
             await self.whatsapp_api.send_message(
                 user_id,
-                f"❌ Sorry, I encountered an error processing your image: {str(e)[:100]}. Please try again or contact support."
+                f"❌ Sorry, I encountered an error processing your image: {error_message}. Please try again or contact support."
             )
             self.redis_store.clear_image_creation_state(user_id)
     
