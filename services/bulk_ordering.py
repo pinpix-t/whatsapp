@@ -611,12 +611,17 @@ Ready to proceed?"""
         # offering_first_discount = second_offer (worse), offering_second_discount = first_offer (better)
         if current_state == "offering_first_discount":
             discount_code = DISCOUNT_CODES["second_offer"]  # Worse discount shown first
+            offer_type = "second_offer"
         else:
             discount_code = DISCOUNT_CODES["first_offer"]  # Better discount shown second
+            offer_type = "first_offer"
         
         # Determine product URL
         product = selections.get("product", "")
         product_url = self._get_product_url(selections)
+        
+        # Create Freshdesk ticket for accepted bulk order
+        await self._create_accepted_order_ticket(user_id, selections, discount_code, offer_type)
         
         message = f"""Perfect! Your discount code *{discount_code}* is ready to use on our website.
 
@@ -1089,6 +1094,121 @@ Want me to update your pay link?"""
         
         # Clear bulk ordering state
         self.redis_store.clear_bulk_order_state(user_id)
+    
+    async def _create_accepted_order_ticket(self, user_id: str, selections: Dict, discount_code: str, offer_type: str) -> None:
+        """Create Freshdesk ticket when customer accepts bulk order quote"""
+        try:
+            # Get product name
+            product = selections.get("product", "")
+            if product in OTHER_PRODUCTS:
+                product_name = OTHER_PRODUCTS[product]["name"]
+            elif product in BULK_PRODUCTS:
+                product_name = BULK_PRODUCTS[product]["name"]
+            else:
+                product_name = product.title()
+            
+            quantity = selections.get("quantity", 0)
+            customer_email = selections.get("email", "")
+            postcode = selections.get("postcode", "")
+            
+            # Get pricing information
+            price_info = bulk_pricing_service.get_bulk_price_info(
+                selections=selections,
+                quantity=quantity,
+                offer_type=offer_type
+            )
+            
+            # Determine region from postcode (default to UK)
+            region = "UK"  # Default
+            if postcode:
+                region = self.region_lookup_service.get_region_from_postcode(postcode)
+            
+            # Get product_id and group_id from Supabase
+            product_id, group_id = self.region_lookup_service.get_region_ids(region)
+            
+            # Build email description
+            description_parts = []
+            description_parts.append(f"<p><strong>Customer wants to proceed with bulk order</strong></p>")
+            
+            if customer_email:
+                description_parts.append(f"<p><strong>Customer Email Address:</strong> {customer_email}</p>")
+            else:
+                description_parts.append(f"<p><strong>Customer Email Address:</strong> Not provided</p>")
+            
+            description_parts.append(f"<p><strong>WhatsApp Number:</strong> {user_id}</p>")
+            description_parts.append(f"<p><strong>Product:</strong> {product_name}</p>")
+            description_parts.append(f"<p><strong>Quantity:</strong> {quantity} units</p>")
+            
+            # Add selections details
+            selections_text = []
+            if selections.get("fabric"):
+                selections_text.append(f"Fabric: {selections.get('fabric')}")
+            if selections.get("cover"):
+                selections_text.append(f"Cover: {selections.get('cover')}")
+            if selections.get("type"):
+                selections_text.append(f"Type: {selections.get('type')}")
+            if selections.get("size"):
+                selections_text.append(f"Size: {selections.get('size')}")
+            if selections.get("pages"):
+                selections_text.append(f"Pages: {selections.get('pages')}")
+            
+            if selections_text:
+                description_parts.append(f"<p><strong>Selections:</strong> {', '.join(selections_text)}</p>")
+            
+            # Add quote details
+            if price_info.get("discount_percent"):
+                discount = price_info.get("discount_percent", 0)
+                description_parts.append(f"<p><strong>Discount Code:</strong> {discount_code}</p>")
+                description_parts.append(f"<p><strong>Discount Offered:</strong> {discount:.1f}%</p>")
+            
+            if price_info.get("formatted_unit_price"):
+                description_parts.append(f"<p><strong>Unit Price:</strong> {price_info.get('formatted_unit_price')}</p>")
+            
+            if price_info.get("formatted_total_price"):
+                description_parts.append(f"<p><strong>Total Price:</strong> {price_info.get('formatted_total_price')}</p>")
+            
+            if postcode:
+                description_parts.append(f"<p><strong>Postcode:</strong> {postcode}</p>")
+            
+            description_parts.append(f"<p><strong>Region:</strong> {region}</p>")
+            description_parts.append(f"<p><strong>Status:</strong> Customer accepted quote and wants to proceed with order</p>")
+            
+            description = "".join(description_parts)
+            
+            # Send request to n8n webhook
+            freshdesk_email = "b2b@printerpix.co.uk"
+            ticket_result = self.freshdesk_service.create_ticket(
+                email=freshdesk_email,
+                subject="Bulk order - Customer wants to proceed",
+                description=description,
+                product_id=product_id,
+                group_id=group_id,
+                customer_name=None,
+                customer_email=customer_email if customer_email else None,
+                product_name=product_name,
+                quantity=quantity,
+                postcode=postcode if postcode else None,
+                region=region,
+                fabric=selections.get("fabric"),
+                cover=selections.get("cover"),
+                type=selections.get("type"),
+                size=selections.get("size"),
+                pages=selections.get("pages"),
+                discount_percent=price_info.get("discount_percent"),
+                unit_price=price_info.get("formatted_unit_price"),
+                total_price=price_info.get("formatted_total_price"),
+                offers_shown=None,
+                quote_level=None,
+                quote_state=None
+            )
+            
+            if ticket_result.get("success"):
+                logger.info(f"✅ Created Freshdesk ticket for accepted bulk order from user {user_id}")
+            else:
+                error = ticket_result.get("error", "Unknown error")
+                logger.error(f"❌ Failed to create Freshdesk ticket for accepted order: {error}")
+        except Exception as e:
+            logger.error(f"❌ Error creating Freshdesk ticket for accepted order: {e}", exc_info=True)
     
     async def _handoff_to_agent(self, user_id: str, selections: Dict) -> None:
         """Legacy handoff method - now redirects to escalation"""
