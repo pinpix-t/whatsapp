@@ -52,6 +52,5 @@ CSV_DATA_PATH = os.getenv("CSV_DATA_PATH", "SynComs.Products.ProductPage.csv")
 N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL", "https://n8n.printerpix.co.uk/webhook/c5e4c210-c4f1-429e-ae42-94211d648422")
 
 # Uploadcare Settings (for image CDN uploads)
-# Default to the JWT token if not provided in env (for testing)
-UPLOADCARE_PUBLIC_KEY = os.getenv("UPLOADCARE_PUBLIC_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXkiOiJwdWJsaWNBY2Nlc3NUb2tlbiIsInJvbGUiOiJwdWJsaWMiLCJnZW5lcmF0ZWRfYXQiOiIyMDI1LTA4LTI3VDEyOjM5OjEzLjk0OFoiLCJpYXQiOjE3NTYyOTgzNTMsImV4cCI6MjA3MTg3NDM1M30.h-DKZkhoBEgw1qZ4Gg2Lk20d9VP6JAbDUKX21xbMUVs")
+UPLOADCARE_PUBLIC_KEY = os.getenv("UPLOADCARE_PUBLIC_KEY")
 UPLOADCARE_SECRET_KEY = os.getenv("UPLOADCARE_SECRET_KEY")
