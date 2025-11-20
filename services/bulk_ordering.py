@@ -136,6 +136,24 @@ class BulkOrderingService:
             next_state = await self._process_selection(user_id, product, selection_id, selections)
             return next_state
         
+        # Handle quantity limit response
+        elif current_state == "handling_quantity_limit":
+            if button_id == "quantity_go_to_website":
+                logger.info(f"User {user_id} clicked 'Go to website' button")
+                product_url = self._get_product_url(selections)
+                await self.whatsapp_api.send_message(
+                    user_id,
+                    f"You can find quantity discounts for up to 10 units on our website:\n\n{product_url}\n\nFeel free to reach out if you need help with anything else! 😊"
+                )
+                # Clear bulk ordering state
+                self.redis_store.clear_bulk_order_state(user_id)
+                return "quantity_go_to_website"
+            elif button_id == "quantity_change":
+                logger.info(f"User {user_id} clicked 'Change quantity' button")
+                # Loop back to asking for quantity
+                await self._ask_quantity(user_id)
+                return "quantity_change"
+        
         # Handle discount code acceptance/rejection
         elif current_state in ["offering_first_discount", "offering_second_discount"]:
             if button_id == "discount_accept":
@@ -298,6 +316,39 @@ class BulkOrderingService:
                 return
             
             quantity = int(numbers[0])
+            
+            # Check if quantity is 10 or less
+            if quantity <= 10:
+                state_data = self.redis_store.get_bulk_order_state(user_id)
+                selections = state_data.get("selections", {})
+                product = selections.get("product", "")
+                
+                # Get product URL
+                product_url = self._get_product_url(selections)
+                
+                # Update state to handle quantity response
+                self.redis_store.set_bulk_order_state(
+                    user_id,
+                    "handling_quantity_limit",
+                    {"selections": selections, "discount_offers": []}
+                )
+                
+                # Send message with options
+                message = f"Quantity discounts for up to 10 units are available on our website. For bulk orders of more than 10 units, I can help you get a special quote.\n\nWhat would you like to do?"
+                
+                buttons = [
+                    {"id": "quantity_go_to_website", "title": "Go to website"},
+                    {"id": "quantity_change", "title": "Change quantity"}
+                ]
+                
+                await self.whatsapp_api.send_interactive_buttons(
+                    to=user_id,
+                    body_text=message,
+                    buttons=buttons
+                )
+                return
+            
+            # Quantity is more than 10, proceed normally
             state_data = self.redis_store.get_bulk_order_state(user_id)
             selections = state_data.get("selections", {})
             selections["quantity"] = quantity
