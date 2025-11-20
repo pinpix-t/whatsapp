@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import PlainTextResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+import json
 from config.settings import WEBHOOK_VERIFY_TOKEN
 from bot.whatsapp_api import WhatsAppAPI
 from bot.llm_handler import LLMHandler
@@ -81,6 +82,86 @@ def check_and_ingest_documents():
 
 # Run on startup
 check_and_ingest_documents()
+
+
+async def check_abandoned_conversations():
+    """Background task to periodically check for abandoned conversations"""
+    from datetime import datetime
+    from database.postgres_store import postgres_store
+    
+    while True:
+        try:
+            await asyncio.sleep(300)  # Check every 5 minutes
+            
+            if not redis_store.client:
+                continue
+            
+            # Scan for all last_message keys
+            cursor = 0
+            abandoned_count = 0
+            
+            while True:
+                cursor, keys = redis_store.client.scan(cursor, match="last_message:*", count=100)
+                
+                for key in keys:
+                    try:
+                        data_str = redis_store.client.get(key)
+                        if not data_str:
+                            continue
+                        
+                        last_message = json.loads(data_str)
+                        last_time = datetime.fromisoformat(last_message["timestamp"])
+                        time_diff = (datetime.utcnow() - last_time).total_seconds()
+                        
+                        # If > 15 minutes, log abandonment
+                        if time_diff > 900:  # 15 minutes = 900 seconds
+                            user_id = key.replace("last_message:", "")
+                            step_info = last_message.get("step_info", {})
+                            
+                            # Only track bulk ordering flow
+                            if step_info.get("flow") == "bulk_ordering":
+                                state_data = redis_store.get_bulk_order_state(user_id)
+                                selections = state_data.get("selections", {}) if state_data else {}
+                                
+                                abandonment_data = {
+                                    "flow": step_info.get("flow", "bulk_ordering"),
+                                    "state": step_info.get("state", "unknown"),
+                                    "last_message": last_message.get("content", ""),
+                                    "time_since_last_message_seconds": time_diff,
+                                    "selections": selections
+                                }
+                                
+                                postgres_store.save_analytics_event(
+                                    event_type="conversation_abandoned",
+                                    user_id=user_id,
+                                    data=abandonment_data
+                                )
+                                
+                                logger.info(f"📊 Background task: Logged abandonment for {user_id} - stopped at: {step_info.get('state', 'unknown')} (after {time_diff:.0f}s)")
+                                abandoned_count += 1
+                                
+                                # Clear the tracking key after logging
+                                redis_store.client.delete(key)
+                    except Exception as e:
+                        logger.error(f"Error processing abandonment for key {key}: {e}")
+                        continue
+                
+                if cursor == 0:
+                    break
+            
+            if abandoned_count > 0:
+                logger.info(f"📊 Background task: Found and logged {abandoned_count} abandoned conversations")
+                
+        except Exception as e:
+            logger.error(f"Error in check_abandoned_conversations background task: {e}", exc_info=True)
+            await asyncio.sleep(60)  # Wait 1 minute before retrying on error
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks on application startup"""
+    asyncio.create_task(check_abandoned_conversations())
+    logger.info("✅ Background task started: check_abandoned_conversations (runs every 5 minutes)")
 
 
 @app.get("/")
@@ -238,6 +319,39 @@ async def process_message(message_data: dict):
         logger.info(f"Button ID: {button_id}")
         logger.info(f"List ID: {list_id}")
 
+        # Check for conversation abandonment (15 minute timeout)
+        from datetime import datetime
+        from database.postgres_store import postgres_store
+        
+        last_message = redis_store.get_last_message_sent(from_number)
+        if last_message:
+            last_time = datetime.fromisoformat(last_message["timestamp"])
+            time_diff = (datetime.utcnow() - last_time).total_seconds()
+            
+            if time_diff > 900:  # 15 minutes = 900 seconds
+                # Log abandonment event
+                step_info = last_message.get("step_info", {})
+                state_data = redis_store.get_bulk_order_state(from_number)
+                selections = state_data.get("selections", {}) if state_data else {}
+                
+                abandonment_data = {
+                    "flow": step_info.get("flow", "unknown"),
+                    "state": step_info.get("state", "unknown"),
+                    "last_message": last_message.get("content", ""),
+                    "time_since_last_message_seconds": time_diff,
+                    "selections": selections
+                }
+                
+                postgres_store.save_analytics_event(
+                    event_type="conversation_abandoned",
+                    user_id=from_number,
+                    data=abandonment_data
+                )
+                logger.info(f"📊 Logged abandonment for {from_number} - stopped at: {step_info.get('state', 'unknown')} (after {time_diff:.0f}s)")
+            
+            # Clear last message tracking since user is back
+            redis_store.clear_last_message_sent(from_number)
+
         # Mark message as read (async, non-blocking)
         await whatsapp_api.mark_message_as_read(message_id)
 
@@ -305,6 +419,7 @@ async def process_message(message_data: dict):
                 
                 if bulk_state:
                     redis_store.clear_bulk_order_state(from_number)
+                    redis_store.clear_last_message_sent(from_number)
                     bulk_ended = True
                     logger.info(f"🔄 User {from_number} ended bulk ordering flow")
                 

@@ -343,6 +343,75 @@ class RedisStore:
         except Exception as e:
             logger.error(f"Error clearing image creation state: {e}")
 
+    @retry_db_operation()
+    def set_last_message_sent(self, user_id: str, message_content: str, step_info: dict = None, ttl: int = 900):
+        """
+        Store last message sent to user with timestamp and step info
+        
+        Args:
+            user_id: User identifier
+            message_content: Content of the last message sent
+            step_info: Dictionary with flow and state information (e.g., {"flow": "bulk_ordering", "state": "asking_email"})
+            ttl: Time to live in seconds (default 900 = 15 minutes)
+        """
+        if not self.client:
+            logger.warning("Redis not available, skipping last message tracking")
+            return
+
+        try:
+            from datetime import datetime
+            key = f"last_message:{user_id}"
+            data = {
+                "content": message_content,
+                "timestamp": datetime.utcnow().isoformat(),
+                "step_info": step_info or {}
+            }
+            self.client.setex(
+                key,
+                ttl,
+                json.dumps(data)
+            )
+            logger.debug(f"Stored last message for {user_id} at step: {step_info}")
+        except Exception as e:
+            logger.error(f"Error storing last message: {e}")
+
+    @retry_db_operation()
+    def get_last_message_sent(self, user_id: str) -> Optional[dict]:
+        """
+        Retrieve last message sent to user
+        
+        Args:
+            user_id: User identifier
+            
+        Returns:
+            Dictionary with content, timestamp, and step_info, or None
+        """
+        if not self.client:
+            return None
+
+        try:
+            key = f"last_message:{user_id}"
+            data = self.client.get(key)
+            if data:
+                return json.loads(data)
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving last message: {e}")
+            return None
+
+    @retry_db_operation()
+    def clear_last_message_sent(self, user_id: str):
+        """Clear last message tracking for a user"""
+        if not self.client:
+            return
+
+        try:
+            key = f"last_message:{user_id}"
+            self.client.delete(key)
+            logger.debug(f"Cleared last message tracking for {user_id}")
+        except Exception as e:
+            logger.error(f"Error clearing last message tracking: {e}")
+
     def close(self):
         """Close Redis connection"""
         if self.client:

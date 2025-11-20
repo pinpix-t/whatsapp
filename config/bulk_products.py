@@ -86,6 +86,22 @@ BULK_PRODUCTS = {
             }
         ]
     },
+    "mugs": {
+        "name": "Mugs",
+        "questions": [
+            {
+                "step": "type",
+                "question": "Select mug type:",
+                "component": "list",
+                "options": [
+                    {"id": "type_classic_mug", "title": "Classic Mug"},
+                    {"id": "type_magic_mug", "title": "Magic Mug"},
+                    {"id": "type_latte_mug", "title": "Latte Mug"},
+                    {"id": "type_magic_latte_mug", "title": "Magic Latte Mug"}
+                ]
+            }
+        ]
+    },
 }
 
 # Discount codes
@@ -139,6 +155,7 @@ PRODUCT_SELECTION_LIST = [
     {"id": "product_photobooks", "title": "Photo Books"},
     {"id": "product_blankets", "title": "Blankets"},
     {"id": "product_canvas", "title": "Canvas"},
+    {"id": "product_mugs", "title": "Mugs"},
     {"id": "product_other", "title": "Other"}
 ]
 
@@ -158,6 +175,7 @@ PRODUCT_URLS = {
     "blankets": "https://www.printerpix.co.uk/photo-blankets/mink-personalised-blanket/",
     "canvas": "https://www.printerpix.co.uk/canvas-prints/v1/",
     "photobooks": "https://www.printerpix.co.uk/photo-books/hardcover-photobook/",
+    "mugs": "https://www.printerpix.co.uk/photo-mugs/personalised-photo-mug/",
     # Other products
     "wall_calendar": "https://www.printerpix.co.uk/photo-calendars/personalised-wall-calendar/",
     "photo_frame": "https://www.printerpix.co.uk/photo-prints/photo-frame-prints/",

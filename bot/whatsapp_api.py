@@ -1,9 +1,11 @@
 import httpx
 import logging
 import asyncio
+from typing import Optional, Dict, Any
 from config.settings import WHATSAPP_TOKEN, PHONE_NUMBER_ID
 from utils.retry import retry_api_call
 from utils.error_handler import WhatsAppAPIError
+from database.redis_store import redis_store
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,13 +25,14 @@ class WhatsAppAPI:
         }
         self.client = httpx.AsyncClient(timeout=10.0)
 
-    async def send_message(self, to: str, message: str):
+    async def send_message(self, to: str, message: str, step_info: Optional[Dict[str, Any]] = None):
         """
         Send a text message to a WhatsApp user (async)
 
         Args:
             to: Phone number in international format (e.g., "1234567890")
             message: Text message to send
+            step_info: Optional dictionary with flow and state information for abandonment tracking
 
         Returns:
             dict: API response
@@ -53,6 +56,11 @@ class WhatsAppAPI:
 
             data = response.json()
             logger.info(f"✓ Message sent to {to}")
+            
+            # Track last message sent for abandonment detection (only for bulk ordering flow)
+            if step_info and step_info.get("flow") == "bulk_ordering":
+                redis_store.set_last_message_sent(to, message, step_info)
+            
             return data
 
         except httpx.HTTPStatusError as e:
@@ -174,7 +182,7 @@ class WhatsAppAPI:
         # gives better UX. This is a no-op placeholder for future enhancements.
         await asyncio.sleep(0)  # Non-blocking yield to allow other tasks
 
-    async def send_interactive_buttons(self, to: str, body_text: str, buttons: list):
+    async def send_interactive_buttons(self, to: str, body_text: str, buttons: list, step_info: Optional[Dict[str, Any]] = None):
         """
         Send an interactive button message (up to 3 buttons)
         
@@ -183,6 +191,7 @@ class WhatsAppAPI:
             body_text: Main message text
             buttons: List of button dicts with 'id' and 'title'
                     Example: [{"id": "btn_faq", "title": "General FAQ"}]
+            step_info: Optional dictionary with flow and state information for abandonment tracking
         
         Returns:
             dict: API response
@@ -222,6 +231,11 @@ class WhatsAppAPI:
             
             data = response.json()
             logger.info(f"✓ Interactive button message sent to {to}")
+            
+            # Track last message sent for abandonment detection (only for bulk ordering flow)
+            if step_info and step_info.get("flow") == "bulk_ordering":
+                redis_store.set_last_message_sent(to, body_text, step_info)
+            
             return data
             
         except httpx.HTTPStatusError as e:
@@ -246,7 +260,7 @@ class WhatsAppAPI:
                 details={"error": str(e)}
             )
 
-    async def send_list_message(self, to: str, body_text: str, button_text: str, sections: list):
+    async def send_list_message(self, to: str, body_text: str, button_text: str, sections: list, step_info: Optional[Dict[str, Any]] = None):
         """
         Send an interactive list message (dropdown menu)
         
@@ -262,6 +276,7 @@ class WhatsAppAPI:
                             {"id": "product_canvas", "title": "Canvas"}
                         ]
                     }]
+            step_info: Optional dictionary with flow and state information for abandonment tracking
         
         Returns:
             dict: API response
@@ -301,6 +316,11 @@ class WhatsAppAPI:
             
             data = response.json()
             logger.info(f"✓ List message sent to {to}")
+            
+            # Track last message sent for abandonment detection (only for bulk ordering flow)
+            if step_info and step_info.get("flow") == "bulk_ordering":
+                redis_store.set_last_message_sent(to, body_text, step_info)
+            
             return data
             
         except httpx.HTTPStatusError as e:

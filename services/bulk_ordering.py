@@ -33,6 +33,7 @@ class BulkOrderingService:
         """Start the bulk ordering flow - show product selection"""
         # Reset/clear any existing state first
         self.redis_store.clear_bulk_order_state(user_id)
+        self.redis_store.clear_last_message_sent(user_id)
         
         # Set new state
         self.redis_store.set_bulk_order_state(
@@ -43,16 +44,19 @@ class BulkOrderingService:
         
         # Send product selection list
         sections = [{"rows": PRODUCT_SELECTION_LIST}]
+        step_info = {"flow": "bulk_ordering", "state": "selecting_product"}
         await self.whatsapp_api.send_list_message(
             to=user_id,
             body_text="Welcome to Bulk Ordering 👋 I'll get you a quick quote.\n\nWhich product are you interested in?\n\n💡 Tip: Reply 'restart' to start over anytime",
             button_text="Choose Product",
-            sections=sections
+            sections=sections,
+            step_info=step_info
         )
     
     def end_bulk_ordering(self, user_id: str) -> None:
         """End bulk ordering flow and clear state"""
         self.redis_store.clear_bulk_order_state(user_id)
+        self.redis_store.clear_last_message_sent(user_id)
         logger.info(f"Ended bulk ordering for user {user_id}")
     
     async def handle_interactive_response(self, user_id: str, button_id: str, list_id: Optional[str] = None) -> str:
@@ -102,11 +106,13 @@ class BulkOrderingService:
                 # Handle "Other" product selection - show list of Other products
                 if product == "other":
                     sections = [{"rows": OTHER_PRODUCTS_LIST}]
+                    step_info = {"flow": "bulk_ordering", "state": "selecting_product"}
                     await self.whatsapp_api.send_list_message(
                         to=user_id,
                         body_text="Which product are you interested in?",
                         button_text="Choose Product",
-                        sections=sections
+                        sections=sections,
+                        step_info=step_info
                     )
                     # Keep state as selecting_product, waiting for other product selection
                     return "other_product_list_shown"
@@ -141,9 +147,11 @@ class BulkOrderingService:
             if button_id == "quantity_go_to_website":
                 logger.info(f"User {user_id} clicked 'Go to website' button")
                 product_url = self._get_product_url(selections)
+                step_info = {"flow": "bulk_ordering", "state": "handling_quantity_limit"}
                 await self.whatsapp_api.send_message(
                     user_id,
-                    f"You can find quantity discounts for up to 10 units on our website:\n\n{product_url}\n\nFeel free to reach out if you need help with anything else! 😊"
+                    f"You can find quantity discounts for up to 10 units on our website:\n\n{product_url}\n\nFeel free to reach out if you need help with anything else! 😊",
+                    step_info=step_info
                 )
                 # Clear bulk ordering state
                 self.redis_store.clear_bulk_order_state(user_id)
@@ -229,12 +237,17 @@ class BulkOrderingService:
                 continue
             
             # Ask this question
+            state_data = self.redis_store.get_bulk_order_state(user_id)
+            current_state = state_data.get("state", "selecting_specs") if state_data else "selecting_specs"
+            step_info = {"flow": "bulk_ordering", "state": current_state, "current_step": step}
+            
             if question_config["component"] == "buttons":
                 buttons = [{"id": opt["id"], "title": opt["title"]} for opt in question_config["options"]]
                 await self.whatsapp_api.send_interactive_buttons(
                     to=user_id,
                     body_text=question_config["question"],
-                    buttons=buttons
+                    buttons=buttons,
+                    step_info=step_info
                 )
             elif question_config["component"] == "list":
                 sections = [{"rows": question_config["options"]}]
@@ -242,7 +255,8 @@ class BulkOrderingService:
                     to=user_id,
                     body_text=question_config["question"],
                     button_text="Choose Option",
-                    sections=sections
+                    sections=sections,
+                    step_info=step_info
                 )
             
             return
@@ -298,9 +312,11 @@ class BulkOrderingService:
             {"selections": self.redis_store.get_bulk_order_state(user_id).get("selections", {}), "discount_offers": []}
         )
         
+        step_info = {"flow": "bulk_ordering", "state": "asking_quantity"}
         await self.whatsapp_api.send_message(
             user_id,
-            "How many units would you like to order?\n\n💡 Tip: Reply 'restart' to start a new quote"
+            "How many units would you like to order?\n\n💡 Tip: Reply 'restart' to start a new quote",
+            step_info=step_info
         )
     
     async def handle_quantity(self, user_id: str, quantity_text: str) -> None:
@@ -341,10 +357,12 @@ class BulkOrderingService:
                     {"id": "quantity_change", "title": "Change quantity"}
                 ]
                 
+                step_info = {"flow": "bulk_ordering", "state": "handling_quantity_limit"}
                 await self.whatsapp_api.send_interactive_buttons(
                     to=user_id,
                     body_text=message,
-                    buttons=buttons
+                    buttons=buttons,
+                    step_info=step_info
                 )
                 return
             
@@ -380,7 +398,8 @@ Just send your email address so we can send your discount code.
 
 💡 Tip: Reply 'restart' to start a new quote"""
         
-        await self.whatsapp_api.send_message(user_id, message)
+        step_info = {"flow": "bulk_ordering", "state": "asking_email"}
+        await self.whatsapp_api.send_message(user_id, message, step_info=step_info)
     
     async def handle_email(self, user_id: str, email_text: str) -> None:
         """Handle email input and optionally ask for postcode"""
@@ -416,7 +435,8 @@ Just send your email address so we can send your discount code.
 
 Send your postcode, or type 'skip' to continue without it."""
         
-        await self.whatsapp_api.send_message(user_id, message)
+        step_info = {"flow": "bulk_ordering", "state": "asking_postcode"}
+        await self.whatsapp_api.send_message(user_id, message, step_info=step_info)
     
     async def handle_postcode(self, user_id: str, postcode_text: str) -> None:
         """Handle postcode input and generate quote"""
@@ -598,10 +618,12 @@ Ready to proceed?"""
             {"id": "discount_reject", "title": "No thanks"}
         ]
         
+        step_info = {"flow": "bulk_ordering", "state": "offering_first_discount"}
         await self.whatsapp_api.send_interactive_buttons(
             to=user_id,
             body_text=message,
-            buttons=buttons
+            buttons=buttons,
+            step_info=step_info
         )
     
     async def _handle_discount_acceptance(self, user_id: str, current_state: str) -> None:
@@ -630,10 +652,15 @@ Visit: {product_url}
 
 Apply the code at checkout. Happy to help with anything else!"""
         
-        await self.whatsapp_api.send_message(user_id, message)
+        # Get current state for step_info
+        state_data = self.redis_store.get_bulk_order_state(user_id)
+        current_state = state_data.get("state", "completed") if state_data else "completed"
+        step_info = {"flow": "bulk_ordering", "state": current_state}
+        await self.whatsapp_api.send_message(user_id, message, step_info=step_info)
         
-        # Clear bulk ordering state
+        # Clear bulk ordering state and last message tracking
         self.redis_store.clear_bulk_order_state(user_id)
+        self.redis_store.clear_last_message_sent(user_id)
     
     def _get_product_url(self, selections: Dict) -> str:
         """Get the appropriate product URL based on selections"""
@@ -727,10 +754,12 @@ Apply the code at checkout. Happy to help with anything else!"""
             {"id": "decline_too_expensive", "title": "Too expensive"}
         ]
         
+        step_info = {"flow": "bulk_ordering", "state": "asking_decline_reason"}
         await self.whatsapp_api.send_interactive_buttons(
             to=user_id,
             body_text=message,
-            buttons=buttons
+            buttons=buttons,
+            step_info=step_info
         )
     
     async def _ask_after_second_discount(self, user_id: str) -> None:
@@ -753,10 +782,12 @@ Apply the code at checkout. Happy to help with anything else!"""
             {"id": "too_expensive_after_second", "title": "Too expensive"}
         ]
         
+        step_info = {"flow": "bulk_ordering", "state": "asking_after_second_discount"}
         await self.whatsapp_api.send_interactive_buttons(
             to=user_id,
             body_text=message,
-            buttons=buttons
+            buttons=buttons,
+            step_info=step_info
         )
     
     async def _handle_decline_not_ready(self, user_id: str) -> None:
@@ -919,10 +950,12 @@ Want me to update your pay link?"""
             {"id": "discount_reject", "title": "No thanks"}
         ]
         
+        step_info = {"flow": "bulk_ordering", "state": "offering_second_discount"}
         await self.whatsapp_api.send_interactive_buttons(
             to=user_id,
             body_text=message,
-            buttons=buttons
+            buttons=buttons,
+            step_info=step_info
         )
     
     async def _escalate_to_support(self, user_id: str, selections: Dict, ask_name: bool = True) -> None:
@@ -935,9 +968,11 @@ Want me to update your pay link?"""
             state_data["pending_escalation"] = True
             self.redis_store.set_bulk_order_state(user_id, "asking_name_for_escalation", state_data)
             
+            step_info = {"flow": "bulk_ordering", "state": "asking_name_for_escalation"}
             await self.whatsapp_api.send_message(
                 user_id,
-                "Before I forward your request, may I have your name? (This is optional - you can type 'skip' to continue without it.)"
+                "Before I forward your request, may I have your name? (This is optional - you can type 'skip' to continue without it.)",
+                step_info=step_info
             )
             return
         
@@ -1236,6 +1271,7 @@ Need a specific date? Choose rush shipping and contact us with your required dat
         
         # Clear bulk ordering state so user can continue conversation or ask follow-up questions
         self.redis_store.clear_bulk_order_state(user_id)
+        self.redis_store.clear_last_message_sent(user_id)
 
 
 # Global instance will be created in main handler
