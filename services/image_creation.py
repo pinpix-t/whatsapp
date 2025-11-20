@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 from database.redis_store import redis_store
 from bot.whatsapp_api import WhatsAppAPI
+from config.settings import UPLOADCARE_PUBLIC_KEY, UPLOADCARE_SECRET_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -187,18 +188,32 @@ class ImageCreationService:
             Tuple of (public_url, s3key)
         """
         try:
-            # Uploadcare public upload endpoint
+            # Uploadcare upload endpoint
             upload_url = "https://upload.uploadcare.com/base/"
             
             # Prepare multipart form data
+            # Uploadcare requires UPLOADCARE_PUBLIC_KEY as a form field
             files = {
                 'file': (filename, image_bytes, 'image/jpeg')
             }
             
+            # Add public key if available (required for authenticated uploads)
+            data = {}
+            if UPLOADCARE_PUBLIC_KEY:
+                data['UPLOADCARE_PUBLIC_KEY'] = UPLOADCARE_PUBLIC_KEY
+                logger.info(f"📤 Using Uploadcare public key: {UPLOADCARE_PUBLIC_KEY[:10]}...")
+            else:
+                logger.warning("⚠️ UPLOADCARE_PUBLIC_KEY not configured - upload may fail")
+            
             logger.info(f"📤 Uploading image to Uploadcare ({len(image_bytes)} bytes)...")
             
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(upload_url, files=files)
+                # Upload with form data
+                response = await client.post(upload_url, files=files, data=data)
+                
+                logger.info(f"📤 Uploadcare response status: {response.status_code}")
+                logger.info(f"📤 Uploadcare response: {response.text[:200]}")
+                
                 response.raise_for_status()
                 
                 # Uploadcare returns the file UUID
@@ -221,8 +236,16 @@ class ImageCreationService:
             logger.error("⏱️ Timeout uploading to Uploadcare")
             raise Exception("Image upload timed out. Please try again.")
         except httpx.HTTPStatusError as e:
-            logger.error(f"❌ Uploadcare API error: {e.response.status_code} - {e.response.text[:200]}")
-            raise Exception(f"Failed to upload image: {e.response.status_code}")
+            error_text = e.response.text[:500] if e.response.text else "No error details"
+            logger.error(f"❌ Uploadcare API error: {e.response.status_code} - {error_text}")
+            
+            # Provide more helpful error message
+            if e.response.status_code == 403:
+                raise Exception("Image upload failed: Authentication required. Please configure UPLOADCARE_PUBLIC_KEY in environment variables.")
+            elif e.response.status_code == 400:
+                raise Exception(f"Image upload failed: Invalid request - {error_text}")
+            else:
+                raise Exception(f"Failed to upload image: HTTP {e.response.status_code}")
         except Exception as e:
             logger.error(f"❌ Error uploading to Uploadcare: {e}", exc_info=True)
             raise Exception(f"Failed to upload image: {str(e)}")
