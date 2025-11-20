@@ -194,7 +194,7 @@ Your response:"""
 
             # ORDER TRACKING: Handle order tracking requests
             elif self._is_order_tracking_request(message_lower):
-                response = self._handle_order_tracking(user_id, message)
+                response = await self._handle_order_tracking(user_id, message)
                 logger.info("✓ Handled order tracking request")
 
             # ALL OTHER MESSAGES: Use conversation context and generate proper responses
@@ -288,7 +288,7 @@ Your response:"""
             
         return False
 
-    def _handle_order_tracking(self, user_id: str, message: str) -> str:
+    async def _handle_order_tracking(self, user_id: str, message: str) -> str:
         """Handle order tracking requests"""
         try:
             # Extract potential order number from message
@@ -298,12 +298,25 @@ Your response:"""
                 # User provided an order number, try to track it
                 logger.info(f"Tracking order: {order_number}")
                 tracking_data = order_tracking_service.track_order(order_number)
-                response = order_tracking_service.format_tracking_response(tracking_data)
+                first_message, second_message = order_tracking_service.format_tracking_response(tracking_data)
                 
                 # Store the order number in conversation context
                 self.redis_store.append_to_conversation(user_id, "system", f"Order tracked: {order_number}")
                 
-                return response
+                # Send first message
+                if self.whatsapp_api:
+                    await self.whatsapp_api.send_message(user_id, first_message)
+                    
+                    # Send second message if available
+                    if second_message:
+                        await self.whatsapp_api.send_message(user_id, second_message)
+                    
+                    return None  # Don't return text, messages already sent
+                else:
+                    # Fallback: combine messages if no WhatsApp API
+                    if second_message:
+                        return f"{first_message}\n\n{second_message}"
+                    return first_message
             else:
                 # No order number found, ask for it
                 return self._ask_for_order_number()

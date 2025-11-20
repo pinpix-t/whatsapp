@@ -181,15 +181,15 @@ class OrderTrackingService:
             logger.error(f"Unexpected error tracking order {order_number}: {e}")
             raise OrderTrackingError(f"Error tracking order: {str(e)}")
     
-    def format_tracking_response(self, tracking_data: Dict) -> str:
+    def format_tracking_response(self, tracking_data: Dict) -> tuple:
         """
-        Format tracking data into a user-friendly message
+        Format tracking data into two user-friendly messages
         
         Args:
             tracking_data: Raw tracking data from API
             
         Returns:
-            Formatted message string
+            Tuple of (first_message, second_message)
         """
         try:
             tracking_array = tracking_data.get('Tracking', [])
@@ -197,28 +197,31 @@ class OrderTrackingService:
             country = tracking_data.get('country', 'Unknown')
             
             if not tracking_array:
-                return f"📦 I looked for order #{order_number}, but I don't have any tracking information for it yet. It might still be processing - try checking back in a bit, or contact support if you think there's an issue!"
+                error_msg = f"📦 I looked for order #{order_number}, but I don't have any tracking information for it yet. It might still be processing - try checking back in a bit!"
+                return (error_msg, None)
             
             # Handle the actual API response format
             return self._format_actual_tracking_response(order_number, country, tracking_array)
             
         except Exception as e:
             logger.error(f"Error formatting tracking response: {e}")
-            return f"📦 I found your order #{order_number}, but I'm having trouble getting the tracking details right now. Could you try again in a moment? If it keeps happening, feel free to contact support!"
+            error_msg = f"📦 I found your order #{tracking_data.get('order_number', 'Unknown')}, but I'm having trouble getting the tracking details right now. Could you please recheck the order number and try again?"
+            return (error_msg, None)
     
-    def _format_actual_tracking_response(self, order_number: str, country: str, tracking_array: List[Dict]) -> str:
-        """Format tracking in a natural, conversational way"""
+    def _format_actual_tracking_response(self, order_number: str, country: str, tracking_array: List[Dict]) -> tuple:
+        """Format tracking into two messages"""
         # Parse according to exact rules
         parsed_data = self._parse_tracking_data(tracking_array)
         
         if not parsed_data['orders']:
-            return f"📦 I found your order #{order_number} ({country}), but there's no tracking information available yet. It might still be processing - check back in a bit!"
+            error_msg = f"📦 I found your order #{order_number} ({country}), but there's no tracking information available yet. It might still be processing - check back in a bit!"
+            return (error_msg, None)
         
         order_data = parsed_data['orders'][0]
         packages = order_data.get('packages', [])
         
-        # Start with a friendly greeting
-        response = f"Great news! I found your order #{order_number} ({country}). "
+        # First message: Status
+        first_message = f"Great news! I found your order #{order_number} ({country}). "
         
         # Handle order-level updates (most recent first)
         order_updates = [item for item in tracking_array 
@@ -230,74 +233,70 @@ class OrderTrackingService:
             latest_update = order_updates[-1]
             updates_data = latest_update.get('Updates', {})
             status = updates_data.get('StatusDesc', 'Unknown')
-            message_title = updates_data.get('MessageTitle', '')
-            message_body = updates_data.get('MessageBody', '')
+            
+            # Natural status message (skip message_title and message_body - they contain "WE'RE ON IT!" text)
+            if status.lower() in ['delivered', 'completed']:
+                first_message += "Your order has been delivered."
+            elif 'shipped' in status.lower() or 'courier' in status.lower():
+                first_message += "Your order has shipped and is on the way."
+            elif 'processing' in status.lower() or 'working' in status.lower():
+                first_message += "Your order is currently being processed."
+            else:
+                first_message += f"Current status: {status}."
+        else:
+            first_message += "Your order is currently being processed."
+        
+        # Second message: Tracking details
+        second_message_parts = []
+        
+        # Add date/time
+        if order_updates:
+            latest_update = order_updates[-1]
+            updates_data = latest_update.get('Updates', {})
             date = updates_data.get('ShipmentDate', '')
             time = updates_data.get('ShipmentTime', '')
             
-            status_emoji = self._get_status_emoji(status)
-            
-            # Natural status message
-            if status.lower() in ['delivered', 'completed']:
-                response += f"{status_emoji} It looks like your order has been delivered! "
-            elif 'shipped' in status.lower() or 'courier' in status.lower():
-                response += f"{status_emoji} Your order has shipped and is on the way! "
-            elif 'processing' in status.lower() or 'working' in status.lower():
-                response += f"{status_emoji} Your order is currently being processed. "
-            else:
-                response += f"{status_emoji} Current status: {status}. "
-            
-            # Add message details naturally
-            if message_title or message_body:
-                response += "\n\n"
-                if message_title:
-                    response += f"{message_title}"
-                    if message_body:
-                        response += f" {message_body}"
-                elif message_body:
-                    response += message_body
-            
-            # Add date/time naturally
             if date:
                 formatted_date = self._format_date_natural(date)
                 if time:
                     formatted_time = time[:5] if len(time) >= 5 else time[:8]
-                    response += f"\n\nLast updated: {formatted_date} at {formatted_time}"
+                    second_message_parts.append(f"Last updated: {formatted_date} at {formatted_time}")
                 else:
-                    response += f"\n\nLast updated: {formatted_date}"
+                    second_message_parts.append(f"Last updated: {formatted_date}")
         
-        # Handle packages naturally
+        # Handle packages
         if packages:
             if len(packages) == 1:
                 package = packages[0]
                 status_emoji = self._get_status_emoji(package['latestStatus'])
                 
-                response += f"\n\n🚚 Tracking number: {package['trackingNumber']}"
+                second_message_parts.append(f"🚚 Tracking number: {package['trackingNumber']}")
                 
                 if package.get('coNumber'):
-                    response += f"\nCO Number: {package['coNumber']}"
+                    second_message_parts.append(f"CO Number: {package['coNumber']}")
                 
-                # Natural status message for package
+                # Status for package
                 if package['latestStatus'].lower() in ['delivered', 'completed']:
-                    response += f"\n{status_emoji} This package has been delivered!"
+                    second_message_parts.append(f"✅ Status: Your Package Has Been Delivered")
                 elif 'shipped' in package['latestStatus'].lower():
-                    response += f"\n{status_emoji} This package is in transit."
+                    second_message_parts.append(f"🚚 Status: {package['latestStatus']}")
                 else:
-                    response += f"\n{status_emoji} Status: {package['latestStatus']}"
+                    second_message_parts.append(f"⚙️ Status: {package['latestStatus']}")
             else:
-                response += f"\n\nYour order has {len(packages)} packages:\n"
-                for i, package in enumerate(packages, 1):
-                    status_emoji = self._get_status_emoji(package['latestStatus'])
-                    response += f"\n📦 Package {i}:"
-                    if package.get('coNumber'):
-                        response += f" CO {package['coNumber']}"
-                    response += f"\n🚚 Tracking: {package['trackingNumber']}"
-                    response += f"\n{status_emoji} {package['latestStatus']}"
+                # Multiple packages - show first one's details
+                package = packages[0]
+                second_message_parts.append(f"🚚 Tracking number: {package['trackingNumber']}")
+                if package.get('coNumber'):
+                    second_message_parts.append(f"CO Number: {package['coNumber']}")
+                status_emoji = self._get_status_emoji(package['latestStatus'])
+                second_message_parts.append(f"{status_emoji} Status: {package['latestStatus']}")
         
         # Friendly closing
-        response += "\n\nNeed more details? Just ask or visit our website!"
+        second_message_parts.append("Need more details? Just ask or visit our website!")
         
-        return response
+        second_message = "\n".join(second_message_parts)
+        
+        return (first_message, second_message)
     
     def _format_date_natural(self, date_str: str) -> str:
         """Format date in a more natural way"""
