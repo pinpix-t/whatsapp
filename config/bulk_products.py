@@ -136,10 +136,10 @@ OTHER_PRODUCTS = {
 
 # Product selection list (for initial product selection)
 PRODUCT_SELECTION_LIST = [
-    {"id": "product_other", "title": "Other"},
+    {"id": "product_photobooks", "title": "Photo Books"},
     {"id": "product_blankets", "title": "Blankets"},
     {"id": "product_canvas", "title": "Canvas"},
-    {"id": "product_photobooks", "title": "Photo Books"}
+    {"id": "product_other", "title": "Other"}
 ]
 
 # Other products selection list (shown when "Other" is selected)
