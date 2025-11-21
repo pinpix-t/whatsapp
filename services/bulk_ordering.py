@@ -389,12 +389,12 @@ class BulkOrderingService:
             )
     
     async def _ask_for_email(self, user_id: str) -> None:
-        """Ask user for their email address"""
+        """Ask user for their email address (optional)"""
         message = """Awesome, we're almost done!
 
-Just send your email address so we can send your discount code.
+Just send your email address so we can send your discount code (optional).
 
-(Please type only the email itself — no emojis or punctuation marks.)
+Send your email address, or type 'skip' to continue without it.
 
 💡 Tip: Reply 'restart' to start a new quote"""
         
@@ -403,21 +403,27 @@ Just send your email address so we can send your discount code.
     
     async def handle_email(self, user_id: str, email_text: str) -> None:
         """Handle email input and optionally ask for postcode"""
-        email = email_text.strip()
+        email_text = email_text.strip().lower()
         
-        # Basic email validation
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(email_pattern, email):
-            await self.whatsapp_api.send_message(
-                user_id,
-                "Please enter a valid email address. For example: yourname@example.com"
-            )
-            return
+        # Skip if user wants to skip
+        if email_text in ['skip', 'no', 'n', 'none', 'not needed']:
+            email = None
+        else:
+            # Basic email validation
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(email_pattern, email_text):
+                await self.whatsapp_api.send_message(
+                    user_id,
+                    "Please enter a valid email address. For example: yourname@example.com\n\nOr type 'skip' to continue without it."
+                )
+                return
+            email = email_text
         
         # Store email
         state_data = self.redis_store.get_bulk_order_state(user_id)
         selections = state_data.get("selections", {})
-        selections["email"] = email
+        if email:
+            selections["email"] = email
         
         # Update state and ask for postcode (optional)
         self.redis_store.set_bulk_order_state(
