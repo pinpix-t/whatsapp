@@ -5,6 +5,7 @@ Handles the complete bulk ordering flow from product selection to discount codes
 
 import logging
 import re
+from datetime import datetime
 from typing import Dict, Optional, Tuple
 from config.bulk_products import (
     BULK_PRODUCTS, DISCOUNT_CODES, PRODUCT_SELECTION_LIST, PRODUCT_URLS, HOMEPAGE_URL,
@@ -29,18 +30,87 @@ class BulkOrderingService:
         self.freshdesk_service = FreshdeskService()
         self.region_lookup_service = RegionLookupService()
     
+    def _track_stage_transition(self, user_id: str, from_state: Optional[str], to_state: str, selections: Dict, duration_seconds: Optional[float] = None):
+        """Track stage transition event"""
+        try:
+            transition_data = {
+                "from_state": from_state,
+                "to_state": to_state,
+                "flow": "bulk_ordering",
+                "duration_seconds": duration_seconds,
+                "selections": {k: v for k, v in selections.items() if k not in ["email", "postcode"]},
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            postgres_store.save_analytics_event(
+                event_type="stage_transition",
+                user_id=user_id,
+                data=transition_data
+            )
+            logger.debug(f"📊 Tracked stage transition: {from_state} -> {to_state} for {user_id}")
+        except Exception as e:
+            logger.error(f"Error tracking stage transition: {e}", exc_info=True)
+    
+    def _track_user_action(self, user_id: str, action_type: str, action_value: str, current_state: str):
+        """Track user action event (button click, list selection, text input)"""
+        try:
+            action_data = {
+                "action_type": action_type,
+                "action_value": action_value,
+                "current_state": current_state,
+                "flow": "bulk_ordering",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            postgres_store.save_analytics_event(
+                event_type="user_action",
+                user_id=user_id,
+                data=action_data
+            )
+            logger.debug(f"📊 Tracked user action: {action_type} = {action_value} in state {current_state} for {user_id}")
+        except Exception as e:
+            logger.error(f"Error tracking user action: {e}", exc_info=True)
+    
+    def _set_state_with_tracking(self, user_id: str, new_state: str, data: Dict):
+        """Set bulk order state and track transition"""
+        state_data = self.redis_store.get_bulk_order_state(user_id)
+        old_state = state_data.get("state") if state_data else None
+        selections = data.get("selections", {})
+        
+        # Set state and get transition info
+        transition_info = self.redis_store.set_bulk_order_state(user_id, new_state, data)
+        
+        # Track transition if state actually changed
+        if old_state and old_state != new_state and transition_info:
+            duration = transition_info.get("duration_seconds") if transition_info else None
+            self._track_stage_transition(user_id, old_state, new_state, selections, duration)
+        
+        return transition_info
+    
     async def start_bulk_ordering(self, user_id: str) -> None:
         """Start the bulk ordering flow - show product selection"""
         # Reset/clear any existing state first
         self.redis_store.clear_bulk_order_state(user_id)
         self.redis_store.clear_last_message_sent(user_id)
         
-        # Set new state
+        # Set new state (no transition tracking on start)
         self.redis_store.set_bulk_order_state(
             user_id,
             "selecting_product",
             {"selections": {}, "discount_offers": []}
         )
+        
+        # Track initial entry
+        try:
+            postgres_store.save_analytics_event(
+                event_type="flow_started",
+                user_id=user_id,
+                data={
+                    "flow": "bulk_ordering",
+                    "state": "selecting_product",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error tracking flow start: {e}")
         
         # Send product selection list
         sections = [{"rows": PRODUCT_SELECTION_LIST}]
@@ -81,6 +151,12 @@ class BulkOrderingService:
         current_state = state_data.get("state")
         selections = state_data.get("selections", {})
         
+        # Track user action
+        action_id = button_id or list_id
+        action_type = "button_click" if button_id else "list_selection"
+        if action_id:
+            self._track_user_action(user_id, action_type, action_id, current_state)
+        
         # Handle product selection
         if current_state == "selecting_product":
             # Handle Other product item selection (e.g., "other_wall_calendar")
@@ -90,7 +166,7 @@ class BulkOrderingService:
                 selections["product"] = other_product
                 selections["is_other"] = True
                 # Other products skip questions - go straight to quantity
-                self.redis_store.set_bulk_order_state(
+                self._set_state_with_tracking(
                     user_id,
                     "asking_quantity",
                     {"selections": selections, "discount_offers": []}
@@ -119,7 +195,7 @@ class BulkOrderingService:
                 
                 # Regular product (blankets, canvas, etc.)
                 selections["product"] = product
-                self.redis_store.set_bulk_order_state(
+                self._set_state_with_tracking(
                     user_id,
                     "selecting_specs",
                     {"selections": selections, "discount_offers": []}
@@ -278,7 +354,7 @@ class BulkOrderingService:
                     # This is the answer to this question
                     selections[step] = selection_id
                     state_data_current = self.redis_store.get_bulk_order_state(user_id)
-                    self.redis_store.set_bulk_order_state(
+                    self._set_state_with_tracking(
                         user_id,
                         "selecting_specs",
                         {"selections": selections, "discount_offers": state_data_current.get("discount_offers", []) if state_data_current else []}
@@ -306,10 +382,11 @@ class BulkOrderingService:
     
     async def _ask_quantity(self, user_id: str) -> None:
         """Ask user for quantity"""
-        self.redis_store.set_bulk_order_state(
+        state_data = self.redis_store.get_bulk_order_state(user_id)
+        self._set_state_with_tracking(
             user_id,
             "asking_quantity",
-            {"selections": self.redis_store.get_bulk_order_state(user_id).get("selections", {}), "discount_offers": []}
+            {"selections": state_data.get("selections", {}) if state_data else {}, "discount_offers": []}
         )
         
         step_info = {"flow": "bulk_ordering", "state": "asking_quantity"}
@@ -343,7 +420,7 @@ class BulkOrderingService:
                 product_url = self._get_product_url(selections)
                 
                 # Update state to handle quantity response
-                self.redis_store.set_bulk_order_state(
+                self._set_state_with_tracking(
                     user_id,
                     "handling_quantity_limit",
                     {"selections": selections, "discount_offers": []}
@@ -371,8 +448,11 @@ class BulkOrderingService:
             selections = state_data.get("selections", {})
             selections["quantity"] = quantity
             
+            # Track text input action
+            self._track_user_action(user_id, "text_input", str(quantity), "asking_quantity")
+            
             # Update state and ask for email
-            self.redis_store.set_bulk_order_state(
+            self._set_state_with_tracking(
                 user_id,
                 "asking_email",
                 {"selections": selections, "discount_offers": []}
@@ -425,8 +505,11 @@ Send your email address, or type 'skip' to continue without it.
         if email:
             selections["email"] = email
         
+        # Track text input action
+        self._track_user_action(user_id, "text_input", email if email else "skip", "asking_email")
+        
         # Update state and ask for postcode (optional)
-        self.redis_store.set_bulk_order_state(
+        self._set_state_with_tracking(
             user_id,
             "asking_postcode",
             {"selections": selections, "discount_offers": []}
@@ -460,6 +543,9 @@ Send your postcode, or type 'skip' to continue without it."""
         if postcode:
             selections["postcode"] = postcode
         
+        # Track text input action
+        self._track_user_action(user_id, "text_input", postcode if postcode else "skip", "asking_postcode")
+        
         # Now offer discount
         await self._offer_first_discount(user_id, selections)
     
@@ -479,9 +565,13 @@ Send your postcode, or type 'skip' to continue without it."""
         if name:
             selections["name"] = name
         
+        # Track text input action
+        self._track_user_action(user_id, "text_input", name if name else "skip", "asking_name_for_escalation")
+        
         # Clear pending escalation flag and proceed with escalation
         state_data["selections"] = selections
         state_data.pop("pending_escalation", None)
+        # Don't track transition here as we're proceeding to escalation
         self.redis_store.set_bulk_order_state(user_id, state_data.get("state", "unknown"), state_data)
         
         # Proceed with escalation (don't ask for name again)
@@ -510,7 +600,7 @@ Send your postcode, or type 'skip' to continue without it."""
         state_data = self.redis_store.get_bulk_order_state(user_id)
         offers = state_data.get("discount_offers", [])
         offers.append("first_offer")
-        self.redis_store.set_bulk_order_state(
+        self._set_state_with_tracking(
             user_id,
             "offering_first_discount",
             {"selections": selections, "discount_offers": offers}
@@ -747,7 +837,7 @@ Apply the code at checkout. Happy to help with anything else!"""
         state_data["selections"] = selections
         
         # Update state to asking for decline reason
-        self.redis_store.set_bulk_order_state(
+        self._set_state_with_tracking(
             user_id,
             "asking_decline_reason",
             state_data
@@ -775,7 +865,7 @@ Apply the code at checkout. Happy to help with anything else!"""
             state_data = {"selections": {}, "discount_offers": []}
         
         # Update state
-        self.redis_store.set_bulk_order_state(
+        self._set_state_with_tracking(
             user_id,
             "asking_after_second_discount",
             state_data
@@ -848,7 +938,7 @@ Feel free to reach out if you have any questions! 😊"""
         state_data = self.redis_store.get_bulk_order_state(user_id)
         offers = state_data.get("discount_offers", [])
         offers.append("second_offer")
-        self.redis_store.set_bulk_order_state(
+        self._set_state_with_tracking(
             user_id,
             "offering_second_discount",
             {"selections": selections, "discount_offers": offers}
@@ -972,7 +1062,7 @@ Want me to update your pay link?"""
             state_data = self.redis_store.get_bulk_order_state(user_id)
             state_data["selections"] = selections
             state_data["pending_escalation"] = True
-            self.redis_store.set_bulk_order_state(user_id, "asking_name_for_escalation", state_data)
+            self._set_state_with_tracking(user_id, "asking_name_for_escalation", state_data)
             
             step_info = {"flow": "bulk_ordering", "state": "asking_name_for_escalation"}
             await self.whatsapp_api.send_message(

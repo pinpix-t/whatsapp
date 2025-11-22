@@ -36,6 +36,13 @@ app.add_middleware(
 # Register error handlers
 register_error_handlers(app)
 
+# Include analytics router
+from api.analytics import router as analytics_router
+app.include_router(analytics_router)
+
+# Include extended analytics endpoints (registers additional routes on same router)
+import api.analytics_extended
+
 # Initialize components
 vector_store = VectorStore()
 whatsapp_api = WhatsAppAPI()

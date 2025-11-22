@@ -205,12 +205,32 @@ class RedisStore:
         """
         if not self.client:
             logger.warning("Redis not available, skipping bulk order state storage")
-            return
+            return None
 
         try:
+            from datetime import datetime
             key = f"bulk_order:{user_id}"
+            
+            # Get previous state to track transitions
+            previous_state_data = self.get_bulk_order_state(user_id)
+            previous_state = previous_state_data.get("state") if previous_state_data else None
+            previous_state_entry_time = previous_state_data.get("state_entry_time") if previous_state_data else None
+            
+            # Calculate duration if we have previous state entry time
+            duration_seconds = None
+            if previous_state_entry_time and previous_state:
+                try:
+                    entry_time = datetime.fromisoformat(previous_state_entry_time)
+                    duration_seconds = (datetime.utcnow() - entry_time).total_seconds()
+                except:
+                    pass
+            
+            # Store state entry time for current state
+            state_entry_time = datetime.utcnow().isoformat()
+            
             state_data = {
                 "state": state,
+                "state_entry_time": state_entry_time,
                 **data
             }
             self.client.setex(
@@ -219,9 +239,16 @@ class RedisStore:
                 json.dumps(state_data)
             )
             logger.debug(f"Stored bulk order state for {user_id}: {state}")
+            
+            # Return transition info for tracking
+            return {
+                "from_state": previous_state,
+                "to_state": state,
+                "duration_seconds": duration_seconds
+            }
         except Exception as e:
             logger.error(f"Error storing bulk order state: {e}")
-            raise
+            return None
 
     @retry_db_operation()
     def get_bulk_order_state(self, user_id: str) -> Optional[dict]:
