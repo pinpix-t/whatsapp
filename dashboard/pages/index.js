@@ -89,43 +89,77 @@ export default function Dashboard() {
           end_date: dateRange.endDate,
         };
 
-        // Fetch all data in parallel
+        // Fetch all data in parallel with individual error handling
+        const endpoints = [
+          { name: 'stats', fn: () => getStats(params) },
+          { name: 'quotes', fn: () => getQuotes({ ...params, limit: 1000 }) },
+          { name: 'products', fn: () => getProducts(params) },
+          { name: 'timeline', fn: () => getTimeline(params) },
+          { name: 'abandonments', fn: () => getAbandonments({ ...params, limit: 1000 }) },
+          { name: 'abandonmentStats', fn: () => getAbandonmentStats(params) },
+          { name: 'transitions', fn: () => getStageTransitions({ ...params, limit: 1000 }) },
+          { name: 'transitionStats', fn: () => getStageTransitionStats(params) },
+          { name: 'funnel', fn: () => getFunnel(params) },
+          { name: 'funnelDetailed', fn: () => getFunnelDetailed(params) },
+        ];
+
+        const results = await Promise.allSettled(
+          endpoints.map(endpoint => endpoint.fn())
+        );
+
+        // Process results and log errors
         const [
-          statsData,
-          quotesData,
-          productsData,
-          timelineData,
-          abandonmentsData,
-          abandonmentStatsData,
-          transitionsData,
-          transitionStatsData,
-          funnelDataResult,
-          funnelDetailedData,
-        ] = await Promise.all([
-          getStats(params),
-          getQuotes({ ...params, limit: 1000 }),
-          getProducts(params),
-          getTimeline(params),
-          getAbandonments({ ...params, limit: 1000 }),
-          getAbandonmentStats(params),
-          getStageTransitions({ ...params, limit: 1000 }),
-          getStageTransitionStats(params),
-          getFunnel(params),
-          getFunnelDetailed(params),
-        ]);
+          statsResult,
+          quotesResult,
+          productsResult,
+          timelineResult,
+          abandonmentsResult,
+          abandonmentStatsResult,
+          transitionsResult,
+          transitionStatsResult,
+          funnelResult,
+          funnelDetailedResult,
+        ] = results;
+
+        // Helper to extract data or log error
+        const getData = (result, endpointName, defaultValue = null) => {
+          if (result.status === 'fulfilled') {
+            return result.value;
+          } else {
+            console.error(`❌ Error fetching ${endpointName}:`, result.reason);
+            if (result.reason?.response) {
+              console.error(`   Status: ${result.reason.response.status}`);
+              console.error(`   Data:`, result.reason.response.data);
+            } else {
+              console.error(`   Message:`, result.reason?.message || result.reason);
+            }
+            return defaultValue;
+          }
+        };
+
+        const statsData = getData(statsResult, 'stats', null);
+        const quotesData = getData(quotesResult, 'quotes', { quotes: [] });
+        const productsData = getData(productsResult, 'products', { products: [] });
+        const timelineData = getData(timelineResult, 'timeline', { timeline: [] });
+        const abandonmentsData = getData(abandonmentsResult, 'abandonments', { abandonments: [] });
+        const abandonmentStatsData = getData(abandonmentStatsResult, 'abandonmentStats', null);
+        const transitionsData = getData(transitionsResult, 'transitions', { transitions: [] });
+        const transitionStatsData = getData(transitionStatsResult, 'transitionStats', null);
+        const funnelDataResult = getData(funnelResult, 'funnel', null);
+        const funnelDetailedData = getData(funnelDetailedResult, 'funnelDetailed', null);
 
         setStats(statsData);
-        setQuotes(quotesData.quotes || []);
-        setProducts(productsData.products || []);
-        setTimeline(timelineData.timeline || []);
-        setAbandonments(abandonmentsData.abandonments || []);
+        setQuotes(quotesData?.quotes || []);
+        setProducts(productsData?.products || []);
+        setTimeline(timelineData?.timeline || []);
+        setAbandonments(abandonmentsData?.abandonments || []);
         setAbandonmentStats(abandonmentStatsData);
-        setTransitions(transitionsData.transitions || []);
+        setTransitions(transitionsData?.transitions || []);
         setTransitionStats(transitionStatsData);
         setFunnelData(funnelDataResult);
         setFunnelDetailed(funnelDetailedData);
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error('Unexpected error fetching dashboard data:', error);
         // Set empty states on error
         setStats(null);
         setQuotes([]);
