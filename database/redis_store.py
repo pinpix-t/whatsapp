@@ -533,6 +533,61 @@ class RedisStore:
         except Exception as e:
             logger.error(f"Error clearing agent handoff: {e}")
 
+    @retry_db_operation()
+    def set_user_language(self, user_id: str, language_code: str, region: Optional[str] = None, ttl: int = 86400):
+        """
+        Store user's language preference
+        
+        Args:
+            user_id: User identifier
+            language_code: Language code (e.g., "en", "fr", "es")
+            region: Region code (e.g., "UK", "US", "FR") - optional
+            ttl: Time to live in seconds (default 24 hours)
+        """
+        if not self.client:
+            logger.warning("Redis not available, skipping language storage")
+            return
+
+        try:
+            key = f"language:{user_id}"
+            language_data = {
+                "language_code": language_code,
+                "region": region
+            }
+            self.client.setex(
+                key,
+                ttl,
+                json.dumps(language_data)
+            )
+            logger.debug(f"Stored language preference for {user_id}: {language_code} (region: {region})")
+        except Exception as e:
+            logger.error(f"Error storing language preference: {e}")
+
+    @retry_db_operation()
+    def get_user_language(self, user_id: str) -> Optional[dict]:
+        """
+        Get user's language preference
+        
+        Args:
+            user_id: User identifier
+            
+        Returns:
+            Dictionary with language_code and region, or None if not found
+        """
+        if not self.client:
+            logger.warning("Redis not available, returning None for language preference")
+            return None
+
+        try:
+            key = f"language:{user_id}"
+            data = self.client.get(key)
+            if data:
+                return json.loads(data)
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving language preference: {e}")
+            return None
+
     def close(self):
         """Close Redis connection"""
         if self.client:

@@ -575,30 +575,14 @@ async def process_message(message_data: dict):
                 
                 current_state = bulk_state.get("state")
                 
-                if current_state == "asking_quantity":
+                if current_state == "asking_name":
+                    # User is providing name
+                    logger.info("👤 Processing name input")
+                    await bulk_ordering_service.handle_name(from_number, text)
+                elif current_state == "asking_quantity":
                     # User is providing quantity
                     logger.info("🔢 Processing quantity input")
                     await bulk_ordering_service.handle_quantity(from_number, text)
-                elif current_state == "asking_email":
-                    # User is providing email
-                    logger.info("📧 Processing email input")
-                    await bulk_ordering_service.handle_email(from_number, text)
-                elif current_state == "asking_postcode":
-                    # User is providing postcode
-                    logger.info("📮 Processing postcode input")
-                    await bulk_ordering_service.handle_postcode(from_number, text)
-                elif current_state == "asking_name_for_escalation":
-                    # User is providing name for escalation (optional)
-                    logger.info("👤 Processing name input for escalation")
-                    await bulk_ordering_service.handle_name_for_escalation(from_number, text)
-                elif current_state in ["offering_first_discount", "offering_second_discount", "offering_best_available"]:
-                    # User is responding to discount offer - check for rejection words
-                    logger.info(f"💰 Processing discount response in state: {current_state}")
-                    await bulk_ordering_service.handle_discount_text_response(from_number, text, current_state)
-                elif current_state == "asking_decline_reason":
-                    # User is responding to decline reason question
-                    logger.info("❓ Processing decline reason response")
-                    await bulk_ordering_service.handle_decline_reason_text_response(from_number, text)
                 else:
                     # User is in bulk flow but sent unexpected text
                     logger.info("⚠️ User in bulk flow sent text - asking to continue")

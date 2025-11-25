@@ -7,6 +7,7 @@ from utils.retry import retry_openai_call
 from utils.error_handler import LLMError
 from services.order_tracking import order_tracking_service
 from bot.whatsapp_api import WhatsAppAPI
+from utils.language_detection import detect_language_from_greeting, get_welcome_message, get_button_labels
 import logging
 import re
 import asyncio
@@ -145,52 +146,71 @@ Your response:"""
             
             if is_greeting:
                 logger.info(f"✅ Processing greeting: '{message_lower}'")
+                
+                # Detect language from greeting
+                region, language_code = detect_language_from_greeting(message)
+                logger.info(f"🌍 Detected region: {region}, language: {language_code}")
+                
+                # Store language preference
+                if region and language_code:
+                    self.redis_store.set_user_language(user_id, language_code, region)
+                
+                # Get language-specific messages and buttons
+                welcome_text = get_welcome_message(language_code)
+                button_labels = get_button_labels(language_code)
+                
                 # Send interactive buttons instead of text
                 if self.whatsapp_api:
                     try:
                         buttons = [
-                            {"id": "btn_create", "title": "Start Creating!"},
-                            {"id": "btn_order", "title": "Track My Order"},
-                            {"id": "btn_bulk", "title": "Bulk Ordering"}
+                            {"id": "btn_create", "title": button_labels["create"]},
+                            {"id": "btn_order", "title": button_labels["order"]},
+                            {"id": "btn_bulk", "title": button_labels["bulk"]}
                         ]
                         await self.whatsapp_api.send_interactive_buttons(
                             to=user_id,
-                            body_text="Hi! Welcome to PrinterPix! How can I help?",
+                            body_text=welcome_text,
                             buttons=buttons
                         )
                         response = None  # Don't send text message, buttons already sent
-                        logger.info("✓ Sent welcome buttons")
+                        logger.info(f"✓ Sent welcome buttons in {language_code}")
                     except Exception as e:
                         logger.warning(f"⚠️ Failed to send interactive buttons: {e}. Falling back to text.")
                         # Fallback to text message if buttons fail
-                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Track My Order\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                        response = f"{welcome_text}\n\n1️⃣ {button_labels['create']}\n2️⃣ {button_labels['order']}\n3️⃣ {button_labels['bulk']}\n\nReply with 1, 2, or 3!"
                         logger.info("✓ Sent text fallback")
                 else:
-                    response = "Hello! Welcome to PrinterPix! How can I help you with your order today?"
-                    logger.info("✓ Fast greeting response (no WhatsApp API)")
+                    response = welcome_text
+                    logger.info(f"✓ Fast greeting response in {language_code} (no WhatsApp API)")
 
             # VAGUE/UNCLEAR MESSAGES: Send welcome buttons again
             elif message_lower in ['uhm', 'uh', 'um', 'hm', 'hmm', 'what', '?', '??', 'idk', "i don't know", "i dont know"]:
                 # User seems unclear, send welcome buttons to guide them
+                # Get user's language preference if available
+                user_language = self.redis_store.get_user_language(user_id)
+                language_code = user_language.get("language_code", "en") if user_language else "en"
+                welcome_text = get_welcome_message(language_code)
+                button_labels = get_button_labels(language_code)
+                
                 if self.whatsapp_api:
                     try:
                         buttons = [
-                            {"id": "btn_create", "title": "Start Creating!"},
-                            {"id": "btn_order", "title": "Track My Order"},
-                            {"id": "btn_bulk", "title": "Bulk Ordering"}
+                            {"id": "btn_create", "title": button_labels["create"]},
+                            {"id": "btn_order", "title": button_labels["order"]},
+                            {"id": "btn_bulk", "title": button_labels["bulk"]}
                         ]
                         await self.whatsapp_api.send_interactive_buttons(
                             to=user_id,
-                            body_text="Hi! Welcome to PrinterPix! How can I help?",
+                            body_text=welcome_text,
                             buttons=buttons
                         )
                         response = None
-                        logger.info("✓ Sent welcome buttons for vague message")
+                        logger.info(f"✓ Sent welcome buttons for vague message in {language_code}")
                     except Exception as e:
                         logger.warning(f"⚠️ Failed to send interactive buttons: {e}. Falling back to text.")
-                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Track My Order\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                        response = f"{welcome_text}\n\n1️⃣ {button_labels['create']}\n2️⃣ {button_labels['order']}\n3️⃣ {button_labels['bulk']}\n\nReply with 1, 2, or 3!"
                 else:
-                    response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
+                    response = f"{welcome_text}\n\n1️⃣ {button_labels['create']}\n2️⃣ {button_labels['order']}\n3️⃣ {button_labels['bulk']}\n\nReply with 1, 2, or 3!"
 
             # ORDER TRACKING: Handle order tracking requests
             elif self._is_order_tracking_request(message_lower):

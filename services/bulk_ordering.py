@@ -8,15 +8,15 @@ import re
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 from config.bulk_products import (
-    BULK_PRODUCTS, DISCOUNT_CODES, PRODUCT_SELECTION_LIST, PRODUCT_URLS, HOMEPAGE_URL,
-    OTHER_PRODUCTS, OTHER_PRODUCTS_LIST, PRICE_POINT_MAPPING
+    PRODUCT_SELECTION_LIST, PRODUCT_URLS, HOMEPAGE_URL,
+    OTHER_PRODUCTS, OTHER_PRODUCTS_LIST
 )
-from services.bulk_pricing import bulk_pricing_service
 from services.freshdesk_service import FreshdeskService
 from services.region_lookup import RegionLookupService
 from database.redis_store import redis_store
 from database.postgres_store import postgres_store
 from bot.whatsapp_api import WhatsAppAPI
+from utils.language_detection import get_bulk_message, get_product_names
 
 logger = logging.getLogger(__name__)
 
@@ -86,16 +86,20 @@ class BulkOrderingService:
         return transition_info
     
     async def start_bulk_ordering(self, user_id: str) -> None:
-        """Start the bulk ordering flow - show product selection"""
+        """Start the bulk ordering flow - ask for name first"""
         # Reset/clear any existing state first
         self.redis_store.clear_bulk_order_state(user_id)
         self.redis_store.clear_last_message_sent(user_id)
         
+        # Get user's language preference
+        user_language = self.redis_store.get_user_language(user_id)
+        language_code = user_language.get("language_code", "en") if user_language else "en"
+        
         # Set new state (no transition tracking on start)
         self.redis_store.set_bulk_order_state(
             user_id,
-            "selecting_product",
-            {"selections": {}, "discount_offers": []}
+            "asking_name",
+            {"selections": {}}
         )
         
         # Track initial entry
@@ -105,21 +109,19 @@ class BulkOrderingService:
                 user_id=user_id,
                 data={
                     "flow": "bulk_ordering",
-                    "state": "selecting_product",
+                    "state": "asking_name",
                     "timestamp": datetime.utcnow().isoformat()
                 }
             )
         except Exception as e:
             logger.error(f"Error tracking flow start: {e}")
         
-        # Send product selection list
-        sections = [{"rows": PRODUCT_SELECTION_LIST}]
-        step_info = {"flow": "bulk_ordering", "state": "selecting_product"}
-        await self.whatsapp_api.send_list_message(
+        # Ask for name
+        name_message = get_bulk_message(language_code, "ask_name")
+        step_info = {"flow": "bulk_ordering", "state": "asking_name"}
+        await self.whatsapp_api.send_message(
             to=user_id,
-            body_text="Welcome to Bulk Ordering 👋 I'll get you a quick quote.\n\nWhich product are you interested in?\n\n💡 Tip: Reply 'restart' to start over anytime",
-            button_text="Choose Product",
-            sections=sections,
+            body_text=name_message,
             step_info=step_info
         )
     
@@ -157,35 +159,40 @@ class BulkOrderingService:
         if action_id:
             self._track_user_action(user_id, action_type, action_id, current_state)
         
+        # Get user's language preference
+        user_language = self.redis_store.get_user_language(user_id)
+        language_code = user_language.get("language_code", "en") if user_language else "en"
+        
         # Handle product selection
         if current_state == "selecting_product":
             # Handle Other product item selection (e.g., "other_wall_calendar")
-            if button_id.startswith("other_") or list_id and list_id.startswith("other_"):
+            if button_id and button_id.startswith("other_") or (list_id and list_id.startswith("other_")):
                 selection_id = button_id or list_id
                 other_product = selection_id.replace("other_", "")
                 selections["product"] = other_product
                 selections["is_other"] = True
-                # Other products skip questions - go straight to quantity
+                # Go straight to quantity
                 self._set_state_with_tracking(
                     user_id,
                     "asking_quantity",
-                    {"selections": selections, "discount_offers": []}
+                    {"selections": selections}
                 )
                 await self._ask_quantity(user_id)
                 return "other_product_selected"
             
             # Handle main product selection (product_other, product_blankets, etc.)
-            elif button_id.startswith("product_") or (list_id and list_id.startswith("product_")):
+            elif button_id and button_id.startswith("product_") or (list_id and list_id.startswith("product_")):
                 selection_id = button_id or list_id
                 product = selection_id.replace("product_", "")
                 
                 # Handle "Other" product selection - show list of Other products
                 if product == "other":
                     sections = [{"rows": OTHER_PRODUCTS_LIST}]
+                    product_message = get_bulk_message(language_code, "ask_product")
                     step_info = {"flow": "bulk_ordering", "state": "selecting_product"}
                     await self.whatsapp_api.send_list_message(
                         to=user_id,
-                        body_text="Which product are you interested in?",
+                        body_text=product_message,
                         button_text="Choose Product",
                         sections=sections,
                         step_info=step_info
@@ -193,92 +200,15 @@ class BulkOrderingService:
                     # Keep state as selecting_product, waiting for other product selection
                     return "other_product_list_shown"
                 
-                # Regular product (blankets, canvas, etc.)
+                # Regular product - go straight to quantity (no specs needed)
                 selections["product"] = product
                 self._set_state_with_tracking(
                     user_id,
-                    "selecting_specs",
-                    {"selections": selections, "discount_offers": []}
+                    "asking_quantity",
+                    {"selections": selections}
                 )
-                await self._send_next_question(user_id, product)
-                return "product_selected"
-        
-        # Handle product-specific questions
-        elif current_state == "selecting_specs":
-            product = selections.get("product")
-            if not product:
-                # Reset if product missing
-                await self.start_bulk_ordering(user_id)
-                return "restarted"
-            
-            # Get the selection ID (could be from button or list)
-            selection_id = button_id or list_id or button_id
-            
-            # Process the selection based on product type
-            next_state = await self._process_selection(user_id, product, selection_id, selections)
-            return next_state
-        
-        # Handle quantity limit response
-        elif current_state == "handling_quantity_limit":
-            if button_id == "quantity_go_to_website":
-                logger.info(f"User {user_id} clicked 'Go to website' button")
-                product_url = self._get_product_url(selections)
-                step_info = {"flow": "bulk_ordering", "state": "handling_quantity_limit"}
-                await self.whatsapp_api.send_message(
-                    user_id,
-                    f"You can find quantity discounts for up to 10 units on our website:\n\n{product_url}\n\nFeel free to reach out if you need help with anything else! 😊",
-                    step_info=step_info
-                )
-                # Clear bulk ordering state
-                self.redis_store.clear_bulk_order_state(user_id)
-                return "quantity_go_to_website"
-            elif button_id == "quantity_change":
-                logger.info(f"User {user_id} clicked 'Change quantity' button")
-                # Loop back to asking for quantity
                 await self._ask_quantity(user_id)
-                return "quantity_change"
-        
-        # Handle discount code acceptance/rejection
-        elif current_state in ["offering_first_discount", "offering_second_discount"]:
-            if button_id == "discount_accept":
-                await self._handle_discount_acceptance(user_id, current_state)
-                return "discount_accepted"
-            elif button_id == "discount_reject":
-                await self._handle_discount_rejection(user_id, current_state)
-                return "discount_rejected"
-        
-        # Handle decline reason follow-up
-        if button_id == "decline_not_ready":
-            logger.info(f"User {user_id} clicked 'Not ready yet' button")
-            await self._handle_decline_not_ready(user_id)
-            return "decline_not_ready"
-        elif button_id == "decline_too_expensive":
-            logger.info(f"User {user_id} clicked 'Too expensive' button")
-            await self._handle_decline_too_expensive(user_id)
-            return "decline_too_expensive"
-        elif button_id == "still_not_ready":
-            logger.info(f"User {user_id} clicked 'Still not ready' button")
-            await self._handle_decline_not_ready(user_id)
-            return "still_not_ready"
-        elif button_id == "too_expensive_after_second":
-            logger.info(f"User {user_id} clicked 'Too expensive' after second discount")
-            await self._handle_too_expensive_after_second(user_id)
-            return "too_expensive_after_second"
-        
-        # Handle rejection reasons (after showing buttons) - legacy handler
-        elif current_state == "handling_rejection":
-            if button_id == "reject_price":
-                # Offer second discount
-                await self._offer_second_discount(user_id, selections)
-                return "second_discount_offered"
-            elif button_id == "reject_delivery":
-                # Answer delivery time using RAG
-                await self._handle_delivery_time_question(user_id)
-                return "delivery_time_answered"
-            elif button_id == "reject_agent":
-                # Handoff to agent
-                await self._handoff_to_agent(user_id, selections)
-                return "agent_handoff"
+                return "product_selected"
         
         return "unknown_state"
     
@@ -380,25 +310,93 @@ class BulkOrderingService:
         logger.warning(f"Unknown selection ID: {selection_id}")
         return "unknown_selection"
     
+    async def handle_name(self, user_id: str, name_text: str) -> None:
+        """Handle name input and ask for product selection"""
+        name_text = name_text.strip()
+        
+        if not name_text or len(name_text) < 2:
+            # Get user's language preference
+            user_language = self.redis_store.get_user_language(user_id)
+            language_code = user_language.get("language_code", "en") if user_language else "en"
+            name_message = get_bulk_message(language_code, "ask_name")
+            await self.whatsapp_api.send_message(
+                user_id,
+                f"Please provide a valid name.\n\n{name_message}"
+            )
+            return
+        
+        # Store name
+        state_data = self.redis_store.get_bulk_order_state(user_id)
+        selections = state_data.get("selections", {}) if state_data else {}
+        selections["name"] = name_text
+        
+        # Track text input action
+        self._track_user_action(user_id, "text_input", name_text, "asking_name")
+        
+        # Get user's language preference
+        user_language = self.redis_store.get_user_language(user_id)
+        language_code = user_language.get("language_code", "en") if user_language else "en"
+        product_names = get_product_names(language_code)
+        
+        # Update state and ask for product
+        self._set_state_with_tracking(
+            user_id,
+            "selecting_product",
+            {"selections": selections}
+        )
+        
+        # Create product list with language-specific names
+        product_list = []
+        for item in PRODUCT_SELECTION_LIST:
+            product_key = item["id"].replace("product_", "")
+            if product_key in product_names:
+                product_list.append({
+                    "id": item["id"],
+                    "title": product_names[product_key]
+                })
+            else:
+                product_list.append(item)
+        
+        # Send product selection list
+        sections = [{"rows": product_list}]
+        product_message = get_bulk_message(language_code, "ask_product")
+        step_info = {"flow": "bulk_ordering", "state": "selecting_product"}
+        await self.whatsapp_api.send_list_message(
+            to=user_id,
+            body_text=product_message,
+            button_text="Choose Product",
+            sections=sections,
+            step_info=step_info
+        )
+    
     async def _ask_quantity(self, user_id: str) -> None:
         """Ask user for quantity"""
+        # Get user's language preference
+        user_language = self.redis_store.get_user_language(user_id)
+        language_code = user_language.get("language_code", "en") if user_language else "en"
+        
         state_data = self.redis_store.get_bulk_order_state(user_id)
         self._set_state_with_tracking(
             user_id,
             "asking_quantity",
-            {"selections": state_data.get("selections", {}) if state_data else {}, "discount_offers": []}
+            {"selections": state_data.get("selections", {}) if state_data else {}}
         )
         
+        quantity_message = get_bulk_message(language_code, "ask_quantity")
         step_info = {"flow": "bulk_ordering", "state": "asking_quantity"}
         await self.whatsapp_api.send_message(
             user_id,
-            "How many units would you like to order?\n\n💡 Tip: Reply 'restart' to start a new quote",
+            quantity_message,
             step_info=step_info
         )
     
     async def handle_quantity(self, user_id: str, quantity_text: str) -> None:
-        """Handle quantity input and ask for email"""
+        """Handle quantity input and create Freshdesk ticket"""
         try:
+            # Get user's language preference
+            user_language = self.redis_store.get_user_language(user_id)
+            language_code = user_language.get("language_code", "en") if user_language else "en"
+            
             # Try to extract number from text
             numbers = re.findall(r'\d+', quantity_text)
             if not numbers:
@@ -410,56 +408,36 @@ class BulkOrderingService:
             
             quantity = int(numbers[0])
             
-            # Check if quantity is 10 or less
-            if quantity <= 10:
-                state_data = self.redis_store.get_bulk_order_state(user_id)
-                selections = state_data.get("selections", {})
-                product = selections.get("product", "")
-                
-                # Get product URL
-                product_url = self._get_product_url(selections)
-                
-                # Update state to handle quantity response
-                self._set_state_with_tracking(
+            if quantity <= 0:
+                await self.whatsapp_api.send_message(
                     user_id,
-                    "handling_quantity_limit",
-                    {"selections": selections, "discount_offers": []}
-                )
-                
-                # Send message with options
-                message = f"Quantity discounts for up to 10 units are available on our website. For bulk orders of more than 10 units, I can help you get a special quote.\n\nWhat would you like to do?"
-                
-                buttons = [
-                    {"id": "quantity_go_to_website", "title": "Go to website"},
-                    {"id": "quantity_change", "title": "Change quantity"}
-                ]
-                
-                step_info = {"flow": "bulk_ordering", "state": "handling_quantity_limit"}
-                await self.whatsapp_api.send_interactive_buttons(
-                    to=user_id,
-                    body_text=message,
-                    buttons=buttons,
-                    step_info=step_info
+                    "Please enter a valid quantity greater than 0."
                 )
                 return
             
-            # Quantity is more than 10, proceed normally
+            # Store quantity
             state_data = self.redis_store.get_bulk_order_state(user_id)
-            selections = state_data.get("selections", {})
+            selections = state_data.get("selections", {}) if state_data else {}
             selections["quantity"] = quantity
             
             # Track text input action
             self._track_user_action(user_id, "text_input", str(quantity), "asking_quantity")
             
-            # Update state and ask for email
-            self._set_state_with_tracking(
+            # Create Freshdesk ticket immediately
+            await self._create_bulk_order_ticket(user_id, selections)
+            
+            # Send completion message
+            completion_message = get_bulk_message(language_code, "completion")
+            step_info = {"flow": "bulk_ordering", "state": "completed"}
+            await self.whatsapp_api.send_message(
                 user_id,
-                "asking_email",
-                {"selections": selections, "discount_offers": []}
+                completion_message,
+                step_info=step_info
             )
             
-            # Ask for email
-            await self._ask_for_email(user_id)
+            # Clear bulk ordering state
+            self.redis_store.clear_bulk_order_state(user_id)
+            self.redis_store.clear_last_message_sent(user_id)
             
         except Exception as e:
             logger.error(f"Error processing quantity: {e}")
@@ -467,6 +445,79 @@ class BulkOrderingService:
                 user_id,
                 "Please enter a valid number. For example: 50, 100, etc."
             )
+    
+    async def _create_bulk_order_ticket(self, user_id: str, selections: Dict) -> None:
+        """Create simplified Freshdesk ticket with name, product, quantity, and WhatsApp number"""
+        try:
+            # Get product name
+            product = selections.get("product", "")
+            if product in OTHER_PRODUCTS:
+                product_name = OTHER_PRODUCTS[product]["name"]
+            else:
+                # Map product keys to display names
+                product_name_map = {
+                    "calendars": "Calendars",
+                    "photobooks": "Photo Books",
+                    "blankets": "Blankets",
+                    "canvas": "Canvas Prints",
+                    "photo_printing": "Photo Printing",
+                    "mugs": "Mugs"
+                }
+                product_name = product_name_map.get(product, product.title())
+            
+            quantity = selections.get("quantity", 0)
+            customer_name = selections.get("name", "")
+            
+            # Determine region (default to UK)
+            region = "UK"
+            
+            # Get product_id and group_id from Supabase
+            product_id, group_id = self.region_lookup_service.get_region_ids(region)
+            
+            # Build simple HTML description
+            description_parts = []
+            if customer_name:
+                description_parts.append(f"<p><strong>Customer Name:</strong> {customer_name}</p>")
+            description_parts.append(f"<p><strong>WhatsApp Number:</strong> {user_id}</p>")
+            description_parts.append(f"<p><strong>Product:</strong> {product_name}</p>")
+            description_parts.append(f"<p><strong>Quantity:</strong> {quantity} units</p>")
+            
+            description = "".join(description_parts)
+            
+            # Send request to n8n webhook
+            freshdesk_email = "b2b@printerpix.co.uk"
+            ticket_result = self.freshdesk_service.create_ticket(
+                email=freshdesk_email,
+                subject="Bulk order inquiry",
+                description=description,
+                product_id=product_id,
+                group_id=group_id,
+                customer_name=customer_name if customer_name else None,
+                customer_email=None,
+                product_name=product_name,
+                quantity=quantity,
+                postcode=None,
+                region=region,
+                fabric=None,
+                cover=None,
+                type=None,
+                size=None,
+                pages=None,
+                discount_percent=None,
+                unit_price=None,
+                total_price=None,
+                offers_shown=None,
+                quote_level=None,
+                quote_state=None
+            )
+            
+            if ticket_result.get("success"):
+                logger.info(f"✅ Created Freshdesk ticket for bulk order inquiry from user {user_id}")
+            else:
+                error = ticket_result.get("error", "Unknown error")
+                logger.error(f"❌ Failed to create Freshdesk ticket: {error}")
+        except Exception as e:
+            logger.error(f"❌ Error creating Freshdesk ticket: {e}", exc_info=True)
     
     async def _ask_for_email(self, user_id: str) -> None:
         """Ask user for their email address (optional)"""

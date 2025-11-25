@@ -152,9 +152,11 @@ OTHER_PRODUCTS = {
 
 # Product selection list (for initial product selection)
 PRODUCT_SELECTION_LIST = [
+    {"id": "product_calendars", "title": "Calendars"},
     {"id": "product_photobooks", "title": "Photo Books"},
     {"id": "product_blankets", "title": "Blankets"},
-    {"id": "product_canvas", "title": "Canvas"},
+    {"id": "product_canvas", "title": "Canvas Prints"},
+    {"id": "product_photo_printing", "title": "Photo Printing"},
     {"id": "product_mugs", "title": "Mugs"},
     {"id": "product_other", "title": "Other"}
 ]
@@ -172,9 +174,11 @@ OTHER_PRODUCTS_LIST = [
 
 # Product landing page URLs
 PRODUCT_URLS = {
+    "calendars": "https://www.printerpix.co.uk/photo-calendars/personalised-wall-calendar/",
     "blankets": "https://www.printerpix.co.uk/photo-blankets/mink-personalised-blanket/",
     "canvas": "https://www.printerpix.co.uk/canvas-prints/v1/",
     "photobooks": "https://www.printerpix.co.uk/photo-books/hardcover-photobook/",
+    "photo_printing": "https://www.printerpix.co.uk/photo-prints/",
     "mugs": "https://www.printerpix.co.uk/photo-mugs/personalised-photo-mug/",
     # Other products
     "wall_calendar": "https://www.printerpix.co.uk/photo-calendars/personalised-wall-calendar/",
