@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi.responses import PlainTextResponse, JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import json
@@ -42,6 +42,10 @@ app.include_router(analytics_router)
 
 # Include extended analytics endpoints (registers additional routes on same router)
 import api.analytics_extended
+
+# Include agent console router
+from api.agent_console import router as agent_router
+app.include_router(agent_router)
 
 # Initialize components
 vector_store = VectorStore()
@@ -175,6 +179,14 @@ async def startup_event():
 async def root():
     """Health check endpoint"""
     return {"status": "ok", "service": "WhatsApp RAG Bot"}
+
+
+@app.get("/agent-console")
+async def serve_agent_console():
+    """Serve the agent console HTML file"""
+    from pathlib import Path
+    file_path = Path(__file__).parent.parent / "agent_console.html"
+    return FileResponse(file_path)
 
 
 @app.get("/webhook")
@@ -325,6 +337,58 @@ async def process_message(message_data: dict):
         logger.info(f"Text: {text}")
         logger.info(f"Button ID: {button_id}")
         logger.info(f"List ID: {list_id}")
+
+        # Check if agent has claimed this conversation
+        if redis_store.is_agent_handoff(from_number):
+            handoff_info = redis_store.get_agent_handoff(from_number)
+            agent_id = handoff_info.get("agent_id", "unknown") if handoff_info else "unknown"
+            logger.info(f"🤖 Agent handoff active for {from_number} (claimed by agent {agent_id}), skipping bot response")
+            
+            # Still store incoming message in database
+            from datetime import datetime
+            from database.postgres_store import postgres_store
+            
+            # Determine message content based on type
+            message_content = text
+            if not message_content and interactive_type:
+                message_content = f"[{interactive_type}] {button_id or list_id or ''}"
+            if not message_content:
+                message_content = f"[{message_data.get('type', 'unknown')} message]"
+            
+            try:
+                postgres_store.save_message(
+                    message_id=message_id,
+                    from_number=from_number,
+                    to_number=None,
+                    content=message_content,
+                    direction="inbound",
+                    message_type=message_data.get("type", "text"),
+                    status="received"
+                )
+            except Exception as e:
+                logger.error(f"Error storing message during handoff: {e}")
+            
+            # Broadcast message to connected agents via SSE
+            try:
+                from api.agent_console import message_broadcaster
+                await message_broadcaster.broadcast(from_number, {
+                    "type": "new_message",
+                    "user_id": from_number,
+                    "message_id": message_id,
+                    "content": message_content,
+                    "message_type": message_data.get("type", "text"),
+                    "direction": "inbound",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "interactive_type": interactive_type,
+                    "button_id": button_id,
+                    "list_id": list_id
+                })
+            except Exception as e:
+                logger.error(f"Error broadcasting message: {e}")
+            
+            # Mark message as read but don't generate bot response
+            await whatsapp_api.mark_message_as_read(message_id)
+            return  # Exit early, don't process with bot
 
         # Check for conversation abandonment (15 minute timeout)
         from datetime import datetime

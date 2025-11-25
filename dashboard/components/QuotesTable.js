@@ -230,3 +230,5 @@ export default function QuotesTable({ quotes, loading }) {
   );
 }
 
+
+

@@ -439,6 +439,100 @@ class RedisStore:
         except Exception as e:
             logger.error(f"Error clearing last message tracking: {e}")
 
+    @retry_db_operation()
+    def set_agent_handoff(self, user_id: str, agent_id: str, ttl: int = 86400):
+        """
+        Set agent handoff for a user conversation
+        
+        Args:
+            user_id: User identifier (WhatsApp number)
+            agent_id: Agent identifier
+            ttl: Time to live in seconds (default 24 hours)
+        """
+        if not self.client:
+            logger.warning("Redis not available, skipping agent handoff storage")
+            return
+
+        try:
+            from datetime import datetime
+            key = f"agent_handoff:{user_id}"
+            handoff_data = {
+                "agent_id": agent_id,
+                "claimed_at": datetime.utcnow().isoformat()
+            }
+            self.client.setex(
+                key,
+                ttl,
+                json.dumps(handoff_data)
+            )
+            logger.info(f"Agent handoff set for {user_id} by agent {agent_id}")
+        except Exception as e:
+            logger.error(f"Error setting agent handoff: {e}")
+            raise
+
+    @retry_db_operation()
+    def is_agent_handoff(self, user_id: str) -> bool:
+        """
+        Check if conversation is claimed by an agent
+        
+        Args:
+            user_id: User identifier (WhatsApp number)
+            
+        Returns:
+            True if conversation is claimed, False otherwise
+        """
+        if not self.client:
+            return False
+
+        try:
+            key = f"agent_handoff:{user_id}"
+            return bool(self.client.exists(key))
+        except Exception as e:
+            logger.error(f"Error checking agent handoff: {e}")
+            return False
+
+    @retry_db_operation()
+    def get_agent_handoff(self, user_id: str) -> Optional[dict]:
+        """
+        Get agent handoff information for a user
+        
+        Args:
+            user_id: User identifier (WhatsApp number)
+            
+        Returns:
+            Dictionary with agent_id and claimed_at, or None if not claimed
+        """
+        if not self.client:
+            return None
+
+        try:
+            key = f"agent_handoff:{user_id}"
+            data = self.client.get(key)
+            if data:
+                return json.loads(data)
+            return None
+        except Exception as e:
+            logger.error(f"Error getting agent handoff: {e}")
+            return None
+
+    @retry_db_operation()
+    def clear_agent_handoff(self, user_id: str):
+        """
+        Clear agent handoff for a user, releasing conversation back to bot
+        
+        Args:
+            user_id: User identifier (WhatsApp number)
+        """
+        if not self.client:
+            return
+
+        try:
+            key = f"agent_handoff:{user_id}"
+            self.client.delete(key)
+            logger.info(f"Agent handoff cleared for {user_id}")
+        except Exception as e:
+            logger.error(f"Error clearing agent handoff: {e}")
+
     def close(self):
         """Close Redis connection"""
         if self.client:

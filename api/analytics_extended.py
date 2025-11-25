@@ -444,3 +444,5 @@ async def get_funnel_detailed(
     finally:
         session.close()
 
+
+

@@ -1,0 +1,133 @@
+⚠️ Cannot import bulk_base_prices module: No module named 'config.bulk_base_prices'
+Base prices will not be available from mapping file
+⚠️ Cannot import sql_server_store: No module named 'sqlalchemy'
+SQL Server base prices will not be available
+Could not get ProductReferenceCode from selections: {'product': 'photobooks', 'cover': 'cover_hard_cover', 'size': 'size_8_5x11', 'pages': 'pages_20'}
+Could not get ProductReferenceCode from selections: {'product': 'photobooks', 'cover': 'cover_hard_cover', 'size': 'size_8_5x11', 'pages': 'pages_40'}
+Could not get ProductReferenceCode from selections: {'product': 'photobooks', 'cover': 'cover_hard_cover', 'size': 'size_8_5x11', 'pages': 'pages_60'}
+Could not get ProductReferenceCode from selections: {'product': 'photobooks', 'cover': 'cover_leather_cover', 'size': 'size_8_5x11', 'pages': 'pages_20'}
+Could not get ProductReferenceCode from selections: {'product': 'photobooks', 'cover': 'cover_leather_cover', 'size': 'size_8_5x11', 'pages': 'pages_40'}
+Could not get ProductReferenceCode from selections: {'product': 'photobooks', 'cover': 'cover_leather_cover', 'size': 'size_8_5x11', 'pages': 'pages_60'}
+Getting prices for 49 product combinations...
+
+Processing 1/49: Photo Book - Hard Cover - 8x6 - 20 pages... ✓
+Processing 2/49: Photo Book - Hard Cover - 8x6 - 40 pages... ✓
+Processing 3/49: Photo Book - Hard Cover - 8x6 - 60 pages... ✓
+Processing 4/49: Photo Book - Hard Cover - 8x8 - 20 pages... ✓
+Processing 5/49: Photo Book - Hard Cover - 8x8 - 40 pages... ✓
+Processing 6/49: Photo Book - Hard Cover - 8x8 - 60 pages... ✓
+Processing 7/49: Photo Book - Hard Cover - 11x8x5 - 20 pages... ✓
+Processing 8/49: Photo Book - Hard Cover - 11x8x5 - 40 pages... ✓
+Processing 9/49: Photo Book - Hard Cover - 11x8x5 - 60 pages... ✓
+Processing 10/49: Photo Book - Hard Cover - 8x5x11 - 20 pages... ✗ ('NoneType' object is not callable)
+Processing 11/49: Photo Book - Hard Cover - 8x5x11 - 40 pages... ✗ ('NoneType' object is not callable)
+Processing 12/49: Photo Book - Hard Cover - 8x5x11 - 60 pages... ✗ ('NoneType' object is not callable)
+Processing 13/49: Photo Book - Hard Cover - 11x11 - 20 pages... ✓
+Processing 14/49: Photo Book - Hard Cover - 11x11 - 40 pages... ✓
+Processing 15/49: Photo Book - Hard Cover - 11x11 - 60 pages... ✓
+Processing 16/49: Photo Book - Leather Cover - 8x6 - 20 pages... ✓
+Processing 17/49: Photo Book - Leather Cover - 8x6 - 40 pages... ✓
+Processing 18/49: Photo Book - Leather Cover - 8x6 - 60 pages... ✓
+Processing 19/49: Photo Book - Leather Cover - 8x8 - 20 pages... ✓
+Processing 20/49: Photo Book - Leather Cover - 8x8 - 40 pages... ✓
+Processing 21/49: Photo Book - Leather Cover - 8x8 - 60 pages... ✓
+Processing 22/49: Photo Book - Leather Cover - 11x8x5 - 20 pages... ✓
+Processing 23/49: Photo Book - Leather Cover - 11x8x5 - 40 pages... ✓
+Processing 24/49: Photo Book - Leather Cover - 11x8x5 - 60 pages... ✓
+Processing 25/49: Photo Book - Leather Cover - 8x5x11 - 20 pages... ✗ ('NoneType' object is not callable)
+Processing 26/49: Photo Book - Leather Cover - 8x5x11 - 40 pages... ✗ ('NoneType' object is not callable)
+Processing 27/49: Photo Book - Leather Cover - 8x5x11 - 60 pages... ✗ ('NoneType' object is not callable)
+Processing 28/49: Photo Book - Leather Cover - 11x11 - 20 pages... ✓
+Processing 29/49: Photo Book - Leather Cover - 11x11 - 40 pages... ✓
+Processing 30/49: Photo Book - Leather Cover - 11x11 - 60 pages... ✓
+Processing 31/49: Blanket - Fleece - Babyx20x25... ✓
+Processing 32/49: Blanket - Fleece - Mediumx30x40... ✓
+Processing 33/49: Blanket - Fleece - Throwx50x60... ✓
+Processing 34/49: Blanket - Fleece - Queenx60x80... ✓
+Processing 35/49: Blanket - Cosy Fleece - Babyx20x25... ✓
+Processing 36/49: Blanket - Cosy Fleece - Mediumx30x40... ✓
+Processing 37/49: Blanket - Cosy Fleece - Throwx50x60... ✓
+Processing 38/49: Blanket - Cosy Fleece - Queenx60x80... ✓
+Processing 39/49: Blanket - Sherpa - Babyx20x25... ✓
+Processing 40/49: Blanket - Sherpa - Mediumx30x40... ✓
+Processing 41/49: Blanket - Sherpa - Throwx50x60... ✓
+Processing 42/49: Blanket - Sherpa - Queenx60x80... ✓
+Processing 43/49: Canvas - 6x6... ✓
+Processing 44/49: Canvas - 10x10... ✓
+Processing 45/49: Canvas - 12x12... ✓
+Processing 46/49: Canvas - 11x14... ✓
+Processing 47/49: Canvas - 16x20... ✓
+Processing 48/49: Canvas - 36x24... ✓
+Processing 49/49: Canvas - 30x40... ✓
+
+========================================================================================================================
+PRICE LIST - All Products (Quantity: 50 units)
+========================================================================================================================
+
+📚 PHOTO BOOKS
+------------------------------------------------------------------------------------------------------------------------
+Product                                                                |   Base Price |   Discount |   Unit Price |     Total Price
+------------------------------------------------------------------------------------------------------------------------
+Photo Book - Hard Cover - 8x6 - 20 pages                               |       £29.95 |      71.0% |        £8.69 |         £434.28
+Photo Book - Hard Cover - 8x6 - 40 pages                               |       £29.95 |      71.0% |        £8.69 |         £434.28
+Photo Book - Hard Cover - 8x6 - 60 pages                               |       £29.95 |      71.0% |        £8.69 |         £434.28
+Photo Book - Hard Cover - 8x8 - 20 pages                               |       £39.95 |      57.0% |       £17.18 |         £858.93
+Photo Book - Hard Cover - 8x8 - 40 pages                               |       £39.95 |      57.0% |       £17.18 |         £858.93
+Photo Book - Hard Cover - 8x8 - 60 pages                               |       £39.95 |      57.0% |       £17.18 |         £858.93
+Photo Book - Hard Cover - 11x8x5 - 20 pages                            |       £44.95 |      48.0% |       £23.37 |        £1168.70
+Photo Book - Hard Cover - 11x8x5 - 40 pages                            |       £44.95 |      48.0% |       £23.37 |        £1168.70
+Photo Book - Hard Cover - 11x8x5 - 60 pages                            |       £44.95 |      48.0% |       £23.37 |        £1168.70
+Photo Book - Hard Cover - 8x5x11 - 20 pages                            | ERROR: 'NoneType' object is not callable
+Photo Book - Hard Cover - 8x5x11 - 40 pages                            | ERROR: 'NoneType' object is not callable
+Photo Book - Hard Cover - 8x5x11 - 60 pages                            | ERROR: 'NoneType' object is not callable
+Photo Book - Hard Cover - 11x11 - 20 pages                             |       £69.95 |      50.0% |       £34.98 |        £1748.75
+Photo Book - Hard Cover - 11x11 - 40 pages                             |       £69.95 |      50.0% |       £34.98 |        £1748.75
+Photo Book - Hard Cover - 11x11 - 60 pages                             |       £69.95 |      50.0% |       £34.98 |        £1748.75
+Photo Book - Leather Cover - 8x6 - 20 pages                            |       £19.95 |      64.0% |        £7.18 |         £359.10
+Photo Book - Leather Cover - 8x6 - 40 pages                            |       £19.95 |      64.0% |        £7.18 |         £359.10
+Photo Book - Leather Cover - 8x6 - 60 pages                            |       £19.95 |      64.0% |        £7.18 |         £359.10
+Photo Book - Leather Cover - 8x8 - 20 pages                            |       £29.95 |      64.0% |       £10.78 |         £539.10
+Photo Book - Leather Cover - 8x8 - 40 pages                            |       £29.95 |      64.0% |       £10.78 |         £539.10
+Photo Book - Leather Cover - 8x8 - 60 pages                            |       £29.95 |      64.0% |       £10.78 |         £539.10
+Photo Book - Leather Cover - 11x8x5 - 20 pages                         |       £35.95 |      64.0% |       £12.94 |         £647.10
+Photo Book - Leather Cover - 11x8x5 - 40 pages                         |       £35.95 |      64.0% |       £12.94 |         £647.10
+Photo Book - Leather Cover - 11x8x5 - 60 pages                         |       £35.95 |      64.0% |       £12.94 |         £647.10
+Photo Book - Leather Cover - 8x5x11 - 20 pages                         | ERROR: 'NoneType' object is not callable
+Photo Book - Leather Cover - 8x5x11 - 40 pages                         | ERROR: 'NoneType' object is not callable
+Photo Book - Leather Cover - 8x5x11 - 60 pages                         | ERROR: 'NoneType' object is not callable
+Photo Book - Leather Cover - 11x11 - 20 pages                          |       £69.95 |      64.0% |       £25.18 |        £1259.10
+Photo Book - Leather Cover - 11x11 - 40 pages                          |       £69.95 |      64.0% |       £25.18 |        £1259.10
+Photo Book - Leather Cover - 11x11 - 60 pages                          |       £69.95 |      64.0% |       £25.18 |        £1259.10
+
+🛏️  BLANKETS
+------------------------------------------------------------------------------------------------------------------------
+Product                                                                |   Base Price |   Discount |   Unit Price |     Total Price
+------------------------------------------------------------------------------------------------------------------------
+Blanket - Fleece - Babyx20x25                                          |       £34.90 |      87.0% |        £4.54 |         £226.85
+Blanket - Fleece - Mediumx30x40                                        |       £74.90 |      88.0% |        £8.99 |         £449.40
+Blanket - Fleece - Throwx50x60                                         |       £84.90 |      68.0% |       £27.17 |        £1358.40
+Blanket - Fleece - Queenx60x80                                         |      £104.90 |      66.0% |       £35.67 |        £1783.30
+Blanket - Cosy Fleece - Babyx20x25                                     |       £39.90 |      84.0% |        £6.38 |         £319.20
+Blanket - Cosy Fleece - Mediumx30x40                                   |       £79.90 |      83.0% |       £13.58 |         £679.15
+Blanket - Cosy Fleece - Throwx50x60                                    |       £89.90 |      60.0% |       £35.96 |        £1798.00
+Blanket - Cosy Fleece - Queenx60x80                                    |      £109.90 |      55.0% |       £49.45 |        £2472.75
+Blanket - Sherpa - Babyx20x25                                          |       £79.90 |      82.0% |       £14.38 |         £719.10
+Blanket - Sherpa - Mediumx30x40                                        |      £119.90 |      85.0% |       £17.99 |         £899.25
+Blanket - Sherpa - Throwx50x60                                         |      £129.90 |      65.0% |       £45.46 |        £2273.25
+Blanket - Sherpa - Queenx60x80                                         |      £159.90 |      25.0% |      £119.93 |        £5996.25
+
+🖼️  CANVAS
+------------------------------------------------------------------------------------------------------------------------
+Product                                                                |   Base Price |   Discount |   Unit Price |     Total Price
+------------------------------------------------------------------------------------------------------------------------
+Canvas - 6x6                                                           |       £24.95 |      64.0% |        £8.98 |         £449.10
+Canvas - 10x10                                                         |       £24.95 |      64.0% |        £8.98 |         £449.10
+Canvas - 12x12                                                         |       £29.95 |      55.0% |       £13.48 |         £673.88
+Canvas - 11x14                                                         |       £23.95 |      55.0% |       £10.78 |         £538.87
+Canvas - 16x20                                                         |       £49.95 |      55.0% |       £22.48 |        £1123.88
+Canvas - 36x24                                                         |       £69.95 |      59.0% |       £28.68 |        £1433.98
+Canvas - 30x40                                                         |       £99.95 |      55.0% |       £44.98 |        £2248.88
+
+========================================================================================================================
+Summary: 43 successful, 6 failed out of 49 total
+========================================================================================================================

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Console - WhatsApp Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        .status {
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+
+        .messages {
+            padding: 30px;
+            max-height: 600px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.inbound {
+            background: white;
+            border-left: 4px solid #667eea;
+        }
+
+        .message.outbound {
+            background: #e7f3ff;
+            border-left: 4px solid #28a745;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .message-content {
+            font-size: 15px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .send-message {
+            padding: 30px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .send-message textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            margin-bottom: 15px;
+        }
+
+        .send-message textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .connection-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .connection-status.connected {
+            background: #28a745;
+        }
+
+        .connection-status.disconnected {
+            background: #dc3545;
+        }
+
+        .connection-status.connecting {
+            background: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Agent Console</h1>
+            <p>Real-time WhatsApp conversation management</p>
+        </div>
+
+        <div class="controls">
+            <div class="form-group">
+                <label for="userId">User ID (WhatsApp Number)</label>
+                <input type="text" id="userId" placeholder="e.g., 447123456789" />
+            </div>
+
+            <div class="form-group">
+                <label for="agentId">Agent ID</label>
+                <input type="text" id="agentId" placeholder="e.g., agent_1" />
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="claimConversation()">Claim Conversation</button>
+                <button class="btn-success" onclick="startStream()" id="startStreamBtn">Start Stream</button>
+                <button class="btn-danger" onclick="stopStream()" id="stopStreamBtn" disabled>Stop Stream</button>
+                <button class="btn-secondary" onclick="releaseConversation()">Release Conversation</button>
+            </div>
+
+            <div id="status" class="status"></div>
+        </div>
+
+        <div class="messages" id="messages">
+            <div style="text-align: center; color: #6c757d; padding: 40px;">
+                No messages yet. Claim a conversation and start streaming to see messages here.
+            </div>
+        </div>
+
+        <div class="send-message">
+            <label for="messageInput">Send Message</label>
+            <textarea id="messageInput" placeholder="Type your message here..." disabled></textarea>
+            <button class="btn-primary" onclick="sendMessage()" id="sendMessageBtn" disabled>Send Message</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin; // Use same origin as the page
+        let eventSource = null;
+        let isStreaming = false;
+
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            setTimeout(() => {
+                statusEl.className = 'status';
+            }, 5000);
+        }
+
+        function updateConnectionStatus(connected) {
+            const startBtn = document.getElementById('startStreamBtn');
+            const stopBtn = document.getElementById('stopStreamBtn');
+            const sendBtn = document.getElementById('sendMessageBtn');
+            const messageInput = document.getElementById('messageInput');
+
+            if (connected) {
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                sendBtn.disabled = false;
+                messageInput.disabled = false;
+            } else {
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                sendBtn.disabled = true;
+                messageInput.disabled = true;
+            }
+        }
+
+        async function claimConversation() {
+            const userId = document.getElementById('userId').value.trim();
+            const agentId = document.getElementById('agentId').value.trim();
+
+            if (!userId || !agentId) {
+                showStatus('Please enter both User ID and Agent ID', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/agent/claim/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ agent_id: agentId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(data.message || 'Conversation claimed successfully', 'success');
+                } else {
+                    showStatus(data.detail?.message || data.detail || 'Failed to claim conversation', 'error');
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function releaseConversation() {
+            const userId = document.getElementById('userId').value.trim();
+
+            if (!userId) {
+                showStatus('Please enter User ID', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/agent/release/${userId}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus(data.message || 'Conversation released successfully', 'success');
+                    stopStream();
+                } else {
+                    showStatus(data.detail || 'Failed to release conversation', 'error');
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function startStream() {
+            const userId = document.getElementById('userId').value.trim();
+
+            if (!userId) {
+                showStatus('Please enter User ID', 'error');
+                return;
+            }
+
+            if (isStreaming) {
+                showStatus('Stream already active', 'info');
+                return;
+            }
+
+            // Clear messages
+            const messagesEl = document.getElementById('messages');
+            messagesEl.innerHTML = '';
+
+            eventSource = new EventSource(`${API_BASE_URL}/api/agent/stream/${userId}`);
+
+            eventSource.onopen = () => {
+                isStreaming = true;
+                updateConnectionStatus(true);
+                showStatus('Connected to message stream', 'success');
+            };
+
+            eventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type === 'connected') {
+                        addMessage('System', 'Connected to message stream', 'system');
+                    } else if (data.type === 'heartbeat') {
+                        // Heartbeat - no action needed
+                    } else if (data.type === 'new_message') {
+                        addMessage('User', data.content, 'inbound', data.timestamp);
+                    } else if (data.type === 'agent_message') {
+                        addMessage('Agent', data.content, 'outbound', data.timestamp);
+                    }
+                } catch (error) {
+                    console.error('Error parsing SSE message:', error);
+                }
+            };
+
+            eventSource.onerror = (error) => {
+                console.error('SSE Error:', error);
+                showStatus('Stream connection error. Make sure conversation is claimed.', 'error');
+                stopStream();
+            };
+        }
+
+        function stopStream() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            isStreaming = false;
+            updateConnectionStatus(false);
+            showStatus('Stream stopped', 'info');
+        }
+
+        async function sendMessage() {
+            const userId = document.getElementById('userId').value.trim();
+            const agentId = document.getElementById('agentId').value.trim();
+            const message = document.getElementById('messageInput').value.trim();
+
+            if (!userId || !message) {
+                showStatus('Please enter User ID and message', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/agent/send-message/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: message,
+                        agent_id: agentId || undefined
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('messageInput').value = '';
+                    showStatus('Message sent successfully', 'success');
+                    // Message will appear via SSE stream
+                } else {
+                    showStatus(data.detail || 'Failed to send message', 'error');
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function addMessage(sender, content, type, timestamp) {
+            const messagesEl = document.getElementById('messages');
+            
+            // Remove placeholder if exists
+            if (messagesEl.children.length === 1 && messagesEl.children[0].style.textAlign === 'center') {
+                messagesEl.innerHTML = '';
+            }
+
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+
+            const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+
+            messageEl.innerHTML = `
+                <div class="message-header">
+                    <span><strong>${sender}</strong></span>
+                    <span>${timeStr}</span>
+                </div>
+                <div class="message-content">${escapeHtml(content)}</div>
+            `;
+
+            messagesEl.appendChild(messageEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Allow Enter key to send message (Shift+Enter for new line)
+        document.getElementById('messageInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            stopStream();
+        });
+    </script>
+</body>
+</html>
+

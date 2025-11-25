@@ -205,3 +205,5 @@ export default function AbandonmentsTable({ abandonments, loading }) {
   );
 }
 
+
+

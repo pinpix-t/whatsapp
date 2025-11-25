@@ -108,3 +108,5 @@ export function CommonPathsChart({ data, loading }) {
   );
 }
 
+
+

@@ -128,3 +128,5 @@ vercel --prod
 - Monitor Vercel logs for frontend errors
 - Set up error tracking (e.g., Sentry) if needed
 
+
+
