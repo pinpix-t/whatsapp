@@ -168,9 +168,16 @@ class PostgresStore:
             return []
 
         try:
+            # Get both inbound (from user) and outbound (to user) messages
+            from sqlalchemy import or_
             messages = (
                 session.query(Message)
-                .filter(Message.from_number == user_id)
+                .filter(
+                    or_(
+                        Message.from_number == user_id,  # Inbound messages from user
+                        Message.to_number == user_id     # Outbound messages to user
+                    )
+                )
                 .order_by(Message.created_at.desc())
                 .limit(limit)
                 .all()
@@ -294,12 +301,15 @@ class PostgresStore:
             from sqlalchemy import func, distinct
             
             # Base query - get distinct from_number with latest message time and count
+            # Exclude bot messages (from_number = "bot" or starts with "agent_")
             query = (
                 session.query(
                     Message.from_number,
                     func.max(Message.created_at).label('last_message_time'),
                     func.count(Message.id).label('message_count')
                 )
+                .filter(~Message.from_number.like('bot%'))
+                .filter(~Message.from_number.like('agent_%'))
                 .group_by(Message.from_number)
             )
             
@@ -357,26 +367,41 @@ class PostgresStore:
             return {}
 
         try:
-            from sqlalchemy import func
+            from sqlalchemy import func, or_
             
-            # Get message count
+            # Get message count (both inbound and outbound)
             message_count = (
                 session.query(Message)
-                .filter(Message.from_number == user_id)
+                .filter(
+                    or_(
+                        Message.from_number == user_id,  # Inbound from user
+                        Message.to_number == user_id     # Outbound to user
+                    )
+                )
                 .count()
             )
             
             # Get first and last message
             first_message = (
                 session.query(Message)
-                .filter(Message.from_number == user_id)
+                .filter(
+                    or_(
+                        Message.from_number == user_id,
+                        Message.to_number == user_id
+                    )
+                )
                 .order_by(Message.created_at.asc())
                 .first()
             )
             
             last_message = (
                 session.query(Message)
-                .filter(Message.from_number == user_id)
+                .filter(
+                    or_(
+                        Message.from_number == user_id,
+                        Message.to_number == user_id
+                    )
+                )
                 .order_by(Message.created_at.desc())
                 .first()
             )
@@ -390,7 +415,7 @@ class PostgresStore:
             
             outbound_count = (
                 session.query(Message)
-                .filter(Message.from_number == user_id, Message.direction == "outbound")
+                .filter(Message.to_number == user_id, Message.direction == "outbound")
                 .count()
             )
             

@@ -57,6 +57,25 @@ class WhatsAppAPI:
             data = response.json()
             logger.info(f"✓ Message sent to {to}")
             
+            # Extract message_id from WhatsApp API response
+            message_id = data.get("messages", [{}])[0].get("id") if data.get("messages") else None
+            
+            # Save message to database
+            if message_id:
+                try:
+                    from database.postgres_store import postgres_store
+                    postgres_store.save_message(
+                        message_id=message_id,
+                        from_number="bot",  # Bot message identifier
+                        to_number=to,
+                        content=message,
+                        direction="outbound",
+                        message_type="text",
+                        status="sent"
+                    )
+                except Exception as e:
+                    logger.error(f"Error storing bot message: {e}")
+            
             # Track last message sent for abandonment detection (only for bulk ordering flow)
             if step_info and step_info.get("flow") == "bulk_ordering":
                 redis_store.set_last_message_sent(to, message, step_info)

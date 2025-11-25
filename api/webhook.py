@@ -398,10 +398,31 @@ async def process_message(message_data: dict):
             await whatsapp_api.mark_message_as_read(message_id)
             return  # Exit early, don't process with bot
 
-        # Check for conversation abandonment (15 minute timeout)
+        # Save incoming message to database (for all messages, not just handoff)
         from datetime import datetime
         from database.postgres_store import postgres_store
         
+        # Determine message content based on type
+        message_content = text
+        if not message_content and interactive_type:
+            message_content = f"[{interactive_type}] {button_id or list_id or ''}"
+        if not message_content:
+            message_content = f"[{message_data.get('type', 'unknown')} message]"
+        
+        try:
+            postgres_store.save_message(
+                message_id=message_id,
+                from_number=from_number,
+                to_number=None,
+                content=message_content,
+                direction="inbound",
+                message_type=message_data.get("type", "text"),
+                status="received"
+            )
+        except Exception as e:
+            logger.error(f"Error storing incoming message: {e}")
+        
+        # Check for conversation abandonment (15 minute timeout)
         last_message = redis_store.get_last_message_sent(from_number)
         if last_message:
             last_time = datetime.fromisoformat(last_message["timestamp"])

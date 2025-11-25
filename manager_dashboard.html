@@ -333,6 +333,11 @@
         async function loadStats() {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/agent/conversation-stats`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error loading stats:', response.status, errorText);
+                    return;
+                }
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -351,11 +356,31 @@
         async function loadConversations() {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/agent/all-conversations?limit=1000`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error loading conversations:', response.status, errorText);
+                    document.getElementById('conversationList').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <div>Error loading conversations (${response.status})</div>
+                            <div style="font-size: 12px; margin-top: 10px; color: #999;">${errorText.substring(0, 100)}</div>
+                        </div>
+                    `;
+                    return;
+                }
                 const data = await response.json();
                 
                 if (data.status === 'success') {
                     allConversations = data.conversations;
                     renderConversationList(allConversations);
+                } else {
+                    console.error('Unexpected response:', data);
+                    document.getElementById('conversationList').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <div>Unexpected response from server</div>
+                        </div>
+                    `;
                 }
             } catch (error) {
                 console.error('Error loading conversations:', error);
@@ -363,6 +388,7 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">⚠️</div>
                         <div>Error loading conversations</div>
+                        <div style="font-size: 12px; margin-top: 10px; color: #999;">${error.message}</div>
                     </div>
                 `;
             }
