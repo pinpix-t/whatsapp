@@ -189,6 +189,14 @@ async def serve_agent_console():
     return FileResponse(file_path)
 
 
+@app.get("/manager-dashboard")
+async def serve_manager_dashboard():
+    """Serve the manager dashboard HTML file"""
+    from pathlib import Path
+    file_path = Path(__file__).parent.parent / "manager_dashboard.html"
+    return FileResponse(file_path)
+
+
 @app.get("/webhook")
 async def verify_webhook(request: Request):
     """

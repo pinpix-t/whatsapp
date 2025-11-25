@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Dashboard - WhatsApp Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .dashboard {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 30px;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            margin-top: 80px;
+            height: calc(100vh - 80px);
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .sidebar-header h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .conversation-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .conversation-item {
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .conversation-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .conversation-item.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .conversation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .user-id {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.claimed {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .conversation-meta {
+            font-size: 12px;
+            color: #6c757d;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-top: 80px;
+            margin-left: 350px;
+            height: calc(100vh - 80px);
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .conversation-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .conversation-header-view {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            background: #f8f9fa;
+        }
+
+        .conversation-header-view h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .conversation-info {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.inbound {
+            background: white;
+            border-left: 4px solid #667eea;
+            margin-right: 20%;
+        }
+
+        .message.outbound {
+            background: #e7f3ff;
+            border-left: 4px solid #28a745;
+            margin-left: 20%;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .message-content {
+            font-size: 15px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c757d;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .refresh-indicator {
+            position: fixed;
+            top: 90px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: none;
+            z-index: 99;
+        }
+
+        .refresh-indicator.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="stats-panel">
+        <div class="stat-item">
+            <div class="stat-value" id="totalConversations">-</div>
+            <div class="stat-label">Total Conversations</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="activeConversations">-</div>
+            <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="claimedConversations">-</div>
+            <div class="stat-label">Claimed</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="recentConversations">-</div>
+            <div class="stat-label">Last 24h</div>
+        </div>
+    </div>
+
+    <div class="refresh-indicator" id="refreshIndicator">Refreshing...</div>
+
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Conversations</h2>
+                <input type="text" class="search-box" id="searchBox" placeholder="Search by user ID...">
+            </div>
+            <div class="conversation-list" id="conversationList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">💬</div>
+                    <div>Loading conversations...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="conversation-view" id="conversationView">
+                <div class="empty-state">
+                    <div class="empty-state-icon">👈</div>
+                    <div>Select a conversation to view messages</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+        let allConversations = [];
+        let selectedConversationId = null;
+        let refreshInterval = null;
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/agent/conversation-stats`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const stats = data.stats;
+                    document.getElementById('totalConversations').textContent = stats.total_conversations || 0;
+                    document.getElementById('activeConversations').textContent = stats.active_conversations || 0;
+                    document.getElementById('claimedConversations').textContent = stats.claimed_conversations || 0;
+                    document.getElementById('recentConversations').textContent = stats.recent_conversations_24h || 0;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load all conversations
+        async function loadConversations() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/agent/all-conversations?limit=1000`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    allConversations = data.conversations;
+                    renderConversationList(allConversations);
+                }
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+                document.getElementById('conversationList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div>Error loading conversations</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Render conversation list
+        function renderConversationList(conversations) {
+            const listEl = document.getElementById('conversationList');
+            
+            if (conversations.length === 0) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💬</div>
+                        <div>No conversations found</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = conversations.map(conv => {
+                const statusClass = conv.is_claimed ? 'claimed' : 'active';
+                const statusText = conv.is_claimed ? 'Claimed' : 'Active';
+                const lastMessageTime = conv.last_message_time 
+                    ? new Date(conv.last_message_time).toLocaleString() 
+                    : 'No messages';
+                
+                return `
+                    <div class="conversation-item ${selectedConversationId === conv.user_id ? 'active' : ''}" 
+                         onclick="selectConversation('${conv.user_id}')">
+                        <div class="conversation-header">
+                            <span class="user-id">${escapeHtml(conv.user_id)}</span>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="conversation-meta">
+                            <span>${conv.message_count} messages</span>
+                            <span>${lastMessageTime}</span>
+                        </div>
+                        ${conv.agent_id ? `<div style="font-size: 11px; color: #856404; margin-top: 4px;">Agent: ${escapeHtml(conv.agent_id)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Select conversation
+        async function selectConversation(userId) {
+            selectedConversationId = userId;
+            
+            // Update active state
+            document.querySelectorAll('.conversation-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget?.classList.add('active');
+            
+            // Load conversation details
+            await loadConversationDetails(userId);
+        }
+
+        // Load conversation details
+        async function loadConversationDetails(userId) {
+            const viewEl = document.getElementById('conversationView');
+            viewEl.innerHTML = '<div class="empty-state"><div>Loading...</div></div>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/agent/conversation/${userId}?view_only=true`);
+                const data = await response.json();
+                
+                const conversation = allConversations.find(c => c.user_id === userId);
+                const handoffStatus = data.handoff_status;
+                
+                viewEl.innerHTML = `
+                    <div class="conversation-header-view">
+                        <h3>${escapeHtml(userId)}</h3>
+                        <div class="conversation-info">
+                            ${handoffStatus.is_claimed 
+                                ? `Claimed by ${escapeHtml(handoffStatus.agent_id)} at ${new Date(handoffStatus.claimed_at).toLocaleString()}` 
+                                : 'Active - Bot responding'}
+                            • ${data.message_count} total messages
+                        </div>
+                    </div>
+                    <div class="messages-container" id="messagesContainer">
+                        ${renderMessages(data.conversation_history)}
+                    </div>
+                `;
+                
+                // Scroll to bottom
+                const messagesContainer = document.getElementById('messagesContainer');
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+                viewEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div>Error loading conversation</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Render messages
+        function renderMessages(messages) {
+            if (!messages || messages.length === 0) {
+                return '<div class="empty-state"><div>No messages yet</div></div>';
+            }
+
+            return messages.map(msg => {
+                const time = new Date(msg.created_at).toLocaleString();
+                const direction = msg.direction || 'inbound';
+                const sender = direction === 'inbound' ? 'User' : 'Bot';
+                
+                return `
+                    <div class="message ${direction}">
+                        <div class="message-header">
+                            <span><strong>${sender}</strong></span>
+                            <span>${time}</span>
+                        </div>
+                        <div class="message-content">${escapeHtml(msg.content || '[No content]')}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Search functionality
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filtered = allConversations.filter(conv => 
+                conv.user_id.toLowerCase().includes(searchTerm)
+            );
+            renderConversationList(filtered);
+        });
+
+        // Refresh function
+        async function refresh() {
+            document.getElementById('refreshIndicator').classList.add('show');
+            await Promise.all([loadStats(), loadConversations()]);
+            
+            // Reload selected conversation if any
+            if (selectedConversationId) {
+                await loadConversationDetails(selectedConversationId);
+            }
+            
+            setTimeout(() => {
+                document.getElementById('refreshIndicator').classList.remove('show');
+            }, 1000);
+        }
+
+        // Auto-refresh every 10 seconds
+        function startAutoRefresh() {
+            refreshInterval = setInterval(refresh, 10000);
+        }
+
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        async function init() {
+            await refresh();
+            startAutoRefresh();
+        }
+
+        // Start on load
+        init();
+
+        // Cleanup on unload
+        window.addEventListener('beforeunload', () => {
+            stopAutoRefresh();
+        });
+    </script>
+</body>
+</html>
+

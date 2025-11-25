@@ -8,7 +8,7 @@ import asyncio
 import json
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Set
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from database.redis_store import redis_store
@@ -304,9 +304,10 @@ async def stream_messages(user_id: str):
 
 
 @router.get("/conversation/{user_id}")
-async def get_conversation(user_id: str):
+async def get_conversation(user_id: str, view_only: bool = Query(False)):
     """
     Get conversation history and state for a user
+    Works without claiming - view-only access for managers
     """
     try:
         # Get handoff status
@@ -344,59 +345,211 @@ async def get_conversation(user_id: str):
 
 
 @router.get("/conversations")
-async def list_conversations():
+async def list_conversations(all: bool = False):
     """
-    List all active claimed conversations
+    List conversations
+    - If all=false (default): List only claimed conversations
+    - If all=true: List all conversations from database
     """
     try:
-        if not redis_store.client:
+        if all:
+            # Get all conversations from database
+            all_conversations = postgres_store.get_all_conversations(limit=1000)
+            
+            # Enrich with handoff and bulk state info
+            enriched = []
+            for conv in all_conversations:
+                user_id = conv["user_id"]
+                
+                # Check if claimed
+                handoff_info = redis_store.get_agent_handoff(user_id) if redis_store.client else None
+                
+                # Get bulk ordering state
+                bulk_state = redis_store.get_bulk_order_state(user_id) if redis_store.client else None
+                
+                # Determine status
+                status = "claimed" if handoff_info else "active"
+                
+                enriched.append({
+                    "user_id": user_id,
+                    "last_message_time": conv["last_message_time"],
+                    "message_count": conv["message_count"],
+                    "is_claimed": handoff_info is not None,
+                    "agent_id": handoff_info.get("agent_id") if handoff_info else None,
+                    "claimed_at": handoff_info.get("claimed_at") if handoff_info else None,
+                    "has_bulk_ordering": bulk_state is not None,
+                    "bulk_state": bulk_state.get("state") if bulk_state else None,
+                    "status": status
+                })
+            
             return {
                 "status": "success",
-                "count": 0,
-                "conversations": []
+                "count": len(enriched),
+                "conversations": enriched
             }
-        
-        # Scan for all agent_handoff keys
-        cursor = 0
-        conversations = []
-        
-        while True:
-            cursor, keys = redis_store.client.scan(cursor, match="agent_handoff:*", count=100)
+        else:
+            # Original behavior: only claimed conversations
+            if not redis_store.client:
+                return {
+                    "status": "success",
+                    "count": 0,
+                    "conversations": []
+                }
             
-            for key in keys:
-                try:
-                    user_id = key.replace("agent_handoff:", "")
-                    handoff_info = redis_store.get_agent_handoff(user_id)
-                    
-                    if handoff_info:
-                        # Get bulk ordering state
-                        bulk_state = redis_store.get_bulk_order_state(user_id)
-                        
-                        # Get last message time from database
-                        conversation_history = postgres_store.get_conversation_history(user_id, limit=1)
-                        last_message_time = conversation_history[0].get("created_at") if conversation_history else None
-                        
-                        conversations.append({
-                            "user_id": user_id,
-                            "agent_id": handoff_info.get("agent_id"),
-                            "claimed_at": handoff_info.get("claimed_at"),
-                            "has_bulk_ordering": bulk_state is not None,
-                            "bulk_state": bulk_state.get("state") if bulk_state else None,
-                            "last_message_time": last_message_time
-                        })
-                except Exception as e:
-                    logger.error(f"Error processing conversation {key}: {e}")
-                    continue
+            # Scan for all agent_handoff keys
+            cursor = 0
+            conversations = []
             
-            if cursor == 0:
-                break
-        
-        return {
-            "status": "success",
-            "count": len(conversations),
-            "conversations": conversations
-        }
+            while True:
+                cursor, keys = redis_store.client.scan(cursor, match="agent_handoff:*", count=100)
+                
+                for key in keys:
+                    try:
+                        user_id = key.replace("agent_handoff:", "")
+                        handoff_info = redis_store.get_agent_handoff(user_id)
+                        
+                        if handoff_info:
+                            # Get bulk ordering state
+                            bulk_state = redis_store.get_bulk_order_state(user_id)
+                            
+                            # Get last message time from database
+                            conversation_history = postgres_store.get_conversation_history(user_id, limit=1)
+                            last_message_time = conversation_history[0].get("created_at") if conversation_history else None
+                            
+                            conversations.append({
+                                "user_id": user_id,
+                                "agent_id": handoff_info.get("agent_id"),
+                                "claimed_at": handoff_info.get("claimed_at"),
+                                "has_bulk_ordering": bulk_state is not None,
+                                "bulk_state": bulk_state.get("state") if bulk_state else None,
+                                "last_message_time": last_message_time
+                            })
+                    except Exception as e:
+                        logger.error(f"Error processing conversation {key}: {e}")
+                        continue
+                
+                if cursor == 0:
+                    break
+            
+            return {
+                "status": "success",
+                "count": len(conversations),
+                "conversations": conversations
+            }
     except Exception as e:
         logger.error(f"Error listing conversations: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error listing conversations: {str(e)}")
+
+
+@router.get("/all-conversations")
+async def get_all_conversations(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None)
+):
+    """
+    List all conversations with metadata
+    Returns all users who have sent messages, not just claimed ones
+    """
+    try:
+        # Get all conversations from database
+        conversations = postgres_store.get_all_conversations(
+            limit=limit,
+            offset=offset,
+            date_from=date_from,
+            date_to=date_to
+        )
+        
+        # Enrich with handoff and bulk state info
+        enriched = []
+        for conv in conversations:
+            user_id = conv["user_id"]
+            
+            # Check if claimed
+            handoff_info = redis_store.get_agent_handoff(user_id) if redis_store.client else None
+            
+            # Get bulk ordering state
+            bulk_state = redis_store.get_bulk_order_state(user_id) if redis_store.client else None
+            
+            # Get conversation summary for additional stats
+            summary = postgres_store.get_conversation_summary(user_id)
+            
+            # Determine status
+            status = "claimed" if handoff_info else "active"
+            
+            enriched.append({
+                "user_id": user_id,
+                "last_message_time": conv["last_message_time"],
+                "message_count": conv["message_count"],
+                "is_claimed": handoff_info is not None,
+                "agent_id": handoff_info.get("agent_id") if handoff_info else None,
+                "claimed_at": handoff_info.get("claimed_at") if handoff_info else None,
+                "has_bulk_ordering": bulk_state is not None,
+                "bulk_state": bulk_state.get("state") if bulk_state else None,
+                "status": status,
+                "inbound_count": summary.get("inbound_count", 0),
+                "outbound_count": summary.get("outbound_count", 0),
+                "first_message_time": summary.get("first_message_time")
+            })
+        
+        return {
+            "status": "success",
+            "count": len(enriched),
+            "conversations": enriched,
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        logger.error(f"Error getting all conversations: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error getting all conversations: {str(e)}")
+
+
+@router.get("/conversation-stats")
+async def get_conversation_stats():
+    """
+    Get overview statistics for all conversations
+    """
+    try:
+        # Get all conversations
+        all_conversations = postgres_store.get_all_conversations(limit=10000)
+        
+        # Count claimed conversations
+        claimed_count = 0
+        if redis_store.client:
+            cursor = 0
+            while True:
+                cursor, keys = redis_store.client.scan(cursor, match="agent_handoff:*", count=100)
+                claimed_count += len(keys)
+                if cursor == 0:
+                    break
+        
+        total_count = len(all_conversations)
+        active_count = total_count - claimed_count
+        
+        # Calculate recent activity (last 24 hours)
+        from datetime import datetime, timedelta
+        yesterday = (datetime.utcnow() - timedelta(days=1)).isoformat()
+        recent_conversations = postgres_store.get_all_conversations(
+            limit=10000,
+            date_from=yesterday
+        )
+        recent_count = len(recent_conversations)
+        
+        # Calculate total messages
+        total_messages = sum(conv.get("message_count", 0) for conv in all_conversations)
+        
+        return {
+            "status": "success",
+            "stats": {
+                "total_conversations": total_count,
+                "active_conversations": active_count,
+                "claimed_conversations": claimed_count,
+                "recent_conversations_24h": recent_count,
+                "total_messages": total_messages
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting conversation stats: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error getting conversation stats: {str(e)}")
 

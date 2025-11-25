@@ -272,6 +272,143 @@ class PostgresStore:
             logger.error(f"Error getting pool stats: {e}")
             return {"status": "error", "error": str(e)}
 
+    @retry_db_operation()
+    def get_all_conversations(self, limit: int = 100, offset: int = 0, date_from: Optional[str] = None, date_to: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Get all unique conversations (users who have sent messages)
+        
+        Args:
+            limit: Maximum number of conversations to return
+            offset: Offset for pagination
+            date_from: Filter conversations from this date (ISO format)
+            date_to: Filter conversations to this date (ISO format)
+            
+        Returns:
+            List of conversation summaries with user_id, last_message_time, message_count
+        """
+        session = self.get_session()
+        if not session:
+            return []
+
+        try:
+            from sqlalchemy import func, distinct
+            
+            # Base query - get distinct from_number with latest message time and count
+            query = (
+                session.query(
+                    Message.from_number,
+                    func.max(Message.created_at).label('last_message_time'),
+                    func.count(Message.id).label('message_count')
+                )
+                .group_by(Message.from_number)
+            )
+            
+            # Apply date filters if provided
+            if date_from:
+                try:
+                    from datetime import datetime
+                    date_from_dt = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+                    query = query.filter(Message.created_at >= date_from_dt)
+                except:
+                    pass
+            
+            if date_to:
+                try:
+                    from datetime import datetime
+                    date_to_dt = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+                    query = query.filter(Message.created_at <= date_to_dt)
+                except:
+                    pass
+            
+            # Order by last message time (most recent first)
+            query = query.order_by(func.max(Message.created_at).desc())
+            
+            # Apply limit and offset
+            results = query.limit(limit).offset(offset).all()
+            
+            conversations = []
+            for result in results:
+                conversations.append({
+                    "user_id": result.from_number,
+                    "last_message_time": result.last_message_time.isoformat() if result.last_message_time else None,
+                    "message_count": result.message_count
+                })
+            
+            return conversations
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting all conversations: {e}")
+            return []
+        finally:
+            session.close()
+
+    @retry_db_operation()
+    def get_conversation_summary(self, user_id: str) -> Dict[str, Any]:
+        """
+        Get summary statistics for a specific conversation
+        
+        Args:
+            user_id: User identifier (phone number)
+            
+        Returns:
+            Dictionary with conversation summary including message_count, first_message, last_message, etc.
+        """
+        session = self.get_session()
+        if not session:
+            return {}
+
+        try:
+            from sqlalchemy import func
+            
+            # Get message count
+            message_count = (
+                session.query(Message)
+                .filter(Message.from_number == user_id)
+                .count()
+            )
+            
+            # Get first and last message
+            first_message = (
+                session.query(Message)
+                .filter(Message.from_number == user_id)
+                .order_by(Message.created_at.asc())
+                .first()
+            )
+            
+            last_message = (
+                session.query(Message)
+                .filter(Message.from_number == user_id)
+                .order_by(Message.created_at.desc())
+                .first()
+            )
+            
+            # Get inbound/outbound counts
+            inbound_count = (
+                session.query(Message)
+                .filter(Message.from_number == user_id, Message.direction == "inbound")
+                .count()
+            )
+            
+            outbound_count = (
+                session.query(Message)
+                .filter(Message.from_number == user_id, Message.direction == "outbound")
+                .count()
+            )
+            
+            return {
+                "user_id": user_id,
+                "message_count": message_count,
+                "inbound_count": inbound_count,
+                "outbound_count": outbound_count,
+                "first_message_time": first_message.created_at.isoformat() if first_message else None,
+                "last_message_time": last_message.created_at.isoformat() if last_message else None,
+                "last_message_content": last_message.content[:100] if last_message else None
+            }
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting conversation summary: {e}")
+            return {}
+        finally:
+            session.close()
+
     def close(self):
         """Close database connection and cleanup pool"""
         if self.engine:
