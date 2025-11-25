@@ -67,8 +67,10 @@ class WhatsAppAPI:
             logger.error(f"❌ Error sending message to {to}: {e}")
             try:
                 error_details = e.response.json()
+                logger.error(f"❌ WhatsApp API Error Details: {error_details}")
             except:
                 error_details = {"response": e.response.text}
+                logger.error(f"❌ WhatsApp API Error Response: {error_details}")
             raise WhatsAppAPIError(
                 message=f"Failed to send message to {to}",
                 status_code=e.response.status_code,
