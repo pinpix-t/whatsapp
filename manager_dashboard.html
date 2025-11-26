@@ -472,6 +472,13 @@
             const withQuantity = conversations.filter(conv => conv.has_quantity === true);
             const withoutQuantity = conversations.filter(conv => !conv.has_quantity || conv.has_quantity === false);
             
+            // Sort quantity mentioned conversations by quantity (highest first)
+            withQuantity.sort((a, b) => {
+                const qtyA = a.quantity || 0;
+                const qtyB = b.quantity || 0;
+                return qtyB - qtyA; // Descending order (highest first)
+            });
+            
             // Update counts
             document.getElementById('quantityMentionedCount').textContent = withQuantity.length;
             document.getElementById('quantityNotMentionedCount').textContent = withoutQuantity.length;
@@ -509,11 +516,14 @@
                 ? new Date(conv.last_message_time).toLocaleString() 
                 : 'No messages';
             
+            // Show quantity if available
+            const quantityDisplay = conv.quantity ? `<span style="font-weight: 600; color: #667eea; margin-left: 8px;">[${conv.quantity}]</span>` : '';
+            
             return `
                 <div class="conversation-item ${selectedConversationId === conv.user_id ? 'active' : ''}" 
                      onclick="selectConversation('${conv.user_id}')">
                     <div class="conversation-header">
-                        <span class="user-id">${escapeHtml(conv.user_id)}</span>
+                        <span class="user-id">${escapeHtml(conv.user_id)}${quantityDisplay}</span>
                         <span class="status-badge ${statusClass}">${statusText}</span>
                     </div>
                     <div class="conversation-meta">

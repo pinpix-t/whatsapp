@@ -105,7 +105,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Please enter a valid quantity greater than 0.",
         "error_generic": "Sorry, there was an error. Please try again.",
         "button_choose_product": "Choose Product",
-        "minimum_quantity": "For bulk orders, we require a minimum of 10 units. For smaller orders, please visit our website:"
+        "minimum_quantity": "For bulk orders, we require a minimum of 11 units. For smaller orders, please visit our website:"
     },
     "fr": {
         "welcome_bulk": "Bienvenue dans la commande en gros!",
@@ -118,7 +118,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Veuillez entrer une quantité valide supérieure à 0.",
         "error_generic": "Désolé, une erreur s'est produite. Veuillez réessayer.",
         "button_choose_product": "Choisir un produit",
-        "minimum_quantity": "Pour les commandes en gros, nous exigeons un minimum de 10 unités. Pour les commandes plus petites, veuillez visiter notre site Web:"
+        "minimum_quantity": "Pour les commandes en gros, nous exigeons un minimum de 11 unités. Pour les commandes plus petites, veuillez visiter notre site Web:"
     },
     "it": {
         "welcome_bulk": "Benvenuto nell'ordine all'ingrosso!",
@@ -131,7 +131,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Per favore, inserisci una quantità valida maggiore di 0.",
         "error_generic": "Scusa, c'è stato un errore. Per favore riprova.",
         "button_choose_product": "Scegli prodotto",
-        "minimum_quantity": "Per ordini all'ingrosso, richiediamo un minimo di 10 unità. Per ordini più piccoli, visitare il nostro sito Web:"
+        "minimum_quantity": "Per ordini all'ingrosso, richiediamo un minimo di 11 unità. Per ordini più piccoli, visitare il nostro sito Web:"
     },
     "es": {
         "welcome_bulk": "¡Bienvenido al pedido al por mayor!",
@@ -144,7 +144,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Por favor, ingresa una cantidad válida mayor que 0.",
         "error_generic": "Lo siento, hubo un error. Por favor intenta de nuevo.",
         "button_choose_product": "Elegir producto",
-        "minimum_quantity": "Para pedidos al por mayor, requerimos un mínimo de 10 unidades. Para pedidos más pequeños, visite nuestro sitio web:"
+        "minimum_quantity": "Para pedidos al por mayor, requerimos un mínimo de 11 unidades. Para pedidos más pequeños, visite nuestro sitio web:"
     },
     "de": {
         "welcome_bulk": "Willkommen bei der Großbestellung!",
@@ -157,7 +157,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Bitte geben Sie eine gültige Menge größer als 0 ein.",
         "error_generic": "Entschuldigung, es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
         "button_choose_product": "Produkt wählen",
-        "minimum_quantity": "Für Großbestellungen benötigen wir mindestens 10 Einheiten. Für kleinere Bestellungen besuchen Sie bitte unsere Website:"
+        "minimum_quantity": "Für Großbestellungen benötigen wir mindestens 11 Einheiten. Für kleinere Bestellungen besuchen Sie bitte unsere Website:"
     },
     "nl": {
         "welcome_bulk": "Welkom bij groothandel!",
@@ -170,7 +170,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Voer alstublieft een geldige hoeveelheid groter dan 0 in.",
         "error_generic": "Sorry, er is een fout opgetreden. Probeer het alstublieft opnieuw.",
         "button_choose_product": "Kies product",
-        "minimum_quantity": "Voor groothandel vereisen we een minimum van 10 eenheden. Voor kleinere bestellingen bezoek onze website:"
+        "minimum_quantity": "Voor groothandel vereisen we een minimum van 11 eenheden. Voor kleinere bestellingen bezoek onze website:"
     },
 }
 

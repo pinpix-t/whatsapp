@@ -423,8 +423,8 @@ class BulkOrderingService:
                 )
                 return
             
-            # Check minimum quantity (10 units)
-            if quantity < 10:
+            # Check minimum quantity (11 units)
+            if quantity < 11:
                 # Get user's region for website link
                 user_region = user_language.get("region") if user_language else None
                 from utils.language_detection import get_region_url
@@ -437,7 +437,7 @@ class BulkOrderingService:
                 )
                 return
             
-            # Store quantity (quantity >= 10)
+            # Store quantity (quantity >= 11)
             state_data = self.redis_store.get_bulk_order_state(user_id)
             selections = state_data.get("selections", {}) if state_data else {}
             selections["quantity"] = quantity
@@ -457,8 +457,14 @@ class BulkOrderingService:
                 step_info=step_info
             )
             
-            # Clear bulk ordering state
-            self.redis_store.clear_bulk_order_state(user_id)
+            # Keep state for 1 minute so dashboard can pick it up
+            # Update state to "completed" with 60 second TTL
+            self.redis_store.set_bulk_order_state(
+                user_id, 
+                "completed", 
+                {"selections": selections},  # Keep selections including quantity
+                ttl=60  # 1 minute
+            )
             self.redis_store.clear_last_message_sent(user_id)
             
         except Exception as e:

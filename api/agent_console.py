@@ -461,6 +461,39 @@ async def get_all_conversations(
             date_to=date_to
         )
         
+        # Get all user_ids to check for quotes in batch
+        user_ids = [conv["user_id"] for conv in conversations]
+        
+        # Check analytics table for existing quotes with quantity (for old conversations)
+        quotes_with_quantity = {}
+        if user_ids:
+            try:
+                session = postgres_store.get_session()
+                if session:
+                    from sqlalchemy import text
+                    # Query analytics for bulk_quote_generated events with quantity
+                    # Build query with proper parameterization
+                    if len(user_ids) > 0:
+                        # Create placeholders for IN clause
+                        placeholders = ','.join([f':uid{i}' for i in range(len(user_ids))])
+                        params = {f'uid{i}': uid for i, uid in enumerate(user_ids)}
+                        
+                        query = text(f"""
+                            SELECT DISTINCT ON (user_id) user_id, 
+                                   (data->>'quantity')::int as quantity
+                            FROM analytics
+                            WHERE event_type = 'bulk_quote_generated'
+                            AND user_id IN ({placeholders})
+                            AND (data->>'quantity')::int > 0
+                            ORDER BY user_id, created_at DESC
+                        """)
+                        result = session.execute(query, params)
+                        for row in result:
+                            quotes_with_quantity[row.user_id] = row.quantity
+                    session.close()
+            except Exception as e:
+                logger.error(f"Error checking analytics for quantities: {e}")
+        
         # Enrich with handoff and bulk state info
         enriched = []
         for conv in conversations:
@@ -472,12 +505,22 @@ async def get_all_conversations(
             # Get bulk ordering state
             bulk_state = redis_store.get_bulk_order_state(user_id) if redis_store.client else None
             
-            # Check if quantity was mentioned (stored in selections.quantity)
+            # Check if quantity was mentioned (from bulk_state or analytics)
             has_quantity = False
+            quantity_value = None
+            
+            # First check bulk_state (current/active orders)
             if bulk_state:
                 selections = bulk_state.get("selections", {})
                 quantity = selections.get("quantity")
-                has_quantity = quantity is not None and quantity > 0
+                if quantity is not None and quantity > 0:
+                    has_quantity = True
+                    quantity_value = quantity
+            
+            # If not in bulk_state, check analytics (old quotes)
+            if not has_quantity and user_id in quotes_with_quantity:
+                has_quantity = True
+                quantity_value = quotes_with_quantity[user_id]
             
             # Determine status
             status = "claimed" if handoff_info else "active"
@@ -492,6 +535,7 @@ async def get_all_conversations(
                 "has_bulk_ordering": bulk_state is not None,
                 "bulk_state": bulk_state.get("state") if bulk_state else None,
                 "has_quantity": has_quantity,
+                "quantity": quantity_value,  # Include actual quantity value for sorting
                 "status": status
             })
         
