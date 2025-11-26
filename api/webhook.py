@@ -558,9 +558,9 @@ async def process_message(message_data: dict):
                 user_language = redis_store.get_user_language(from_number)
                 language_code = user_language.get("language_code", "en") if user_language else "en"
                 
-                # Send welcome message in user's language
-                from utils.language_detection import get_welcome_message
-                welcome_message = get_welcome_message(language_code)
+                # Send welcome message in user's language (bulk ordering flow)
+                from utils.language_detection import get_bulk_message
+                welcome_message = get_bulk_message(language_code, "welcome_bulk")
                 await whatsapp_api.send_message(
                     to=from_number,
                     message=welcome_message
@@ -590,9 +590,9 @@ async def process_message(message_data: dict):
                 # Store language preference
                 redis_store.set_user_language(from_number, detected_language, region)
                 
-                # Send welcome message in detected language
-                from utils.language_detection import get_welcome_message
-                welcome_message = get_welcome_message(detected_language)
+                # Send welcome message in detected language (bulk ordering flow)
+                from utils.language_detection import get_bulk_message
+                welcome_message = get_bulk_message(detected_language, "welcome_bulk")
                 await whatsapp_api.send_message(
                     to=from_number,
                     message=welcome_message
