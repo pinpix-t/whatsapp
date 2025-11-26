@@ -527,17 +527,21 @@ async def process_message(message_data: dict):
                 redis_store.clear_conversation(from_number)
                 logger.info(f"🔄 User {from_number} cleared conversation history")
                 
-                # Immediately show welcome buttons for instant restart
-                buttons = [
-                    {"id": "btn_create", "title": "Start Creating!"},
-                    {"id": "btn_order", "title": "Track My Order"},
-                    {"id": "btn_bulk", "title": "Bulk Ordering"}
-                ]
-                await whatsapp_api.send_interactive_buttons(
+                # Get user's stored language preference (or default to English)
+                user_language = redis_store.get_user_language(from_number)
+                language_code = user_language.get("language_code", "en") if user_language else "en"
+                
+                # Send welcome message in user's language
+                from utils.language_detection import get_welcome_message
+                welcome_message = get_welcome_message(language_code)
+                await whatsapp_api.send_message(
                     to=from_number,
-                    body_text="Got it! I've reset everything. How can I help you today? 👋",
-                    buttons=buttons
+                    message=welcome_message
                 )
+                
+                # Automatically start bulk ordering flow
+                logger.info(f"🔄 Restarting bulk ordering flow for user {from_number}")
+                await bulk_ordering_service.start_bulk_ordering(from_number)
                 return
             
             # Check for bulk order keywords (before checking if already in flow)
