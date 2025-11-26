@@ -121,7 +121,7 @@ class BulkOrderingService:
         step_info = {"flow": "bulk_ordering", "state": "asking_name"}
         await self.whatsapp_api.send_message(
             to=user_id,
-            body_text=name_message,
+            message=name_message,
             step_info=step_info
         )
     
