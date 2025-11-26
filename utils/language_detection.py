@@ -48,6 +48,16 @@ WELCOME_MESSAGES = {
     "nl": "Hallo! Welkom bij PrinterPix! Hoe kan ik u helpen?",
 }
 
+# Goodbye messages by language
+GOODBYE_MESSAGES = {
+    "en": "Goodbye! Have a great day! 👋",
+    "fr": "Au revoir! Passez une excellente journée! 👋",
+    "it": "Arrivederci! Buona giornata! 👋",
+    "es": "¡Adiós! ¡Que tengas un gran día! 👋",
+    "de": "Auf Wiedersehen! Einen schönen Tag noch! 👋",
+    "nl": "Tot ziens! Fijne dag! 👋",
+}
+
 # Button labels by language
 BUTTON_LABELS = {
     "en": {
@@ -266,6 +276,11 @@ def detect_language_from_greeting(message: str) -> Tuple[Optional[str], Optional
 def get_welcome_message(language_code: str) -> str:
     """Get welcome message in specified language"""
     return WELCOME_MESSAGES.get(language_code, WELCOME_MESSAGES["en"])
+
+
+def get_goodbye_message(language_code: str) -> str:
+    """Get goodbye message in specified language"""
+    return GOODBYE_MESSAGES.get(language_code, GOODBYE_MESSAGES["en"])
 
 
 def get_button_labels(language_code: str) -> dict:

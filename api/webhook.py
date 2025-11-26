@@ -510,9 +510,36 @@ async def process_message(message_data: dict):
         elif text:
             text_lower = text.lower().strip()
             
-            # Check for end/restart/cancel commands
-            end_commands = ['restart', 'reset', 'cancel', 'end', 'stop', 'exit', 'start over', 'new order', 'bye']
+            # Check for end commands (bye, end) - send goodbye and stop
+            end_commands = ['bye', 'end', 'goodbye', 'see you', 'farewell']
             if any(cmd in text_lower for cmd in end_commands):
+                # Clear bulk ordering state if exists
+                bulk_state = redis_store.get_bulk_order_state(from_number)
+                if bulk_state:
+                    redis_store.clear_bulk_order_state(from_number)
+                    redis_store.clear_last_message_sent(from_number)
+                    logger.info(f"🔄 User {from_number} ended bulk ordering flow")
+                
+                # Clear conversation history
+                redis_store.clear_conversation(from_number)
+                logger.info(f"🔄 User {from_number} cleared conversation history")
+                
+                # Get user's stored language preference (or default to English)
+                user_language = redis_store.get_user_language(from_number)
+                language_code = user_language.get("language_code", "en") if user_language else "en"
+                
+                # Send goodbye message in user's language
+                from utils.language_detection import get_goodbye_message
+                goodbye_message = get_goodbye_message(language_code)
+                await whatsapp_api.send_message(
+                    to=from_number,
+                    message=goodbye_message
+                )
+                return  # Don't restart - just end
+            
+            # Check for restart commands (restart, reset, etc.) - restart flow
+            restart_commands = ['restart', 'reset', 'cancel', 'stop', 'exit', 'start over', 'new order']
+            if any(cmd in text_lower for cmd in restart_commands):
                 # Clear bulk ordering state if exists
                 bulk_state = redis_store.get_bulk_order_state(from_number)
                 bulk_ended = False
