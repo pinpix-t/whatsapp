@@ -460,7 +460,17 @@
                 
                 viewEl.innerHTML = `
                     <div class="conversation-header-view">
-                        <h3>${escapeHtml(userId)}</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 style="margin: 0;">${escapeHtml(userId)}</h3>
+                            <a href="/agent-console?userId=${encodeURIComponent(userId)}" 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               style="padding: 8px 16px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600; transition: background 0.3s;"
+                               onmouseover="this.style.background='#5568d3'"
+                               onmouseout="this.style.background='#667eea'">
+                                Open in Agent Console
+                            </a>
+                        </div>
                         <div class="conversation-info">
                             ${handoffStatus.is_claimed 
                                 ? `Claimed by ${escapeHtml(handoffStatus.agent_id)} at ${new Date(handoffStatus.claimed_at).toLocaleString()}` 

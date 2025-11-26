@@ -166,6 +166,9 @@ export default function QuotesTable({ quotes, loading }) {
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Email
               </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -190,6 +193,20 @@ export default function QuotesTable({ quotes, loading }) {
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                   {quote.email || '-'}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm">
+                  {quote.user_id ? (
+                    <a
+                      href={`/agent-console?userId=${encodeURIComponent(quote.user_id)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs font-medium"
+                    >
+                      Open in Console
+                    </a>
+                  ) : (
+                    <span className="text-gray-400 text-xs">-</span>
+                  )}
                 </td>
               </tr>
             ))}

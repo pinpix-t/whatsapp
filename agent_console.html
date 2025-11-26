@@ -313,6 +313,39 @@
         let eventSource = null;
         let isStreaming = false;
 
+        // Initialize fields from URL parameters and set defaults
+        (function() {
+            function initializeFields() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const userIdParam = urlParams.get('userId');
+                const agentIdParam = urlParams.get('agentId');
+                
+                const userIdInput = document.getElementById('userId');
+                const agentIdInput = document.getElementById('agentId');
+                
+                // Prefill userId from URL parameter if present
+                if (userIdParam && userIdInput) {
+                    userIdInput.value = decodeURIComponent(userIdParam);
+                }
+                
+                // Set default agentId to "Talib" if not provided in URL and field is empty
+                if (agentIdInput) {
+                    if (agentIdParam) {
+                        agentIdInput.value = decodeURIComponent(agentIdParam);
+                    } else if (!agentIdInput.value || agentIdInput.value.trim() === '') {
+                        agentIdInput.value = 'Talib';
+                    }
+                }
+            }
+            
+            // Wait for DOM to be ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeFields);
+            } else {
+                initializeFields();
+            }
+        })();
+
         function showStatus(message, type = 'info') {
             const statusEl = document.getElementById('status');
             statusEl.textContent = message;
