@@ -472,6 +472,13 @@ async def get_all_conversations(
             # Get bulk ordering state
             bulk_state = redis_store.get_bulk_order_state(user_id) if redis_store.client else None
             
+            # Check if quantity was mentioned (stored in selections.quantity)
+            has_quantity = False
+            if bulk_state:
+                selections = bulk_state.get("selections", {})
+                quantity = selections.get("quantity")
+                has_quantity = quantity is not None and quantity > 0
+            
             # Determine status
             status = "claimed" if handoff_info else "active"
             
@@ -484,6 +491,7 @@ async def get_all_conversations(
                 "claimed_at": handoff_info.get("claimed_at") if handoff_info else None,
                 "has_bulk_ordering": bulk_state is not None,
                 "bulk_state": bulk_state.get("state") if bulk_state else None,
+                "has_quantity": has_quantity,
                 "status": status
             })
         
