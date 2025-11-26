@@ -450,7 +450,12 @@
                     return;
                 }
 
-                showStatus('Conversation claimed, starting stream...', 'success');
+                showStatus('Conversation claimed, loading history...', 'success');
+                
+                // Load full conversation history first
+                await loadConversationHistory(userId);
+                
+                showStatus('History loaded, starting stream...', 'success');
                 
                 // Then start the stream
                 if (isStreaming) {
@@ -458,9 +463,8 @@
                     return;
                 }
 
-                // Clear messages
-                const messagesEl = document.getElementById('messages');
-                messagesEl.innerHTML = '';
+                // Don't clear messages - we want to keep the history
+                // History is already loaded above
 
                 eventSource = new EventSource(`${API_BASE_URL}/api/agent/stream/${userId}`);
 
@@ -635,6 +639,40 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        async function loadConversationHistory(userId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/agent/conversation/${userId}`);
+                if (!response.ok) {
+                    console.error('Failed to load conversation history');
+                    return;
+                }
+                
+                const data = await response.json();
+                const history = data.conversation_history || [];
+                
+                // Clear messages first
+                const messagesEl = document.getElementById('messages');
+                messagesEl.innerHTML = '';
+                
+                // Display all historical messages
+                if (history.length === 0) {
+                    messagesEl.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 40px;">No previous messages</div>';
+                    return;
+                }
+                
+                history.forEach(msg => {
+                    const direction = msg.direction || 'inbound';
+                    const sender = direction === 'inbound' ? 'User' : 'Bot';
+                    addMessage(sender, msg.content || '[No content]', direction, msg.created_at);
+                });
+                
+                // Scroll to bottom to show most recent messages
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            } catch (error) {
+                console.error('Error loading conversation history:', error);
+            }
         }
 
         // Allow Enter key to send message (Shift+Enter for new line)
