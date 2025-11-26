@@ -286,10 +286,8 @@
             </div>
 
             <div class="button-group">
-                <button class="btn-primary" onclick="claimConversation()">Claim Conversation</button>
-                <button class="btn-success" onclick="startStream()" id="startStreamBtn">Start Stream</button>
-                <button class="btn-danger" onclick="stopStream()" id="stopStreamBtn" disabled>Stop Stream</button>
-                <button class="btn-secondary" onclick="releaseConversation()">Release Conversation</button>
+                <button class="btn-primary" onclick="claimAndStart()" id="claimAndStartBtn">Claim & Start Stream</button>
+                <button class="btn-danger" onclick="stopAndRelease()" id="stopAndReleaseBtn" disabled>Stop & Release</button>
             </div>
 
             <div id="status" class="status"></div>
@@ -356,19 +354,19 @@
         }
 
         function updateConnectionStatus(connected) {
-            const startBtn = document.getElementById('startStreamBtn');
-            const stopBtn = document.getElementById('stopStreamBtn');
+            const claimAndStartBtn = document.getElementById('claimAndStartBtn');
+            const stopAndReleaseBtn = document.getElementById('stopAndReleaseBtn');
             const sendBtn = document.getElementById('sendMessageBtn');
             const messageInput = document.getElementById('messageInput');
 
             if (connected) {
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
+                claimAndStartBtn.disabled = true;
+                stopAndReleaseBtn.disabled = false;
                 sendBtn.disabled = false;
                 messageInput.disabled = false;
             } else {
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
+                claimAndStartBtn.disabled = false;
+                stopAndReleaseBtn.disabled = true;
                 sendBtn.disabled = true;
                 messageInput.disabled = true;
             }
@@ -425,6 +423,92 @@
                 }
             } catch (error) {
                 showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function claimAndStart() {
+            const userId = document.getElementById('userId').value.trim();
+            const agentId = document.getElementById('agentId').value.trim();
+
+            if (!userId || !agentId) {
+                showStatus('Please enter both User ID and Agent ID', 'error');
+                return;
+            }
+
+            // First claim the conversation
+            try {
+                const claimResponse = await fetch(`${API_BASE_URL}/api/agent/claim/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ agent_id: agentId })
+                });
+
+                const claimData = await claimResponse.json();
+
+                if (!claimResponse.ok) {
+                    showStatus(claimData.detail?.message || claimData.detail || 'Failed to claim conversation', 'error');
+                    return;
+                }
+
+                showStatus('Conversation claimed, starting stream...', 'success');
+                
+                // Then start the stream
+                if (isStreaming) {
+                    showStatus('Stream already active', 'info');
+                    return;
+                }
+
+                // Clear messages
+                const messagesEl = document.getElementById('messages');
+                messagesEl.innerHTML = '';
+
+                eventSource = new EventSource(`${API_BASE_URL}/api/agent/stream/${userId}`);
+
+                eventSource.onopen = () => {
+                    isStreaming = true;
+                    updateConnectionStatus(true);
+                    showStatus('Connected to message stream', 'success');
+                };
+
+                eventSource.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+
+                        if (data.type === 'connected') {
+                            addMessage('System', 'Connected to message stream', 'system');
+                        } else if (data.type === 'heartbeat') {
+                            // Heartbeat - no action needed
+                        } else if (data.type === 'new_message') {
+                            addMessage('User', data.content, 'inbound', data.timestamp);
+                        } else if (data.type === 'agent_message') {
+                            addMessage('Agent', data.content, 'outbound', data.timestamp);
+                        }
+                    } catch (error) {
+                        console.error('Error parsing SSE message:', error);
+                    }
+                };
+
+                eventSource.onerror = (error) => {
+                    console.error('SSE Error:', error);
+                    showStatus('Stream connection error. Make sure conversation is claimed.', 'error');
+                    stopStream();
+                };
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function stopAndRelease() {
+            const userId = document.getElementById('userId').value.trim();
+            
+            // First stop the stream
+            stopStream();
+            
+            // Then release the conversation
+            if (userId) {
+                releaseConversation();
+            } else {
+                showStatus('Please enter User ID to release', 'error');
             }
         }
 
