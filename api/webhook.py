@@ -544,6 +544,37 @@ async def process_message(message_data: dict):
                 await bulk_ordering_service.start_bulk_ordering(from_number)
                 return
             
+            # Check if message is a greeting pattern (should restart flow)
+            from utils.language_detection import detect_language_from_greeting
+            region, detected_language = detect_language_from_greeting(text)
+            if region and detected_language:
+                # This is a greeting - treat it like restart
+                logger.info(f"🔄 Greeting detected: '{text}' - restarting flow")
+                
+                # Clear bulk ordering state if exists
+                bulk_state = redis_store.get_bulk_order_state(from_number)
+                if bulk_state:
+                    redis_store.clear_bulk_order_state(from_number)
+                    redis_store.clear_last_message_sent(from_number)
+                
+                # Clear conversation history
+                redis_store.clear_conversation(from_number)
+                
+                # Store language preference
+                redis_store.set_user_language(from_number, detected_language, region)
+                
+                # Send welcome message in detected language
+                from utils.language_detection import get_welcome_message
+                welcome_message = get_welcome_message(detected_language)
+                await whatsapp_api.send_message(
+                    to=from_number,
+                    message=welcome_message
+                )
+                
+                # Automatically start bulk ordering flow
+                await bulk_ordering_service.start_bulk_ordering(from_number)
+                return
+            
             # Check for bulk order keywords (before checking if already in flow)
             bulk_order_keywords = ['bulk order', 'new quote', 'get quote', 'start bulk', 'bulk ordering', 'bulk quote']
             is_bulk_request = any(keyword in text_lower for keyword in bulk_order_keywords)
