@@ -95,11 +95,11 @@ BUTTON_LABELS = {
 # Bulk ordering messages by language
 BULK_MESSAGES = {
     "en": {
-        "welcome_bulk": "Welcome to bulk ordering!",
-        "ask_name": "What's your name?",
-        "ask_product": "Which product are you interested in?",
-        "ask_quantity": "How many units would you like to order?",
-        "completion": "Thank you! We will contact you promptly.",
+        "welcome_bulk": "Hi! Welcome to the Special Projects Team. I'm here to help get you a quote. First off, what is your name?",
+        "ask_name": "What is your name?",
+        "ask_product": "Nice to meet you. Which products would you like to customise today?",
+        "ask_quantity": "Great choice. To connect you with the right agent, how many do you need, and when is your deadline?",
+        "completion": "Thank you for that information. I will now connect you directly to our specialist who will prepare your quote. They will be with you shortly.",
         "invalid_name": "Please provide a valid name.",
         "invalid_number": "Please enter a valid number. For example: 50, 100, etc.",
         "invalid_quantity": "Please enter a valid quantity greater than 0.",
@@ -108,11 +108,11 @@ BULK_MESSAGES = {
         "minimum_quantity": "For bulk orders, we require a minimum of 11 units. For smaller orders, please visit our website:"
     },
     "fr": {
-        "welcome_bulk": "Bienvenue dans la commande en gros!",
+        "welcome_bulk": "Bonjour! Bienvenue dans l'équipe des Projets Spéciaux. Je suis là pour vous aider à obtenir un devis. Pour commencer, quel est votre nom?",
         "ask_name": "Quel est votre nom?",
-        "ask_product": "Quel produit vous intéresse?",
-        "ask_quantity": "Combien d'unités souhaitez-vous commander?",
-        "completion": "Merci! Nous vous contacterons rapidement.",
+        "ask_product": "Ravi de vous rencontrer. Quels produits souhaitez-vous personnaliser aujourd'hui?",
+        "ask_quantity": "Excellent choix. Pour vous mettre en contact avec le bon agent, combien en avez-vous besoin et quelle est votre date limite?",
+        "completion": "Merci pour ces informations. Je vais maintenant vous connecter directement à notre spécialiste qui préparera votre devis. Il sera avec vous sous peu.",
         "invalid_name": "Veuillez fournir un nom valide.",
         "invalid_number": "Veuillez entrer un nombre valide. Par exemple: 50, 100, etc.",
         "invalid_quantity": "Veuillez entrer une quantité valide supérieure à 0.",
@@ -121,11 +121,11 @@ BULK_MESSAGES = {
         "minimum_quantity": "Pour les commandes en gros, nous exigeons un minimum de 11 unités. Pour les commandes plus petites, veuillez visiter notre site Web:"
     },
     "it": {
-        "welcome_bulk": "Benvenuto nell'ordine all'ingrosso!",
+        "welcome_bulk": "Ciao! Benvenuto nel Team Progetti Speciali. Sono qui per aiutarti a ottenere un preventivo. Prima di tutto, come ti chiami?",
         "ask_name": "Come ti chiami?",
-        "ask_product": "Quale prodotto ti interessa?",
-        "ask_quantity": "Quante unità vorresti ordinare?",
-        "completion": "Grazie! Ti contatteremo prontamente.",
+        "ask_product": "Piacere di conoscerti. Quali prodotti vorresti personalizzare oggi?",
+        "ask_quantity": "Ottima scelta. Per metterti in contatto con l'agente giusto, quante ne hai bisogno e qual è la tua scadenza?",
+        "completion": "Grazie per queste informazioni. Ti collegherò ora direttamente al nostro specialista che preparerà il tuo preventivo. Sarà con te a breve.",
         "invalid_name": "Per favore, fornisci un nome valido.",
         "invalid_number": "Per favore, inserisci un numero valido. Ad esempio: 50, 100, ecc.",
         "invalid_quantity": "Per favore, inserisci una quantità valida maggiore di 0.",
@@ -134,11 +134,11 @@ BULK_MESSAGES = {
         "minimum_quantity": "Per ordini all'ingrosso, richiediamo un minimo di 11 unità. Per ordini più piccoli, visitare il nostro sito Web:"
     },
     "es": {
-        "welcome_bulk": "¡Bienvenido al pedido al por mayor!",
+        "welcome_bulk": "¡Hola! Bienvenido al Equipo de Proyectos Especiales. Estoy aquí para ayudarte a obtener un presupuesto. Para empezar, ¿cuál es tu nombre?",
         "ask_name": "¿Cuál es tu nombre?",
-        "ask_product": "¿Qué producto te interesa?",
-        "ask_quantity": "¿Cuántas unidades te gustaría pedir?",
-        "completion": "¡Gracias! Te contactaremos rápidamente.",
+        "ask_product": "Encantado de conocerte. ¿Qué productos te gustaría personalizar hoy?",
+        "ask_quantity": "Excelente elección. Para conectarte con el agente adecuado, ¿cuántos necesitas y cuál es tu fecha límite?",
+        "completion": "Gracias por esa información. Ahora te conectaré directamente con nuestro especialista que preparará tu presupuesto. Estará contigo en breve.",
         "invalid_name": "Por favor, proporciona un nombre válido.",
         "invalid_number": "Por favor, ingresa un número válido. Por ejemplo: 50, 100, etc.",
         "invalid_quantity": "Por favor, ingresa una cantidad válida mayor que 0.",
@@ -147,11 +147,11 @@ BULK_MESSAGES = {
         "minimum_quantity": "Para pedidos al por mayor, requerimos un mínimo de 11 unidades. Para pedidos más pequeños, visite nuestro sitio web:"
     },
     "de": {
-        "welcome_bulk": "Willkommen bei der Großbestellung!",
+        "welcome_bulk": "Hallo! Willkommen im Team für Sonderprojekte. Ich bin hier, um Ihnen bei der Angebotserstellung zu helfen. Zunächst einmal, wie ist Ihr Name?",
         "ask_name": "Wie ist Ihr Name?",
-        "ask_product": "Welches Produkt interessiert Sie?",
-        "ask_quantity": "Wie viele Einheiten möchten Sie bestellen?",
-        "completion": "Vielen Dank! Wir werden Sie umgehend kontaktieren.",
+        "ask_product": "Schön, Sie kennenzulernen. Welche Produkte möchten Sie heute anpassen?",
+        "ask_quantity": "Großartige Wahl. Um Sie mit dem richtigen Agenten zu verbinden, wie viele benötigen Sie und wann ist Ihre Frist?",
+        "completion": "Vielen Dank für diese Informationen. Ich verbinde Sie jetzt direkt mit unserem Spezialisten, der Ihr Angebot vorbereiten wird. Er wird in Kürze bei Ihnen sein.",
         "invalid_name": "Bitte geben Sie einen gültigen Namen ein.",
         "invalid_number": "Bitte geben Sie eine gültige Zahl ein. Zum Beispiel: 50, 100, usw.",
         "invalid_quantity": "Bitte geben Sie eine gültige Menge größer als 0 ein.",
@@ -160,11 +160,11 @@ BULK_MESSAGES = {
         "minimum_quantity": "Für Großbestellungen benötigen wir mindestens 11 Einheiten. Für kleinere Bestellungen besuchen Sie bitte unsere Website:"
     },
     "nl": {
-        "welcome_bulk": "Welkom bij groothandel!",
+        "welcome_bulk": "Hallo! Welkom bij het Speciale Projecten Team. Ik ben hier om u te helpen een offerte te krijgen. Om te beginnen, wat is uw naam?",
         "ask_name": "Wat is uw naam?",
-        "ask_product": "Welk product interesseert u?",
-        "ask_quantity": "Hoeveel eenheden wilt u bestellen?",
-        "completion": "Bedankt! We zullen u spoedig contacten.",
+        "ask_product": "Aangenaam kennis te maken. Welke producten wilt u vandaag aanpassen?",
+        "ask_quantity": "Uitstekende keuze. Om u in contact te brengen met de juiste agent, hoeveel heeft u nodig en wat is uw deadline?",
+        "completion": "Bedankt voor die informatie. Ik zal u nu direct doorverbinden met onze specialist die uw offerte zal voorbereiden. Ze zullen binnenkort bij u zijn.",
         "invalid_name": "Geef alstublieft een geldige naam op.",
         "invalid_number": "Voer alstublieft een geldig nummer in. Bijvoorbeeld: 50, 100, etc.",
         "invalid_quantity": "Voer alstublieft een geldige hoeveelheid groter dan 0 in.",

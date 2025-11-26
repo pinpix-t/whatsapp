@@ -116,14 +116,8 @@ class BulkOrderingService:
         except Exception as e:
             logger.error(f"Error tracking flow start: {e}")
         
-        # Ask for name
-        name_message = get_bulk_message(language_code, "ask_name")
-        step_info = {"flow": "bulk_ordering", "state": "asking_name"}
-        await self.whatsapp_api.send_message(
-            to=user_id,
-            message=name_message,
-            step_info=step_info
-        )
+        # Note: Welcome message already asks for name, so we don't send ask_name here
+        # The welcome message in llm_handler.py includes "First off, what is your name?"
     
     def end_bulk_ordering(self, user_id: str) -> None:
         """End bulk ordering flow and clear state"""
@@ -442,6 +436,19 @@ class BulkOrderingService:
             selections = state_data.get("selections", {}) if state_data else {}
             selections["quantity"] = quantity
             
+            # Extract deadline from the response (everything after the quantity number)
+            # Remove the quantity number and clean up the text
+            deadline_text = quantity_text.strip()
+            # Try to remove the first number occurrence
+            deadline_text = re.sub(r'\b' + str(quantity) + r'\b', '', deadline_text, count=1).strip()
+            # Clean up extra spaces and common separators
+            deadline_text = re.sub(r'[,\s]+', ' ', deadline_text).strip()
+            # Store deadline if there's meaningful text left
+            if deadline_text and len(deadline_text) > 2:
+                selections["deadline"] = deadline_text
+            else:
+                selections["deadline"] = None
+            
             # Track text input action
             self._track_user_action(user_id, "text_input", str(quantity), "asking_quantity")
             
@@ -513,6 +520,9 @@ class BulkOrderingService:
             description_parts.append(f"<p><strong>WhatsApp Number:</strong> {user_id}</p>")
             description_parts.append(f"<p><strong>Product:</strong> {product_name}</p>")
             description_parts.append(f"<p><strong>Quantity:</strong> {quantity} units</p>")
+            deadline = selections.get("deadline")
+            if deadline:
+                description_parts.append(f"<p><strong>Deadline:</strong> {deadline}</p>")
             
             description = "".join(description_parts)
             
