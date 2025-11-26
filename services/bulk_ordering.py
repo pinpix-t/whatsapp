@@ -423,7 +423,21 @@ class BulkOrderingService:
                 )
                 return
             
-            # Store quantity
+            # Check minimum quantity (10 units)
+            if quantity < 10:
+                # Get user's region for website link
+                user_region = user_language.get("region") if user_language else None
+                from utils.language_detection import get_region_url
+                region_url = get_region_url(user_region)
+                
+                minimum_msg = get_bulk_message(language_code, "minimum_quantity")
+                await self.whatsapp_api.send_message(
+                    user_id,
+                    f"{minimum_msg}\n\n{region_url}"
+                )
+                return
+            
+            # Store quantity (quantity >= 10)
             state_data = self.redis_store.get_bulk_order_state(user_id)
             selections = state_data.get("selections", {}) if state_data else {}
             selections["quantity"] = quantity
