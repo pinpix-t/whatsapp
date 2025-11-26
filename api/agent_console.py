@@ -472,9 +472,6 @@ async def get_all_conversations(
             # Get bulk ordering state
             bulk_state = redis_store.get_bulk_order_state(user_id) if redis_store.client else None
             
-            # Get conversation summary for additional stats
-            summary = postgres_store.get_conversation_summary(user_id)
-            
             # Determine status
             status = "claimed" if handoff_info else "active"
             
@@ -487,10 +484,7 @@ async def get_all_conversations(
                 "claimed_at": handoff_info.get("claimed_at") if handoff_info else None,
                 "has_bulk_ordering": bulk_state is not None,
                 "bulk_state": bulk_state.get("state") if bulk_state else None,
-                "status": status,
-                "inbound_count": summary.get("inbound_count", 0),
-                "outbound_count": summary.get("outbound_count", 0),
-                "first_message_time": summary.get("first_message_time")
+                "status": status
             })
         
         return {
