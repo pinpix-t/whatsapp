@@ -85,40 +85,76 @@ BUTTON_LABELS = {
 # Bulk ordering messages by language
 BULK_MESSAGES = {
     "en": {
+        "welcome_bulk": "Welcome to bulk ordering!",
         "ask_name": "What's your name?",
         "ask_product": "Which product are you interested in?",
         "ask_quantity": "How many units would you like to order?",
-        "completion": "Thank you! We will contact you promptly."
+        "completion": "Thank you! We will contact you promptly.",
+        "invalid_name": "Please provide a valid name.",
+        "invalid_number": "Please enter a valid number. For example: 50, 100, etc.",
+        "invalid_quantity": "Please enter a valid quantity greater than 0.",
+        "error_generic": "Sorry, there was an error. Please try again.",
+        "button_choose_product": "Choose Product"
     },
     "fr": {
+        "welcome_bulk": "Bienvenue dans la commande en gros!",
         "ask_name": "Quel est votre nom?",
         "ask_product": "Quel produit vous intéresse?",
         "ask_quantity": "Combien d'unités souhaitez-vous commander?",
-        "completion": "Merci! Nous vous contacterons rapidement."
+        "completion": "Merci! Nous vous contacterons rapidement.",
+        "invalid_name": "Veuillez fournir un nom valide.",
+        "invalid_number": "Veuillez entrer un nombre valide. Par exemple: 50, 100, etc.",
+        "invalid_quantity": "Veuillez entrer une quantité valide supérieure à 0.",
+        "error_generic": "Désolé, une erreur s'est produite. Veuillez réessayer.",
+        "button_choose_product": "Choisir un produit"
     },
     "it": {
+        "welcome_bulk": "Benvenuto nell'ordine all'ingrosso!",
         "ask_name": "Come ti chiami?",
         "ask_product": "Quale prodotto ti interessa?",
         "ask_quantity": "Quante unità vorresti ordinare?",
-        "completion": "Grazie! Ti contatteremo prontamente."
+        "completion": "Grazie! Ti contatteremo prontamente.",
+        "invalid_name": "Per favore, fornisci un nome valido.",
+        "invalid_number": "Per favore, inserisci un numero valido. Ad esempio: 50, 100, ecc.",
+        "invalid_quantity": "Per favore, inserisci una quantità valida maggiore di 0.",
+        "error_generic": "Scusa, c'è stato un errore. Per favore riprova.",
+        "button_choose_product": "Scegli prodotto"
     },
     "es": {
+        "welcome_bulk": "¡Bienvenido al pedido al por mayor!",
         "ask_name": "¿Cuál es tu nombre?",
         "ask_product": "¿Qué producto te interesa?",
         "ask_quantity": "¿Cuántas unidades te gustaría pedir?",
-        "completion": "¡Gracias! Te contactaremos rápidamente."
+        "completion": "¡Gracias! Te contactaremos rápidamente.",
+        "invalid_name": "Por favor, proporciona un nombre válido.",
+        "invalid_number": "Por favor, ingresa un número válido. Por ejemplo: 50, 100, etc.",
+        "invalid_quantity": "Por favor, ingresa una cantidad válida mayor que 0.",
+        "error_generic": "Lo siento, hubo un error. Por favor intenta de nuevo.",
+        "button_choose_product": "Elegir producto"
     },
     "de": {
+        "welcome_bulk": "Willkommen bei der Großbestellung!",
         "ask_name": "Wie ist Ihr Name?",
         "ask_product": "Welches Produkt interessiert Sie?",
         "ask_quantity": "Wie viele Einheiten möchten Sie bestellen?",
-        "completion": "Vielen Dank! Wir werden Sie umgehend kontaktieren."
+        "completion": "Vielen Dank! Wir werden Sie umgehend kontaktieren.",
+        "invalid_name": "Bitte geben Sie einen gültigen Namen ein.",
+        "invalid_number": "Bitte geben Sie eine gültige Zahl ein. Zum Beispiel: 50, 100, usw.",
+        "invalid_quantity": "Bitte geben Sie eine gültige Menge größer als 0 ein.",
+        "error_generic": "Entschuldigung, es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
+        "button_choose_product": "Produkt wählen"
     },
     "nl": {
+        "welcome_bulk": "Welkom bij groothandel!",
         "ask_name": "Wat is uw naam?",
         "ask_product": "Welk product interesseert u?",
         "ask_quantity": "Hoeveel eenheden wilt u bestellen?",
-        "completion": "Bedankt! We zullen u spoedig contacten."
+        "completion": "Bedankt! We zullen u spoedig contacten.",
+        "invalid_name": "Geef alstublieft een geldige naam op.",
+        "invalid_number": "Voer alstublieft een geldig nummer in. Bijvoorbeeld: 50, 100, etc.",
+        "invalid_quantity": "Voer alstublieft een geldige hoeveelheid groter dan 0 in.",
+        "error_generic": "Sorry, er is een fout opgetreden. Probeer het alstublieft opnieuw.",
+        "button_choose_product": "Kies product"
     },
 }
 

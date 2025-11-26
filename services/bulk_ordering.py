@@ -224,9 +224,13 @@ class BulkOrderingService:
         
         if product not in BULK_PRODUCTS:
             logger.error(f"Unknown product: {product}")
+            # Get user's language preference
+            user_language = self.redis_store.get_user_language(user_id)
+            language_code = user_language.get("language_code", "en") if user_language else "en"
+            error_message = get_bulk_message(language_code, "error_generic")
             await self.whatsapp_api.send_message(
                 user_id,
-                "Sorry, there was an error. Please try again."
+                error_message
             )
             return
         
@@ -318,10 +322,11 @@ class BulkOrderingService:
             # Get user's language preference
             user_language = self.redis_store.get_user_language(user_id)
             language_code = user_language.get("language_code", "en") if user_language else "en"
+            invalid_name_msg = get_bulk_message(language_code, "invalid_name")
             name_message = get_bulk_message(language_code, "ask_name")
             await self.whatsapp_api.send_message(
                 user_id,
-                f"Please provide a valid name.\n\n{name_message}"
+                f"{invalid_name_msg}\n\n{name_message}"
             )
             return
         
@@ -360,11 +365,12 @@ class BulkOrderingService:
         # Send product selection list
         sections = [{"rows": product_list}]
         product_message = get_bulk_message(language_code, "ask_product")
+        button_text = get_bulk_message(language_code, "button_choose_product")
         step_info = {"flow": "bulk_ordering", "state": "selecting_product"}
         await self.whatsapp_api.send_list_message(
             to=user_id,
             body_text=product_message,
-            button_text="Choose Product",
+            button_text=button_text,
             sections=sections,
             step_info=step_info
         )
@@ -400,18 +406,20 @@ class BulkOrderingService:
             # Try to extract number from text
             numbers = re.findall(r'\d+', quantity_text)
             if not numbers:
+                invalid_number_msg = get_bulk_message(language_code, "invalid_number")
                 await self.whatsapp_api.send_message(
                     user_id,
-                    "Please enter a valid number. For example: 50, 100, etc."
+                    invalid_number_msg
                 )
                 return
             
             quantity = int(numbers[0])
             
             if quantity <= 0:
+                invalid_quantity_msg = get_bulk_message(language_code, "invalid_quantity")
                 await self.whatsapp_api.send_message(
                     user_id,
-                    "Please enter a valid quantity greater than 0."
+                    invalid_quantity_msg
                 )
                 return
             
@@ -441,9 +449,13 @@ class BulkOrderingService:
             
         except Exception as e:
             logger.error(f"Error processing quantity: {e}")
+            # Get user's language preference
+            user_language = self.redis_store.get_user_language(user_id)
+            language_code = user_language.get("language_code", "en") if user_language else "en"
+            invalid_number_msg = get_bulk_message(language_code, "invalid_number")
             await self.whatsapp_api.send_message(
                 user_id,
-                "Please enter a valid number. For example: 50, 100, etc."
+                invalid_number_msg
             )
     
     async def _create_bulk_order_ticket(self, user_id: str, selections: Dict) -> None:

@@ -7,7 +7,7 @@ from utils.retry import retry_openai_call
 from utils.error_handler import LLMError
 from services.order_tracking import order_tracking_service
 from bot.whatsapp_api import WhatsAppAPI
-from utils.language_detection import detect_language_from_greeting, get_welcome_message, get_button_labels
+from utils.language_detection import detect_language_from_greeting, get_welcome_message, get_button_labels, get_bulk_message
 import logging
 import re
 import asyncio
@@ -67,42 +67,43 @@ Your response:"""
             
             logger.info(f"🔍 First message check: conversation={conversation}, is_first={is_first_message}")
             
-            # If this is the first message, ALWAYS send welcome buttons regardless of content
+            # If this is the first message, detect language and start bulk ordering
             if is_first_message:
-                logger.info(f"✅ FIRST MESSAGE DETECTED - Sending welcome buttons for user {user_id}")
+                logger.info(f"✅ FIRST MESSAGE DETECTED - Starting bulk ordering for user {user_id}")
                 
                 # Save user message first
                 self.redis_store.append_to_conversation(user_id, "user", message)
                 
-                # ALWAYS send buttons on first message
-                if self.whatsapp_api:
-                    try:
-                        buttons = [
-                            {"id": "btn_create", "title": "Start Creating!"},
-                            {"id": "btn_order", "title": "Track My Order"},
-                            {"id": "btn_bulk", "title": "Bulk Ordering"}
-                        ]
-                        await self.whatsapp_api.send_interactive_buttons(
-                            to=user_id,
-                            body_text="Hi! Welcome to PrinterPix! How can I help?",
-                            buttons=buttons
-                        )
-                        response = None  # Don't send text message, buttons already sent
-                        logger.info("✅ Sent welcome buttons for first message - user will see 3 buttons")
-                        
-                        # Save assistant response as buttons were sent
-                        self.redis_store.append_to_conversation(user_id, "assistant", "[Welcome buttons sent]")
-                    except Exception as e:
-                        logger.error(f"❌ Failed to send interactive buttons: {e}", exc_info=True)
-                        # Fallback to text message
-                        response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Track My Order\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
-                        logger.info("✓ Sent text fallback for first message")
-                        self.redis_store.append_to_conversation(user_id, "assistant", response)
-                else:
-                    response = "Hi! Welcome to PrinterPix! How can I help?\n\n1️⃣ Start Creating!\n2️⃣ Order Questions\n3️⃣ Bulk Ordering\n\nReply with 1, 2, or 3!"
-                    self.redis_store.append_to_conversation(user_id, "assistant", response)
+                # Detect language from greeting
+                region, language_code = detect_language_from_greeting(message)
+                logger.info(f"🌍 Detected region: {region}, language: {language_code}")
                 
-                return response
+                # Store language preference
+                if region and language_code:
+                    self.redis_store.set_user_language(user_id, language_code, region)
+                else:
+                    language_code = "en"  # Default to English
+                
+                # Get welcome message in detected language
+                welcome_message = get_bulk_message(language_code, "welcome_bulk")
+                
+                # Send welcome message
+                if self.whatsapp_api:
+                    await self.whatsapp_api.send_message(
+                        to=user_id,
+                        message=welcome_message
+                    )
+                    logger.info(f"✓ Sent welcome message in {language_code}")
+                
+                # Start bulk ordering flow automatically
+                from services.bulk_ordering import get_bulk_ordering_service
+                bulk_ordering_service = get_bulk_ordering_service(self.whatsapp_api)
+                await bulk_ordering_service.start_bulk_ordering(user_id)
+                
+                # Save assistant response
+                self.redis_store.append_to_conversation(user_id, "assistant", welcome_message)
+                
+                return None  # No text response needed, bulk flow handles it
             
             # Check cache first (only for non-first messages)
             cached_response = self.redis_store.get_cached_response(message)
