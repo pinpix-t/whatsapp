@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON, Boolean, text
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -39,7 +39,6 @@ class Conversation(Base):
     user_id = Column(String(50), unique=True, nullable=False)
     context = Column(JSON, default=list)
     meta_data = Column("metadata", JSON, default=dict)  # Renamed to avoid SQLAlchemy reserved word
-    is_archived = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -111,23 +110,6 @@ class PostgresStore:
                         logger.info("✅ Email column added to analytics table")
             except Exception as e:
                 logger.warning(f"⚠️ Could not verify/add email column: {e}")
-
-            # Ensure is_archived column exists in conversations table
-            try:
-                with self.engine.begin() as conn:
-                    # Check if is_archived column exists, if not add it
-                    result = conn.execute(text("""
-                        SELECT column_name 
-                        FROM information_schema.columns 
-                        WHERE table_name='conversations' AND column_name='is_archived'
-                    """))
-                    if not result.fetchone():
-                        logger.info("📦 Adding is_archived column to conversations table...")
-                        conn.execute(text("ALTER TABLE conversations ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT FALSE"))
-                        conn.execute(text("CREATE INDEX IF NOT EXISTS idx_conversations_is_archived ON conversations(is_archived)"))
-                        logger.info("✅ is_archived column added to conversations table")
-            except Exception as e:
-                logger.warning(f"⚠️ Could not verify/add is_archived column: {e}")
 
             logger.info("✓ PostgreSQL connection pool established (size=20, max_overflow=40)")
         except Exception as e:
@@ -298,7 +280,7 @@ class PostgresStore:
             return {"status": "error", "error": str(e)}
 
     @retry_db_operation()
-    def get_all_conversations(self, limit: int = 100, offset: int = 0, date_from: Optional[str] = None, date_to: Optional[str] = None, include_archived: bool = False) -> List[Dict[str, Any]]:
+    def get_all_conversations(self, limit: int = 100, offset: int = 0, date_from: Optional[str] = None, date_to: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Get all unique conversations (users who have sent messages)
         
@@ -307,10 +289,9 @@ class PostgresStore:
             offset: Offset for pagination
             date_from: Filter conversations from this date (ISO format)
             date_to: Filter conversations to this date (ISO format)
-            include_archived: If True, include archived conversations
             
         Returns:
-            List of conversation summaries with user_id, last_message_time, message_count, is_archived
+            List of conversation summaries with user_id, last_message_time, message_count
         """
         session = self.get_session()
         if not session:
@@ -331,19 +312,6 @@ class PostgresStore:
                 .filter(~Message.from_number.like('agent_%'))
                 .group_by(Message.from_number)
             )
-            
-            # Filter out archived conversations unless include_archived is True
-            if not include_archived:
-                # Get list of archived user_ids from conversations table
-                archived_user_ids = [
-                    row[0] for row in 
-                    session.query(Conversation.user_id)
-                    .filter(Conversation.is_archived == True)
-                    .all()
-                ]
-                if archived_user_ids:
-                    # Exclude archived conversations
-                    query = query.filter(~Message.from_number.in_(archived_user_ids))
             
             # Apply date filters if provided
             if date_from:
@@ -368,23 +336,12 @@ class PostgresStore:
             # Apply limit and offset
             results = query.limit(limit).offset(offset).all()
             
-            # Get archive status for returned conversations
-            user_ids = [result.from_number for result in results]
-            archive_status_map = {}
-            if user_ids:
-                archived = session.query(Conversation.user_id).filter(
-                    Conversation.user_id.in_(user_ids),
-                    Conversation.is_archived == True
-                ).all()
-                archive_status_map = {row[0]: True for row in archived}
-            
             conversations = []
             for result in results:
                 conversations.append({
                     "user_id": result.from_number,
                     "last_message_time": result.last_message_time.isoformat() if result.last_message_time else None,
-                    "message_count": result.message_count,
-                    "is_archived": archive_status_map.get(result.from_number, False)
+                    "message_count": result.message_count
                 })
             
             return conversations
@@ -474,70 +431,6 @@ class PostgresStore:
         except SQLAlchemyError as e:
             logger.error(f"Error getting conversation summary: {e}")
             return {}
-        finally:
-            session.close()
-
-    @retry_db_operation()
-    def archive_conversation(self, user_id: str) -> bool:
-        """Archive a conversation"""
-        session = self.get_session()
-        if not session:
-            return False
-        
-        try:
-            conversation = session.query(Conversation).filter(Conversation.user_id == user_id).first()
-            if conversation:
-                conversation.is_archived = True
-            else:
-                # Create conversation record if it doesn't exist
-                conversation = Conversation(user_id=user_id, is_archived=True)
-                session.add(conversation)
-            session.commit()
-            logger.info(f"Archived conversation for {user_id}")
-            return True
-        except SQLAlchemyError as e:
-            session.rollback()
-            logger.error(f"Error archiving conversation: {e}")
-            return False
-        finally:
-            session.close()
-
-    @retry_db_operation()
-    def unarchive_conversation(self, user_id: str) -> bool:
-        """Unarchive a conversation"""
-        session = self.get_session()
-        if not session:
-            return False
-        
-        try:
-            conversation = session.query(Conversation).filter(Conversation.user_id == user_id).first()
-            if conversation:
-                conversation.is_archived = False
-                session.commit()
-                logger.info(f"Unarchived conversation for {user_id}")
-                return True
-            # If conversation doesn't exist, it's effectively not archived (return True)
-            return True
-        except SQLAlchemyError as e:
-            session.rollback()
-            logger.error(f"Error unarchiving conversation: {e}")
-            return False
-        finally:
-            session.close()
-
-    @retry_db_operation()
-    def is_conversation_archived(self, user_id: str) -> bool:
-        """Check if a conversation is archived"""
-        session = self.get_session()
-        if not session:
-            return False
-        
-        try:
-            conversation = session.query(Conversation).filter(Conversation.user_id == user_id).first()
-            return conversation.is_archived if conversation and conversation.is_archived else False
-        except SQLAlchemyError as e:
-            logger.error(f"Error checking archive status: {e}")
-            return False
         finally:
             session.close()
 
