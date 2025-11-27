@@ -105,7 +105,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Please enter a valid quantity greater than 0.",
         "error_generic": "Sorry, there was an error. Please try again.",
         "button_choose_product": "Choose Product",
-        "minimum_quantity": "For bulk orders, we require a minimum of 11 units. For smaller orders, please visit our website:"
+        "minimum_quantity": "Our bulk ordering service, which includes special pricing and dedicated support, starts at just 11 units.\n\nIf you're looking for a smaller qty, you can order directly and easily on our website: {url}"
     },
     "fr": {
         "welcome_bulk": "Bonjour! Bienvenue dans notre Service de Commande en Gros. Je suis là pour vous aider à obtenir un devis. Pour commencer, quel est votre nom?",
@@ -118,7 +118,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Veuillez entrer une quantité valide supérieure à 0.",
         "error_generic": "Désolé, une erreur s'est produite. Veuillez réessayer.",
         "button_choose_product": "Choisir un produit",
-        "minimum_quantity": "Pour les commandes en gros, nous exigeons un minimum de 11 unités. Pour les commandes plus petites, veuillez visiter notre site Web:"
+        "minimum_quantity": "Notre service de commande en gros, qui comprend des prix spéciaux et un support dédié, commence à seulement 11 unités.\n\nSi vous recherchez une quantité plus petite, vous pouvez commander directement et facilement sur notre site Web : {url}"
     },
     "it": {
         "welcome_bulk": "Ciao! Benvenuto nel nostro Servizio di Ordini all'Ingrosso. Sono qui per aiutarti a ottenere un preventivo. Prima di tutto, come ti chiami?",
@@ -131,7 +131,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Per favore, inserisci una quantità valida maggiore di 0.",
         "error_generic": "Scusa, c'è stato un errore. Per favore riprova.",
         "button_choose_product": "Scegli prodotto",
-        "minimum_quantity": "Per ordini all'ingrosso, richiediamo un minimo di 11 unità. Per ordini più piccoli, visitare il nostro sito Web:"
+        "minimum_quantity": "Il nostro servizio di ordini all'ingrosso, che include prezzi speciali e supporto dedicato, inizia a soli 11 pezzi.\n\nSe stai cercando una quantità più piccola, puoi ordinare direttamente e facilmente sul nostro sito Web: {url}"
     },
     "es": {
         "welcome_bulk": "¡Hola! Bienvenido a nuestro Servicio de Pedidos al por Mayor. Estoy aquí para ayudarte a obtener un presupuesto. Para empezar, ¿cuál es tu nombre?",
@@ -144,7 +144,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Por favor, ingresa una cantidad válida mayor que 0.",
         "error_generic": "Lo siento, hubo un error. Por favor intenta de nuevo.",
         "button_choose_product": "Elegir producto",
-        "minimum_quantity": "Para pedidos al por mayor, requerimos un mínimo de 11 unidades. Para pedidos más pequeños, visite nuestro sitio web:"
+        "minimum_quantity": "Nuestro servicio de pedidos al por mayor, que incluye precios especiales y soporte dedicado, comienza con solo 11 unidades.\n\nSi está buscando una cantidad más pequeña, puede pedir directamente y fácilmente en nuestro sitio web: {url}"
     },
     "de": {
         "welcome_bulk": "Hallo! Willkommen bei unserem Großbestellungs-Service. Ich bin hier, um Ihnen bei der Angebotserstellung zu helfen. Zunächst einmal, wie ist Ihr Name?",
@@ -157,7 +157,7 @@ BULK_MESSAGES = {
         "invalid_quantity": "Bitte geben Sie eine gültige Menge größer als 0 ein.",
         "error_generic": "Entschuldigung, es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
         "button_choose_product": "Produkt wählen",
-        "minimum_quantity": "Für Großbestellungen benötigen wir mindestens 11 Einheiten. Für kleinere Bestellungen besuchen Sie bitte unsere Website:"
+        "minimum_quantity": "Unser Großbestellungs-Service, der Sonderpreise und persönlichen Support umfasst, beginnt bereits bei 11 Einheiten.\n\nWenn Sie eine kleinere Menge suchen, können Sie direkt und einfach auf unserer Website bestellen: {url}"
     },
     "nl": {
         "welcome_bulk": "Hallo! Welkom bij onze Groothandel Service. Ik ben hier om u te helpen een offerte te krijgen. Om te beginnen, wat is uw naam?",
@@ -170,21 +170,33 @@ BULK_MESSAGES = {
         "invalid_quantity": "Voer alstublieft een geldige hoeveelheid groter dan 0 in.",
         "error_generic": "Sorry, er is een fout opgetreden. Probeer het alstublieft opnieuw.",
         "button_choose_product": "Kies product",
-        "minimum_quantity": "Voor groothandel vereisen we een minimum van 11 eenheden. Voor kleinere bestellingen bezoek onze website:"
+        "minimum_quantity": "Onze groothandel service, die speciale prijzen en toegewijd support omvat, begint bij slechts 11 eenheden.\n\nAls u op zoek bent naar een kleinere hoeveelheid, kunt u direct en gemakkelijk bestellen op onze website: {url}"
     },
 }
 
-# Region to website URL mapping
+# Region to website URL mapping (base URLs without trailing slash)
 REGION_URLS = {
-    "UK": "http://printerpix.co.uk/",
-    "US": "http://printerpix.com",
-    "AE": "https://www.printerpix.ae/",
+    "UK": "https://www.printerpix.co.uk",
+    "US": "https://www.printerpix.com",
+    "AE": "https://www.printerpix.ae",
     "NL": "https://www.printerpix.nl",
     "DE": "https://www.printerpix.de",
     "IT": "https://www.printerpix.it",
     "FR": "https://www.printerpix.fr",
-    "IN": "https://www.printerpix.in/",
+    "IN": "https://www.printerpix.in",
     "ES": "https://www.printerpix.es",
+}
+
+# Product URL paths (same across all regions)
+PRODUCT_PATHS = {
+    "mugs": "/photo-gifts/custom-kitchen-and-drinkware/",
+    "photo_printing": "/photo-prints/",
+    "canvas": "/photo-gifts/canvas-photo-prints/",
+    "blankets": "/photo-blankets/",
+    "photobooks": "/photo-books-q/",
+    "calendars": "/photo-gifts/photo-calendars/",
+    # For "other" products or no product selected, use homepage
+    "other": "/",
 }
 
 # Product names by language (for product selection list)
@@ -304,4 +316,31 @@ def get_region_url(region: Optional[str]) -> str:
     if region and region in REGION_URLS:
         return REGION_URLS[region]
     return REGION_URLS["UK"]  # Default to UK
+
+
+def get_product_url_for_region(product: Optional[str], region: Optional[str]) -> str:
+    """
+    Get product-specific URL for a region
+    
+    Args:
+        product: Product key (e.g., "mugs", "canvas", "blankets", "photobooks", "calendars", "photo_printing")
+                 or "other" products (wall_calendar, photo_frame, etc.) which will use homepage
+        region: Region code (e.g., "UK", "DE", "FR", etc.)
+        
+    Returns:
+        Full URL for the product in the specified region
+    """
+    # Get base URL for region
+    base_url = get_region_url(region)
+    
+    # Get product path
+    if product and product in PRODUCT_PATHS:
+        path = PRODUCT_PATHS[product]
+    else:
+        # Default to homepage for "other" products (wall_calendar, photo_frame, etc.) or unknown products
+        # or when product is "other" (user selected "other" but hasn't chosen specific product yet)
+        path = "/"
+    
+    # Combine base URL + path
+    return f"{base_url}{path}"
 

@@ -430,13 +430,23 @@ class BulkOrderingService:
             if quantity < 11:
                 # Get user's region for website link
                 user_region = user_language.get("region") if user_language else None
-                from utils.language_detection import get_region_url
-                region_url = get_region_url(user_region)
                 
+                # Get product from selections to build product-specific URL
+                state_data = self.redis_store.get_bulk_order_state(user_id)
+                selections = state_data.get("selections", {}) if state_data else {}
+                product = selections.get("product")
+                
+                # Get product-specific URL for the region
+                from utils.language_detection import get_product_url_for_region
+                product_url = get_product_url_for_region(product, user_region)
+                
+                # Get and format minimum quantity message with URL
                 minimum_msg = get_bulk_message(language_code, "minimum_quantity")
+                formatted_msg = minimum_msg.format(url=product_url)
+                
                 await self.whatsapp_api.send_message(
                     user_id,
-                    f"{minimum_msg}\n\n{region_url}"
+                    formatted_msg
                 )
                 return
             
