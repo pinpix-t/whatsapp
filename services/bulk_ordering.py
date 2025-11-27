@@ -183,6 +183,13 @@ class BulkOrderingService:
                 if product == "other":
                     sections = [{"rows": OTHER_PRODUCTS_LIST}]
                     product_message = get_bulk_message(language_code, "ask_product")
+                    # Format message with customer name if available
+                    customer_name = selections.get("name", "")
+                    if customer_name:
+                        product_message = product_message.format(name=customer_name)
+                    else:
+                        # Fallback if name not available (shouldn't happen, but safe)
+                        product_message = product_message.replace(", {name}", "").replace("{name}, ", "")
                     step_info = {"flow": "bulk_ordering", "state": "selecting_product"}
                     await self.whatsapp_api.send_list_message(
                         to=user_id,
@@ -359,6 +366,8 @@ class BulkOrderingService:
         # Send product selection list
         sections = [{"rows": product_list}]
         product_message = get_bulk_message(language_code, "ask_product")
+        # Format message with customer name
+        product_message = product_message.format(name=name_text)
         button_text = get_bulk_message(language_code, "button_choose_product")
         step_info = {"flow": "bulk_ordering", "state": "selecting_product"}
         await self.whatsapp_api.send_list_message(
