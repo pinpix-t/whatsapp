@@ -441,12 +441,49 @@ async def list_conversations(all: bool = False):
         raise HTTPException(status_code=500, detail=f"Error listing conversations: {str(e)}")
 
 
+@router.post("/archive/{user_id}")
+async def archive_conversation(user_id: str):
+    """Archive a conversation"""
+    try:
+        success = postgres_store.archive_conversation(user_id)
+        if success:
+            return {
+                "status": "archived",
+                "user_id": user_id,
+                "message": "Conversation archived successfully"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to archive conversation")
+    except Exception as e:
+        logger.error(f"Error archiving conversation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error archiving conversation: {str(e)}")
+
+
+@router.post("/unarchive/{user_id}")
+async def unarchive_conversation(user_id: str):
+    """Unarchive a conversation"""
+    try:
+        success = postgres_store.unarchive_conversation(user_id)
+        if success:
+            return {
+                "status": "unarchived",
+                "user_id": user_id,
+                "message": "Conversation unarchived successfully"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to unarchive conversation")
+    except Exception as e:
+        logger.error(f"Error unarchiving conversation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error unarchiving conversation: {str(e)}")
+
+
 @router.get("/all-conversations")
 async def get_all_conversations(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     date_from: Optional[str] = Query(None),
-    date_to: Optional[str] = Query(None)
+    date_to: Optional[str] = Query(None),
+    include_archived: bool = Query(False)
 ):
     """
     List all conversations with metadata
@@ -458,7 +495,8 @@ async def get_all_conversations(
             limit=limit,
             offset=offset,
             date_from=date_from,
-            date_to=date_to
+            date_to=date_to,
+            include_archived=include_archived
         )
         
         # Get all user_ids to check for quotes in batch

@@ -347,6 +347,10 @@
             <div class="sidebar-header">
                 <h2>Conversations</h2>
                 <input type="text" class="search-box" id="searchBox" placeholder="Search by user ID...">
+                <label style="display: flex; align-items: center; margin-top: 10px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" id="showArchived" onchange="toggleArchived()" style="margin-right: 8px;">
+                    <span>Show archived conversations</span>
+                </label>
             </div>
             <div class="conversation-columns">
                 <div class="conversation-column">
@@ -418,7 +422,8 @@
         // Load all conversations
         async function loadConversations() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/agent/all-conversations?limit=1000`);
+                const showArchived = document.getElementById('showArchived')?.checked || false;
+                const response = await fetch(`${API_BASE_URL}/api/agent/all-conversations?limit=1000&include_archived=${showArchived}`);
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error('Error loading conversations:', response.status, errorText);
@@ -519,12 +524,29 @@
             // Show quantity if available
             const quantityDisplay = conv.quantity ? `<span style="font-weight: 600; color: #667eea; margin-left: 8px;">[${conv.quantity}]</span>` : '';
             
+            // Archive button - only show if not archived (or if showing archived, show unarchive)
+            const archiveButton = conv.is_archived 
+                ? `<button onclick="event.stopPropagation(); unarchiveConversation('${conv.user_id}')" 
+                           class="archive-btn" 
+                           title="Unarchive conversation"
+                           style="padding: 4px 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 4px;">
+                    📤 Unarchive
+                  </button>`
+                : `<button onclick="event.stopPropagation(); archiveConversation('${conv.user_id}')" 
+                           class="archive-btn" 
+                           title="Archive conversation"
+                           style="padding: 4px 8px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 4px;">
+                    📦 Archive
+                  </button>`;
+            
             return `
-                <div class="conversation-item ${selectedConversationId === conv.user_id ? 'active' : ''}" 
-                     onclick="selectConversation('${conv.user_id}')">
-                    <div class="conversation-header">
+                <div class="conversation-item ${selectedConversationId === conv.user_id ? 'active' : ''}">
+                    <div class="conversation-header" onclick="selectConversation('${conv.user_id}')">
                         <span class="user-id">${escapeHtml(conv.user_id)}${quantityDisplay}</span>
-                        <span class="status-badge ${statusClass}">${statusText}</span>
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                            ${archiveButton}
+                        </div>
                     </div>
                     <div class="conversation-meta">
                         <span>${conv.message_count} messages</span>
@@ -621,6 +643,67 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // Archive conversation
+        async function archiveConversation(userId) {
+            if (!confirm(`Are you sure you want to archive conversation ${userId}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/agent/archive/${encodeURIComponent(userId)}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    // Refresh conversations list
+                    await loadConversations();
+                    // Clear selected conversation if it was archived
+                    if (selectedConversationId === userId) {
+                        selectedConversationId = null;
+                        document.getElementById('conversationView').innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">👈</div>
+                                <div>Select a conversation to view messages</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(`Error: ${error.detail || 'Failed to archive conversation'}`);
+                }
+            } catch (error) {
+                console.error('Error archiving conversation:', error);
+                alert('Error archiving conversation');
+            }
+        }
+
+        // Unarchive conversation
+        async function unarchiveConversation(userId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/agent/unarchive/${encodeURIComponent(userId)}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    // Refresh conversations list
+                    await loadConversations();
+                } else {
+                    const error = await response.json();
+                    alert(`Error: ${error.detail || 'Failed to unarchive conversation'}`);
+                }
+            } catch (error) {
+                console.error('Error unarchiving conversation:', error);
+                alert('Error unarchiving conversation');
+            }
+        }
+
+        // Toggle archived conversations
+        async function toggleArchived() {
+            await loadConversations();
         }
 
         // Search functionality
