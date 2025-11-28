@@ -283,24 +283,74 @@ class WhatsAppAPI:
 
     async def send_url_button(self, to: str, body_text: str, button_text: str, url: str, step_info: Optional[Dict[str, Any]] = None):
         """
-        Send a text message with a clickable URL (WhatsApp auto-links URLs)
-        Note: URL buttons are only available in message templates, so we send a text message instead
+        Send an interactive message with a URL button (clickable link)
+        Falls back to text message with URL if URL buttons aren't supported
         
         Args:
             to: Phone number in international format
             body_text: Main message text
-            button_text: Text for the call-to-action (e.g., "Grab the deal here")
-            url: URL to include in the message
+            button_text: Text for the button (e.g., "Grab the deal here")
+            url: URL to open when button is clicked
             step_info: Optional dictionary with flow and state information
         
         Returns:
             dict: API response
         """
-        # Combine message text with URL - WhatsApp will auto-link the URL
-        full_message = f"{body_text}\n\n{button_text}: {url}"
+        url_endpoint = f"{self.BASE_URL}/{self.phone_number_id}/messages"
         
-        # Use regular send_message which handles URL auto-linking
-        return await self.send_message(to, full_message, step_info)
+        # Try correct URL button format (non-nested)
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            "type": "interactive",
+            "interactive": {
+                "type": "button",
+                "body": {
+                    "text": body_text
+                },
+                "action": {
+                    "buttons": [
+                        {
+                            "type": "url",
+                            "url": url,  # Direct URL string, not nested
+                            "title": button_text
+                        }
+                    ]
+                }
+            }
+        }
+        
+        try:
+            response = await self.client.post(url_endpoint, headers=self.headers, json=payload)
+            response.raise_for_status()
+            
+            data = response.json()
+            logger.info(f"✓ URL button message sent to {to}")
+            
+            # Track last message sent for abandonment detection
+            if step_info and step_info.get("flow") == "bulk_ordering":
+                redis_store.set_last_message_sent(to, body_text, step_info)
+            
+            return data
+            
+        except httpx.HTTPStatusError as e:
+            # If URL buttons don't work, fallback to text message with URL
+            try:
+                error_details = e.response.json()
+                error_msg = error_details.get('error', {}).get('message', str(e))
+            except:
+                error_msg = str(e)
+            
+            logger.warning(f"⚠️ URL button not supported, falling back to text message: {error_msg}")
+            # Combine message text with URL - WhatsApp will auto-link the URL
+            full_message = f"{body_text}\n\n{button_text}: {url}"
+            return await self.send_message(to, full_message, step_info)
+        except httpx.RequestError as e:
+            logger.error(f"❌ Error sending URL button to {to}: {e}")
+            # Fallback to text message
+            full_message = f"{body_text}\n\n{button_text}: {url}"
+            return await self.send_message(to, full_message, step_info)
 
     async def send_list_message(self, to: str, body_text: str, button_text: str, sections: list, step_info: Optional[Dict[str, Any]] = None):
         """
