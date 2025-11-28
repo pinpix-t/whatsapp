@@ -281,6 +281,81 @@ class WhatsAppAPI:
                 details={"error": str(e)}
             )
 
+    async def send_url_button(self, to: str, body_text: str, button_text: str, url: str, step_info: Optional[Dict[str, Any]] = None):
+        """
+        Send an interactive message with a URL button (clickable link)
+        
+        Args:
+            to: Phone number in international format
+            body_text: Main message text
+            button_text: Text for the button (e.g., "Grab the deal here")
+            url: URL to open when button is clicked
+            step_info: Optional dictionary with flow and state information
+        
+        Returns:
+            dict: API response
+        """
+        url_endpoint = f"{self.BASE_URL}/{self.phone_number_id}/messages"
+        
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            "type": "interactive",
+            "interactive": {
+                "type": "button",
+                "body": {
+                    "text": body_text
+                },
+                "action": {
+                    "buttons": [
+                        {
+                            "type": "url",
+                            "url": {
+                                "title": button_text,
+                                "url": url
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+        
+        try:
+            response = await self.client.post(url_endpoint, headers=self.headers, json=payload)
+            response.raise_for_status()
+            
+            data = response.json()
+            logger.info(f"✓ URL button message sent to {to}")
+            
+            # Track last message sent for abandonment detection
+            if step_info and step_info.get("flow") == "bulk_ordering":
+                redis_store.set_last_message_sent(to, body_text, step_info)
+            
+            return data
+            
+        except httpx.HTTPStatusError as e:
+            try:
+                error_details = e.response.json()
+                error_msg = error_details.get('error', {}).get('message', str(e))
+            except:
+                error_details = {"response": e.response.text}
+                error_msg = str(e)
+            
+            logger.error(f"❌ Error sending URL button to {to}: {error_msg}")
+            raise WhatsAppAPIError(
+                message=f"Failed to send URL button to {to}: {error_msg}",
+                status_code=e.response.status_code,
+                details=error_details
+            )
+        except httpx.RequestError as e:
+            logger.error(f"❌ Error sending URL button to {to}: {e}")
+            raise WhatsAppAPIError(
+                message=f"Failed to send URL button to {to}",
+                status_code=500,
+                details={"error": str(e)}
+            )
+
     async def send_list_message(self, to: str, body_text: str, button_text: str, sections: list, step_info: Optional[Dict[str, Any]] = None):
         """
         Send an interactive list message (dropdown menu)

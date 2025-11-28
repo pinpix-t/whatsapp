@@ -483,6 +483,42 @@ class BulkOrderingService:
                 step_info=step_info
             )
             
+            # Send Black Friday promo message right after completion
+            try:
+                # Get region from postcode (if available) or from user language preference
+                region = None
+                postcode = selections.get("postcode")
+                if postcode:
+                    # Try to get region from postcode
+                    region = self.region_lookup_service.get_region_from_postcode(postcode)
+                
+                # Fallback to region from user language preference
+                if not region and user_language:
+                    region = user_language.get("region")
+                
+                # Default to UK if no region found
+                if not region:
+                    region = "UK"
+                
+                # Get promo message, link, and button text
+                from utils.language_detection import get_bf_promo_message, get_bf_link, get_bf_button_text
+                promo_message = get_bf_promo_message(region)
+                bf_link = get_bf_link(region)
+                button_text = get_bf_button_text(language_code)
+                
+                if promo_message and bf_link:
+                    await self.whatsapp_api.send_url_button(
+                        to=user_id,
+                        body_text=promo_message,
+                        button_text=button_text,
+                        url=bf_link,
+                        step_info={"flow": "bulk_ordering", "state": "promo_sent"}
+                    )
+                    logger.info(f"✓ Sent Black Friday promo to {user_id} for region {region}")
+            except Exception as e:
+                logger.error(f"Error sending Black Friday promo: {e}")
+                # Don't fail the whole flow if promo fails
+            
             # Keep state for 1 minute so dashboard can pick it up
             # Update state to "completed" with 60 second TTL
             self.redis_store.set_bulk_order_state(
