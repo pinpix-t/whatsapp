@@ -199,17 +199,17 @@ PRODUCT_PATHS = {
     "other": "/",
 }
 
-# Black Friday promo messages by region
+# Black Friday promo messages by region - Angle C: Hard Deadline
 BF_PROMO_MESSAGES = {
-    "UK": "While you're waiting, quick heads-up 🚨\n\nIt's Black Friday 2025 and our biggest sale is live!! up to 80% OFF on photo gifts (canvases, books, calendars & more).\n\nDon't keep it to yourself—forward this to your team/family so they don't miss the sale.",
-    "US": "While you're waiting, quick heads-up 🚨\n\nIt's Black Friday 2025 and our biggest sale is live!! up to 80% OFF on photo gifts (canvases, books, calendars & more).\n\nDon't keep it to yourself—forward this to your team/family so they don't miss the sale.",
-    "DE": "Während Sie warten, eine kurze Info 🚨\n\nEs ist Black Friday 2025 und unser größter Verkauf läuft!! Bis zu 80% RABATT auf Fotogeschenke (Leinwände, Bücher, Kalender & mehr).\n\nBehalten Sie es nicht für sich—leiten Sie dies an Ihr Team/Ihre Familie weiter, damit sie den Verkauf nicht verpassen.",
-    "FR": "Pendant que vous attendez, un petit rappel 🚨\n\nC'est le Black Friday 2025 et notre plus grande vente est en cours !! Jusqu'à 80% de RÉDUCTION sur les cadeaux photo (toiles, livres, calendriers et plus).\n\nNe le gardez pas pour vous—transmettez ceci à votre équipe/famille pour qu'ils ne manquent pas la vente.",
-    "ES": "Mientras esperas, un aviso rápido 🚨\n\n¡Es Black Friday 2025 y nuestra mayor venta está en vivo! Hasta un 80% DE DESCUENTO en regalos fotográficos (lienzos, libros, calendarios y más).\n\nNo te lo guardes—reenvía esto a tu equipo/familia para que no se pierdan la venta.",
-    "IT": "Mentre aspetti, un rapido avviso 🚨\n\nÈ il Black Friday 2025 e la nostra vendita più grande è in corso!! Fino all'80% di SCONTO su regali fotografici (tele, libri, calendari e altro).\n\nNon tenerlo per te—inoltra questo al tuo team/famiglia così non perderanno la vendita.",
-    "NL": "Terwijl u wacht, een snelle melding 🚨\n\nHet is Black Friday 2025 en onze grootste verkoop is live!! Tot 80% KORTING op fotocadeaus (doeken, boeken, kalenders & meer).\n\nHoud het niet voor uzelf—stuur dit door naar uw team/familie zodat ze de verkoop niet missen.",
-    "IN": "While you're waiting, quick heads-up 🚨\n\nIt's Black Friday 2025 and our biggest sale is live!! up to 70% OFF on photo gifts (canvases, books, calendars & more).\n\nDon't keep it to yourself—forward this to your team/family so they don't miss the sale.",
-    "AE": "While you're waiting, quick heads-up 🚨\n\nIt's Black Friday 2025 and our biggest sale is live!! up to 70% OFF on photo gifts (canvases, books, calendars & more).\n\nDon't keep it to yourself—forward this to your team/family so they don't miss the sale.",
+    "UK": "One final thing! ⏳ It is officially Black Friday and the site is buzzing. Deals this big are about to expire. Lock in up to 80% off before the timer hits zero. 🔥\n\nTell your friends to hurry—once these are gone, they're gone!",
+    "US": "One final thing! ⏳ It is officially Black Friday and the site is buzzing. Deals this big are about to expire. Lock in up to 80% off before the timer hits zero. 🔥\n\nTell your friends to hurry—once these are gone, they're gone!",
+    "DE": "Eine letzte Sache! ⏳ Es ist offiziell Black Friday und die Seite brummt. Deals dieser Größe laufen bald ab. Sichern Sie sich bis zu 80% Rabatt, bevor der Timer auf Null steht. 🔥\n\nSagen Sie Ihren Freunden, sie sollen sich beeilen—wenn diese weg sind, sind sie weg!",
+    "FR": "Une dernière chose ! ⏳ C'est officiellement le Black Friday et le site est en effervescence. Des offres aussi importantes sont sur le point d'expirer. Verrouillez jusqu'à 80% de réduction avant que le minuteur n'atteigne zéro. 🔥\n\nDites à vos amis de se dépêcher—une fois partis, ils sont partis !",
+    "ES": "¡Una última cosa! ⏳ Es oficialmente Black Friday y el sitio está en plena actividad. Ofertas tan grandes están a punto de expirar. Bloquea hasta un 80% de descuento antes de que el temporizador llegue a cero. 🔥\n\n¡Dile a tus amigos que se apresuren—una vez que se acaben, se acabaron!",
+    "IT": "Un'ultima cosa! ⏳ È ufficialmente Black Friday e il sito è in fermento. Offerte così grandi stanno per scadere. Blocca fino all'80% di sconto prima che il timer arrivi a zero. 🔥\n\nDì ai tuoi amici di sbrigarsi—una volta finiti, sono finiti!",
+    "NL": "Een laatste ding! ⏳ Het is officieel Black Friday en de site bruist. Aanbiedingen zo groot staan op het punt te verlopen. Zet tot 80% korting vast voordat de timer op nul staat. 🔥\n\nZeg je vrienden dat ze moeten haasten—als deze weg zijn, zijn ze weg!",
+    "IN": "One final thing! ⏳ It is officially Black Friday and the site is buzzing. Deals this big are about to expire. Lock in up to 70% off before the timer hits zero. 🔥\n\nTell your friends to hurry—once these are gone, they're gone!",
+    "AE": "One final thing! ⏳ It is officially Black Friday and the site is buzzing. Deals this big are about to expire. Lock in up to 70% off before the timer hits zero. 🔥\n\nTell your friends to hurry—once these are gone, they're gone!",
 }
 
 # Black Friday links by region
@@ -225,14 +225,14 @@ BF_LINKS = {
     "AE": "https://www.printerpix.ae/blackfriday-2025/",
 }
 
-# Button text by language code
+# Button text by language code - Angle C
 BF_BUTTON_TEXT = {
-    "en": "Grab the deal here",
-    "de": "Angebot sichern",
-    "fr": "Profitez de l'offre",
-    "es": "Aprovecha la oferta",
-    "it": "Approfitta dell'offerta",
-    "nl": "Pak de deal",
+    "en": "Tap here to save",
+    "de": "Hier tippen zum Sparen",
+    "fr": "Appuyez ici pour économiser",
+    "es": "Toca aquí para ahorrar",
+    "it": "Tocca qui per risparmiare",
+    "nl": "Tik hier om te besparen",
 }
 
 # Product names by language (for product selection list)
